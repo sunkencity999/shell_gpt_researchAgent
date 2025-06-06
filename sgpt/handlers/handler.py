@@ -8,28 +8,34 @@ from ..function import get_function
 from ..printer import MarkdownPrinter, Printer, TextPrinter
 from ..role import DefaultRoles, SystemRole
 
+from sgpt.llm_functions.ollama import OllamaClient
+
 completion: Callable[..., Any] = lambda *args, **kwargs: Generator[Any, None, None]
 
 base_url = cfg.get("API_BASE_URL")
-use_litellm = cfg.get("USE_LITELLM") == "true"
+llm_provider = cfg.get("LLM_PROVIDER").lower()
+use_litellm = llm_provider == "litellm"
+ollama_is_default = llm_provider == "ollama"
+openai_is_default = llm_provider == "openai"
+
+ollama_client = OllamaClient(base_url or "http://localhost:11434") if ollama_is_default else None
+
 additional_kwargs = {
     "timeout": int(cfg.get("REQUEST_TIMEOUT")),
     "api_key": cfg.get("OPENAI_API_KEY"),
     "base_url": None if base_url == "default" else base_url,
 }
 
-if use_litellm:
-    import litellm  # type: ignore
-
-    completion = litellm.completion
-    litellm.suppress_debug_info = True
-    additional_kwargs.pop("api_key")
-else:
+if openai_is_default:
     from openai import OpenAI
-
     client = OpenAI(**additional_kwargs)  # type: ignore
     completion = client.chat.completions.create
     additional_kwargs = {}
+elif use_litellm:
+    import litellm  # type: ignore
+    completion = litellm.completion
+    litellm.suppress_debug_info = True
+    additional_kwargs.pop("api_key")
 
 
 class Handler:
@@ -97,6 +103,13 @@ class Handler:
         is_dsc_shell_role = self.role.name == DefaultRoles.DESCRIBE_SHELL.value
         if is_shell_role or is_code_role or is_dsc_shell_role:
             functions = None
+
+        # If using Ollama as default
+        if ollama_is_default:
+            prompt = "\n".join([m["content"] for m in messages if m["role"] in ("system", "user")])
+            response = ollama_client.generate(prompt, model=model)
+            yield response
+            return
 
         if functions:
             additional_kwargs["tool_choice"] = "auto"

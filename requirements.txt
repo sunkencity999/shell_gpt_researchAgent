@@ -1,0 +1,17 @@
+requests
+python-dotenv
+typer
+distro
+litellm
+beautifulsoup4
+newspaper3k
+playwright
+lxml_html_clean
+typer
+distro
+litellm
+beautifulsoup4
+newspaper3k
+python-dotenv
+# Optional headless browsing fallback:
+playwright

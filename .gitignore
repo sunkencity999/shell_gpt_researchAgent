@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.env
+.env.*
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test and coverage
+.coverage
+.tox/
+.nox/
+.cache/
+pytest_cache/
+
+# Logs
+*.log
+
+# Misc
+*.sqlite3
+*.db
+
+# Ollama models (if any are downloaded here)
+/models/
