@@ -1,6 +1,8 @@
 from sgpt.llm_functions.ollama import OllamaClient
 from sgpt.config import cfg
 from sgpt.web_search import search_web_with_fallback, fetch_url_text
+from dotenv import load_dotenv
+load_dotenv()
 
 class ResearchAgent:
     def __init__(self, model=None):
@@ -69,10 +71,13 @@ class ResearchAgent:
         if len(results) < 10:
             print(f"[WARNING] Only {len(results)} results found (requested 10). Research may be less comprehensive.")
         print(f"\nTop {len(results)} Web Results:")
+        web_results_md = []
         for idx, r in enumerate(results, 1):
             print(f"{idx}. {r['title']}\n   {r['href']}\n   {r['snippet']}\n")
+            web_results_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{r['snippet']}")
         # Summarize all results, ensure summary is non-empty
         summaries = []
+        summaries_md = []
         for idx, r in enumerate(results, 1):
             if r['href']:
                 print(f"\nSummary of result {idx}:")
@@ -86,23 +91,50 @@ class ResearchAgent:
                         print(f"[LLM summary output on retry for result {idx}]:\n{retry_summary}\n---")
                         print(retry_summary)
                         summaries.append(retry_summary)
+                        summaries_md.append(f"#### Summary of result {idx}\n{retry_summary}")
                     else:
                         print(f"[WARNING] Retry also failed for result {idx}.")
                 else:
                     print(summary)
                     summaries.append(summary)
+                    summaries_md.append(f"#### Summary of result {idx}\n{summary}")
             else:
                 print(f"\nNo URL to summarize for result {idx}.")
         print(f"\n{len(summaries)} out of {len(results)} results were successfully summarized and will be used for synthesis.")
         # Synthesize all summaries into a final answer
+        synthesis = ""
         if summaries:
             print("\nSYNTHESIZED RESEARCH SUMMARY:")
             synthesis = self.synthesize(summaries, goal)
             print(synthesis)
         else:
             print("\nNo valid summaries to synthesize.")
+        # Write markdown report with timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+        safe_goal = ''.join(c for c in goal if c.isalnum() or c in (' ', '_', '-')).rstrip()
+        report_path = f"research_report_{timestamp}.md"
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(f"# Research Report: {goal}\n\n")
+            f.write("## Research Plan\n")
+            f.write(f"{steps}\n\n")
+            f.write("## Web Results\n")
+            f.write("\n".join(web_results_md) + "\n\n")
+            f.write("## Summaries\n")
+            f.write("\n".join(summaries_md) + "\n\n")
+            f.write("## Synthesized Research Summary\n")
+            f.write(f"{synthesis}\n")
+        print(f"\n[Research report written to {report_path}]")
         return steps
 
-# Example usage:
-# agent = ResearchAgent()
-# agent.run("Summarize the latest research on quantum computing.")
+if __name__ == "__main__":
+    print("\nShell GPT Research Agent\n========================\n")
+    try:
+        goal = input("Enter your research goal: ").strip()
+        if not goal:
+            print("No research goal entered. Exiting.")
+        else:
+            agent = ResearchAgent()
+            agent.run(goal)
+    except (KeyboardInterrupt, EOFError):
+        print("\nExiting.")

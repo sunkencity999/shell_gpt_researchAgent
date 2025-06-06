@@ -1,18 +1,62 @@
 # ShellGPT
-A command-line productivity tool powered by AI large language models (LLM). This command-line tool offers streamlined generation of **shell commands, code snippets, documentation**, eliminating the need for external resources (like Google search). Supports Linux, macOS, Windows and compatible with all major Shells like PowerShell, CMD, Bash, Zsh, etc.
 
-https://github.com/TheR1D/shell_gpt/assets/16740832/9197283c-db6a-4b46-bfea-3eb776dd9093
+A robust, autonomous command-line research agent for deep technical and scientific investigations. This tool orchestrates multi-provider web search, advanced content extraction, and multi-step LLM summarization and synthesis, all from your terminal.
 
-## Installation
-```shell
-pip install shell-gpt
-```
-By default, ShellGPT uses OpenAI's API and GPT-4 model. You'll need an API key, you can generate one [here](https://beta.openai.com/account/api-keys). You will be prompted for your key which will then be stored in `~/.config/shell_gpt/.sgptrc`. OpenAI API is not free of charge, please refer to the [OpenAI pricing](https://openai.com/pricing) for more information.
+## Key Features
 
-> [!TIP]
-> Alternatively, you can use locally hosted open source models which are available for free. To use local models, you will need to run your own LLM backend server such as [Ollama](https://github.com/ollama/ollama). To set up ShellGPT with Ollama, please follow this comprehensive [guide](https://github.com/TheR1D/shell_gpt/wiki/Ollama).
->
-> **❗️Note that ShellGPT is not optimized for local models and may not work as expected.**
+- **Autonomous Research Workflow:**
+  - Accepts a high-level research goal and autonomously plans, searches, extracts, summarizes, and synthesizes information.
+- **Multi-Provider Web Search:**
+  - Uses Google Custom Search API (with pagination for up to 10 results), with fallback to DuckDuckGo and Brave Search for reliability.
+- **Robust Content Extraction:**
+  - Extracts readable article text using `newspaper3k`, with Playwright headless browser as a fallback for difficult or dynamic sites.
+  - Handles paywalls and restricted content gracefully, with verbose debug output for troubleshooting.
+- **LLM Summarization (Ollama):**
+  - Summarizes each web result using a local Ollama LLM backend, with retry logic for empty or failed summaries.
+  - Synthesizes all valid summaries into a comprehensive research report.
+- **Verbose Debugging and Error Handling:**
+  - Prints extraction lengths, LLM prompt previews, and warnings for all failure modes.
+  - Automatically starts Ollama server if not running.
+- **CLI-First Experience:**
+  - Run deep research tasks entirely from your terminal, with clear step-by-step output.
+
+## Quick Start
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/sunkencity999/shell_gpt_researchAgent.git
+   cd shell_gpt_researchAgent
+   ```
+2. **Create and activate a virtual environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+3. **Install requirements:**
+   ```bash
+   pip install -r requirements.txt
+   playwright install  # For browser-based extraction fallback
+   ```
+4. **Set up environment variables:**
+   - Create a `.env` file with your Google CSE API credentials:
+     ```
+     GOOGLE_API_KEY=your_google_api_key
+     GOOGLE_CSE_ID=your_cse_id
+     ```
+5. **Run the agent:**
+   ```bash
+   python -m sgpt.agent
+   ```
+   Or, for a one-off research query:
+   ```bash
+   python -c "from dotenv import load_dotenv; load_dotenv(); from sgpt.agent import ResearchAgent; agent = ResearchAgent(); agent.run('Summarize the latest research on quantum computing.')"
+   ```
+
+## Requirements
+- Python 3.8+
+- [Ollama](https://ollama.com/) running locally (for LLM summarization)
+- Google Custom Search API credentials (for best search results)
+- Linux/macOS (Playwright headless browser extraction works best on Unix-like systems)
 
 ## Usage
 **ShellGPT** is designed to quickly analyse and retrieve information. It's useful for straightforward requests ranging from technical configurations to general knowledge.

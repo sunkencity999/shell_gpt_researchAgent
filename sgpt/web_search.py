@@ -1,5 +1,7 @@
 import requests
 from typing import List, Dict
+from dotenv import load_dotenv
+load_dotenv()
 
 def search_web_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     """DuckDuckGo search using the official Instant Answer API (no API key required)."""
