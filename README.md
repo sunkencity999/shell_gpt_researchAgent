@@ -40,31 +40,22 @@ A next-generation, autonomous command-line research assistant for deep technical
    git clone https://github.com/sunkencity999/shell_gpt_researchAgent.git
    cd shell_gpt_researchAgent
    ```
-2. **Create and activate a virtual environment:**
+2. **Run the installer:**
    ```bash
-   python3 -m venv venv
+   ./install.sh
+   ```
+   This will set up the Python virtual environment, install dependencies, and help you configure your API keys and Ollama models.
+3. **(If needed) Activate the virtual environment:**
+   ```bash
    source venv/bin/activate
    ```
-3. **Install requirements:**
-   ```bash
-   pip install -r requirements.txt
-   playwright install  # For browser-based extraction fallback
-   ```
-4. **Set up environment variables:**
-   - Create a `.env` file with your Google CSE API credentials:
-     ```env
-     GOOGLE_API_KEY=your_key
-     GOOGLE_CSE_ID=your_cse_id
-     ```
-5. **Install and pull models with Ollama:**
-   ```bash
-   ollama pull llama3:latest
-   ollama pull qwen3:8b
-   # ...any other models you want
-   ```
-6. **Launch the Research Agent:**
+4. **Launch the Research Agent:**
    ```bash
    ./launch_sgpt_research.sh
+   ```
+   Or, if you have created a symlink named `sgpt-research` (recommended for convenience):
+   ```bash
+   ./sgpt-research
    ```
 
 ---
@@ -74,11 +65,21 @@ A next-generation, autonomous command-line research assistant for deep technical
 1. **Start the agent:**
    ```bash
    ./launch_sgpt_research.sh
+   # or ./sgpt-research (if symlinked)
    ```
 2. **Select your preferred Ollama model** from the numbered list.
 3. **Enter your research goal** and answer the prompts for audience, tone, and improvements.
 4. **Watch the progress bars** as the agent plans, searches, summarizes, and synthesizes.
 5. **Find your completed research report** in the `documents/` folder.
+
+---
+
+## ⚠️ Troubleshooting
+
+- **Ollama Models:** You must have at least one model pulled with `ollama pull <model>` before launching the agent.
+- **Google API Keys:** You need valid `GOOGLE_API_KEY` and `GOOGLE_CSE_ID` in your `.env` file for web search.
+- **Symlink (optional):** For convenience, you may create a symlink to `launch_sgpt_research.sh` named `sgpt-research` in your PATH.
+- **No global command by default:** The CLI is launched via the provided script unless you add a symlink manually.
 
 ---
 
