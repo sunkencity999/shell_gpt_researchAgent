@@ -1,26 +1,39 @@
-# ShellGPT
+# Shell GPT Research Agent
 
-A robust, autonomous command-line research agent for deep technical and scientific investigations. This tool orchestrates multi-provider web search, advanced content extraction, and multi-step LLM summarization and synthesis, all from your terminal.
+A next-generation, autonomous command-line research assistant for deep technical, business, and scientific investigations. This tool orchestrates multi-provider web search, advanced content extraction, and multi-step LLM synthesis—all locally, with robust user experience and privacy.
 
-## Key Features
+---
 
-- **Autonomous Research Workflow:**
-  - Accepts a high-level research goal and autonomously plans, searches, extracts, summarizes, and synthesizes information.
-- **Multi-Provider Web Search:**
-  - Uses Google Custom Search API (with pagination for up to 10 results), with fallback to DuckDuckGo and Brave Search for reliability.
-- **Robust Content Extraction:**
-  - Extracts readable article text using `newspaper3k`, with Playwright headless browser as a fallback for difficult or dynamic sites.
-  - Handles paywalls and restricted content gracefully, with verbose debug output for troubleshooting.
-- **LLM Summarization (Ollama):**
-  - Summarizes each web result using a local Ollama LLM backend, with retry logic for empty or failed summaries.
-  - Synthesizes all valid summaries into a comprehensive research report.
-- **Verbose Debugging and Error Handling:**
-  - Prints extraction lengths, LLM prompt previews, and warnings for all failure modes.
-  - Automatically starts Ollama server if not running.
-- **CLI-First Experience:**
-  - Run deep research tasks entirely from your terminal, with clear step-by-step output.
+## 🚀 Key Features
 
-## Quick Start
+- **Local LLM Model Selection & Management**
+  - Lists all locally installed Ollama models and lets you choose by number for each session.
+  - Supports any model available in your Ollama installation.
+
+- **Visual Progress Bars & Real-Time Status**
+  - See exactly what the agent is doing at every step: planning, searching, summarizing, synthesizing, and report writing.
+  - Uses the `rich` library for beautiful, modern CLI feedback.
+
+- **Autonomous, Multi-Source Research Workflow**
+  - Accepts a high-level research goal and autonomously plans, searches, extracts, summarizes, and synthesizes information from the web.
+  - Uses Google Custom Search, DuckDuckGo, and Brave Search for robust, multi-provider coverage.
+
+- **Advanced Content Extraction**
+  - Extracts readable article text using `newspaper3k`, Playwright headless browser, and BeautifulSoup.
+  - Handles paywalls, dynamic content, and fallback gracefully.
+
+- **True Information Synthesis (Not Just Summarization)**
+  - Automatically synthesizes the actual information and findings from all sources into a unified, actionable report.
+  - No more meta-review of summaries—get real answers, not just commentary.
+
+- **Seamless CLI Experience & Environment Isolation**
+  - Fully isolated virtual environment, robust launch script, and .env support.
+  - All research reports are saved in a dedicated `documents/` folder (git-ignored for privacy).
+  - Clean terminal output—no stray LLM responses or shell-gpt interference.
+
+---
+
+## 🛠️ Quick Start
 
 1. **Clone the repository:**
    ```bash
@@ -39,6 +52,56 @@ A robust, autonomous command-line research agent for deep technical and scientif
    ```
 4. **Set up environment variables:**
    - Create a `.env` file with your Google CSE API credentials:
+     ```env
+     GOOGLE_API_KEY=your_key
+     GOOGLE_CSE_ID=your_cse_id
+     ```
+5. **Install and pull models with Ollama:**
+   ```bash
+   ollama pull llama3:latest
+   ollama pull qwen3:8b
+   # ...any other models you want
+   ```
+6. **Launch the Research Agent:**
+   ```bash
+   ./launch_sgpt_research.sh
+   ```
+
+---
+
+## 🧑‍💻 Usage Example
+
+1. **Start the agent:**
+   ```bash
+   ./launch_sgpt_research.sh
+   ```
+2. **Select your preferred Ollama model** from the numbered list.
+3. **Enter your research goal** and answer the prompts for audience, tone, and improvements.
+4. **Watch the progress bars** as the agent plans, searches, summarizes, and synthesizes.
+5. **Find your completed research report** in the `documents/` folder.
+
+---
+
+## 🙏 Credits
+
+- **Created by Christopher Bradford**
+- **Special thanks to the creators of [shell-gpt](https://github.com/TheR1D/shell_gpt)**, whose work provided the foundation for this enhanced research agent.
+
+---
+
+## 📄 License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## 💡 Why Use Shell GPT Research Agent?
+
+- **Local-first, private, and extensible**
+- **Superior synthesis and actionable reporting**
+- **Modern CLI UX for technical professionals**
+
+For feedback, feature requests, or collaboration, please open an issue or pull request!
      ```
      GOOGLE_API_KEY=your_google_api_key
      GOOGLE_CSE_ID=your_cse_id
