@@ -146,6 +146,19 @@ else
     echo -e "${green}✔ .env file created with your credentials${reset}"
 fi
 
-echo -e "\n${green}Setup complete!${reset}"
-echo -e "To start the research agent, run:"
-echo -e "  source venv/bin/activate && python -m sgpt.agent"
+# Step 8: Create CLI alias for sgpt-research
+BIN_ALIAS="$HOME/.local/bin/sgpt-research"
+SCRIPT_PATH="$PWD/launch_sgpt_research.sh"
+mkdir -p "$HOME/.local/bin"
+ln -sf "$SCRIPT_PATH" "$BIN_ALIAS"
+chmod +x "$BIN_ALIAS"
+echo -e "${green}✔ sgpt-research CLI alias created at ~/.local/bin/sgpt-research${reset}"
+echo -e "\nYou can now launch the research agent from anywhere with:"
+echo -e "  ${yellow}sgpt-research${reset}"
+
+echo -e "${green}✔ Installation complete!${reset}"
+echo -e "\nTo launch the research agent, run:"
+echo -e "  ${yellow}./launch_sgpt_research.sh${reset}"
+echo -e "\nTo activate the venv manually:"
+echo -e "  ${yellow}source venv/bin/activate${reset}"
+echo -e "\nHappy researching!"

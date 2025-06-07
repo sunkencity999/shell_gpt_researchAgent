@@ -8,7 +8,7 @@ from ..function import get_function
 from ..printer import MarkdownPrinter, Printer, TextPrinter
 from ..role import DefaultRoles, SystemRole
 
-from sgpt.llm_functions.ollama import OllamaClient
+from sgptAgent.llm_functions.ollama import OllamaClient
 
 completion: Callable[..., Any] = lambda *args, **kwargs: Generator[Any, None, None]
 

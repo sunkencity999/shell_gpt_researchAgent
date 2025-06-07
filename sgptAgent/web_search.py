@@ -121,7 +121,11 @@ def search_web_with_fallback(query: str, max_results: int = 10) -> List[Dict[str
 
 
 from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+    print('[ERROR] BeautifulSoup (bs4) is not installed. Install with `pip install beautifulsoup4`.')
 
 def fetch_url_text(url: str, snippet: str = "") -> str:
     """
@@ -156,30 +160,35 @@ def fetch_url_text(url: str, snippet: str = "") -> str:
             page.goto(url, timeout=15000)
             html = page.content()
             browser.close()
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(html, "html.parser")
-        for s in soup(["script", "style"]):
-            s.extract()
-        text = soup.get_text(separator=" ", strip=True)
-        if text:
-            debug_preview(text, "Playwright", url)
-            if len(text) >= 500:
-                return text[:8000]
+        if BeautifulSoup is None:
+            print('[ERROR] BeautifulSoup (bs4) is not installed. Skipping HTML parsing.')
+        else:
+            soup = BeautifulSoup(html, "html.parser")
+            for s in soup(["script", "style"]):
+                s.extract()
+            text = soup.get_text(separator=" ", strip=True)
+            if text:
+                debug_preview(text, "Playwright", url)
+                if len(text) >= 500:
+                    return text[:8000]
     except Exception as e:
         print(f"[Playwright fetch failed for {url}: {e}]")
 
     # 3. Try requests+BeautifulSoup
     try:
-        resp = requests.get(url, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        for s in soup(["script", "style"]):
-            s.extract()
-        text = soup.get_text(separator=" ", strip=True)
-        if text:
-            debug_preview(text, "Requests+BS4", url)
-            if len(text) >= 500:
-                return text[:8000]
+        if BeautifulSoup is None:
+            print('[ERROR] BeautifulSoup (bs4) is not installed. Skipping HTML parsing.')
+        else:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for s in soup(["script", "style"]):
+                s.extract()
+            text = soup.get_text(separator=" ", strip=True)
+            if text:
+                debug_preview(text, "Requests+BS4", url)
+                if len(text) >= 500:
+                    return text[:8000]
     except Exception as e:
         print(f"[Requests+BS4 fetch failed for {url}: {e}")
 
@@ -193,19 +202,24 @@ def fetch_url_text(url: str, snippet: str = "") -> str:
         except Exception:
             candidate_html = None
     if candidate_html:
-        soup = BeautifulSoup(candidate_html, "html.parser")
-        domain = urlparse(url).netloc
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            abs_url = urljoin(url, href)
-            # Only follow links to same domain, and likely articles
-            if urlparse(abs_url).netloc == domain and any(x in href.lower() for x in ["article", "news", "story", "202", "item", "detail"]):
-                print(f"[Following likely article link: {abs_url} from {url}]")
-                # Try to extract from this linked page (newspaper3k, Playwright, BS4, snippet fallback)
-                return fetch_url_text(abs_url, snippet)
+        if BeautifulSoup is None:
+            print('[ERROR] BeautifulSoup (bs4) is not installed. Skipping HTML parsing.')
+        else:
+            soup = BeautifulSoup(candidate_html, "html.parser")
+            domain = urlparse(url).netloc
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                abs_url = urljoin(url, href)
+                # Only follow links to same domain, and likely articles
+                if urlparse(abs_url).netloc == domain and any(x in href.lower() for x in ["article", "news", "story", "202", "item", "detail"]):
+                    print(f"[Following likely article link: {abs_url} from {url}]")
+                    # Try to extract from this linked page (newspaper3k, Playwright, BS4, snippet fallback)
+                    return fetch_url_text(abs_url, snippet)
 
     # 5. Final fallback: use the snippet if provided
     if snippet:
         print(f"[Using search snippet fallback for {url}]")
         return snippet
+    if BeautifulSoup is None:
+        return '[Error fetching {}: BeautifulSoup (bs4) is not installed. Install with `pip install beautifulsoup4`. All extraction methods failed.]'.format(url)
     return f"[Error fetching {url}: all extraction methods failed.]"

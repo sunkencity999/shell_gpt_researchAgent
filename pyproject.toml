@@ -60,7 +60,7 @@ repository = "https://github.com/ther1d/shell_gpt"
 documentation = "https://github.com/TheR1D/shell_gpt/blob/main/README.md"
 
 [tool.hatch.version]
-path = "sgpt/__version__.py"
+path = "sgptAgent/__version__.py"
 
 [tool.hatch.build.targets.wheel]
 only-include = ["sgpt"]

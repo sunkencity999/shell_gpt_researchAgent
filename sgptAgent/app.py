@@ -8,14 +8,14 @@ import typer
 from click import BadArgumentUsage
 from click.types import Choice
 
-from sgpt.config import cfg
-from sgpt.function import get_openai_schemas
-from sgpt.handlers.chat_handler import ChatHandler
-from sgpt.handlers.default_handler import DefaultHandler
-from sgpt.handlers.repl_handler import ReplHandler
-from sgpt.llm_functions.init_functions import install_functions as inst_funcs
-from sgpt.role import DefaultRoles, SystemRole
-from sgpt.utils import (
+from sgptAgent.config import cfg
+from sgptAgent.function import get_openai_schemas
+from sgptAgent.handlers.chat_handler import ChatHandler
+from sgptAgent.handlers.default_handler import DefaultHandler
+from sgptAgent.handlers.repl_handler import ReplHandler
+from sgptAgent.llm_functions.init_functions import install_functions as inst_funcs
+from sgptAgent.role import DefaultRoles, SystemRole
+from sgptAgent.utils import (
     get_edited_prompt,
     get_sgpt_version,
     install_shell_integration,

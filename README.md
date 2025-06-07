@@ -45,11 +45,11 @@ A robust, autonomous command-line research agent for deep technical and scientif
      ```
 5. **Run the agent:**
    ```bash
-   python -m sgpt.agent
+   python -m sgptAgent.agent
    ```
    Or, for a one-off research query:
    ```bash
-   python -c "from dotenv import load_dotenv; load_dotenv(); from sgpt.agent import ResearchAgent; agent = ResearchAgent(); agent.run('Summarize the latest research on quantum computing.')"
+   python -c "from dotenv import load_dotenv; load_dotenv(); from sgptAgent.agent import ResearchAgent; agent = ResearchAgent(); agent.run('Summarize the latest research on quantum computing.')"
    ```
 
 ## Requirements
@@ -61,19 +61,19 @@ A robust, autonomous command-line research agent for deep technical and scientif
 ## Usage
 **ShellGPT** is designed to quickly analyse and retrieve information. It's useful for straightforward requests ranging from technical configurations to general knowledge.
 ```shell
-sgpt "What is the fibonacci sequence"
+sgptAgent "What is the fibonacci sequence"
 # -> The Fibonacci sequence is a series of numbers where each number ...
 ```
 
-ShellGPT accepts prompt from both stdin and command line argument. Whether you prefer piping input through the terminal or specifying it directly as arguments, `sgpt` got you covered. For example, you can easily generate a git commit message based on a diff:
+ShellGPT accepts prompt from both stdin and command line argument. Whether you prefer piping input through the terminal or specifying it directly as arguments, `sgptAgent` got you covered. For example, you can easily generate a git commit message based on a diff:
 ```shell
-git diff | sgpt "Generate git commit message, for my changes"
+git diff | sgptAgent "Generate git commit message, for my changes"
 # -> Added main feature details into README.md
 ```
 
 You can analyze logs from various sources by passing them using stdin, along with a prompt. For instance, we can use it to quickly analyze logs, identify errors and get suggestions for possible solutions:
 ```shell
-docker logs -n 20 my_app | sgpt "check logs, find errors, provide possible solutions"
+docker logs -n 20 my_app | sgptAgent "check logs, find errors, provide possible solutions"
 ```
 ```text
 Error Detected: Connection timeout at line 7.
@@ -84,14 +84,14 @@ Possible Solution: Consider increasing memory allocation or optimizing applicati
 
 You can also use all kind of redirection operators to pass input:
 ```shell
-sgpt "summarise" < document.txt
+sgptAgent "summarise" < document.txt
 # -> The document discusses the impact...
-sgpt << EOF
+sgptAgent << EOF
 What is the best way to lear Golang?
 Provide simple hello world example.
 EOF
 # -> The best way to learn Golang...
-sgpt <<< "What is the best way to learn shell redirects?"
+sgptAgent <<< "What is the best way to learn shell redirects?"
 # -> The best way to learn shell redirects is through...
 ```
 
@@ -99,35 +99,35 @@ sgpt <<< "What is the best way to learn shell redirects?"
 ### Shell commands
 Have you ever found yourself forgetting common shell commands, such as `find`, and needing to look up the syntax online? With `--shell` or shortcut `-s` option, you can quickly generate and execute the commands you need right in the terminal.
 ```shell
-sgpt --shell "find all json files in current folder"
+sgptAgent --shell "find all json files in current folder"
 # -> find . -type f -name "*.json"
 # -> [E]xecute, [D]escribe, [A]bort: e
 ```
 
-Shell GPT is aware of OS and `$SHELL` you are using, it will provide shell command for specific system you have. For instance, if you ask `sgpt` to update your system, it will return a command based on your OS. Here's an example using macOS:
+Shell GPT is aware of OS and `$SHELL` you are using, it will provide shell command for specific system you have. For instance, if you ask `sgptAgent` to update your system, it will return a command based on your OS. Here's an example using macOS:
 ```shell
-sgpt -s "update my system"
+sgptAgent -s "update my system"
 # -> sudo softwareupdate -i -a
 # -> [E]xecute, [D]escribe, [A]bort: e
 ```
 
 The same prompt, when used on Ubuntu, will generate a different suggestion:
 ```shell
-sgpt -s "update my system"
+sgptAgent -s "update my system"
 # -> sudo apt update && sudo apt upgrade -y
 # -> [E]xecute, [D]escribe, [A]bort: e
 ```
 
 Let's try it with Docker:
 ```shell
-sgpt -s "start nginx container, mount ./index.html"
+sgptAgent -s "start nginx container, mount ./index.html"
 # -> docker run -d -p 80:80 -v $(pwd)/index.html:/usr/share/nginx/html/index.html nginx
 # -> [E]xecute, [D]escribe, [A]bort: e
 ```
 
-We can still use pipes to pass input to `sgpt` and generate shell commands:
+We can still use pipes to pass input to `sgptAgent` and generate shell commands:
 ```shell
-sgpt -s "POST localhost with" < data.json
+sgptAgent -s "POST localhost with" < data.json
 # -> curl -X POST -H "Content-Type: application/json" -d '{"a": 1, "b": 2}' http://localhost
 # -> [E]xecute, [D]escribe, [A]bort: e
 ```
@@ -136,28 +136,28 @@ Applying additional shell magic in our prompt, in this example passing file name
 ```shell
 ls
 # -> 1.mp4 2.mp4 3.mp4
-sgpt -s "ffmpeg combine $(ls -m) into one video file without audio."
+sgptAgent -s "ffmpeg combine $(ls -m) into one video file without audio."
 # -> ffmpeg -i 1.mp4 -i 2.mp4 -i 3.mp4 -filter_complex "[0:v] [1:v] [2:v] concat=n=3:v=1 [v]" -map "[v]" out.mp4
 # -> [E]xecute, [D]escribe, [A]bort: e
 ```
 
 If you would like to pass generated shell command using pipe, you can use `--no-interaction` option. This will disable interactive mode and will print generated command to stdout. In this example we are using `pbcopy` to copy generated command to clipboard:
 ```shell
-sgpt -s "find all json files in current folder" --no-interaction | pbcopy
+sgptAgent -s "find all json files in current folder" --no-interaction | pbcopy
 ```
 
 
 ### Shell integration
-This is a **very handy feature**, which allows you to use `sgpt` shell completions directly in your terminal, without the need to type `sgpt` with prompt and arguments. Shell integration enables the use of ShellGPT with hotkeys in your terminal, supported by both Bash and ZSH shells. This feature puts `sgpt` completions directly into terminal buffer (input line), allowing for immediate editing of suggested commands.
+This is a **very handy feature**, which allows you to use `sgptAgent` shell completions directly in your terminal, without the need to type `sgptAgent` with prompt and arguments. Shell integration enables the use of ShellGPT with hotkeys in your terminal, supported by both Bash and ZSH shells. This feature puts `sgptAgent` completions directly into terminal buffer (input line), allowing for immediate editing of suggested commands.
 
 https://github.com/TheR1D/shell_gpt/assets/16740832/bead0dab-0dd9-436d-88b7-6abfb2c556c1
 
-To install shell integration, run `sgpt --install-integration` and restart your terminal to apply changes. This will add few lines to your `.bashrc` or `.zshrc` file. After that, you can use `Ctrl+l` (by default) to invoke ShellGPT. When you press `Ctrl+l` it will replace you current input line (buffer) with suggested command. You can then edit it and just press `Enter` to execute.
+To install shell integration, run `sgptAgent --install-integration` and restart your terminal to apply changes. This will add few lines to your `.bashrc` or `.zshrc` file. After that, you can use `Ctrl+l` (by default) to invoke ShellGPT. When you press `Ctrl+l` it will replace you current input line (buffer) with suggested command. You can then edit it and just press `Enter` to execute.
 
 ### Generating code
 By using the `--code` or `-c` parameter, you can specifically request pure code output, for instance:
 ```shell
-sgpt --code "solve fizz buzz problem using python"
+sgptAgent --code "solve fizz buzz problem using python"
 ```
 
 ```python
@@ -173,7 +173,7 @@ for i in range(1, 101):
 ```
 Since it is valid python code, we can redirect the output to a file:  
 ```shell
-sgpt --code "solve classic fizz buzz problem using Python" > fizz_buzz.py
+sgptAgent --code "solve classic fizz buzz problem using Python" > fizz_buzz.py
 python fizz_buzz.py
 # 1
 # 2
@@ -185,7 +185,7 @@ python fizz_buzz.py
 
 We can also use pipes to pass input:
 ```shell
-cat fizz_buzz.py | sgpt --code "Generate comments for each line of my code"
+cat fizz_buzz.py | sgptAgent --code "Generate comments for each line of my code"
 ```
 ```python
 # Loop through numbers 1 to 100
@@ -208,19 +208,19 @@ for i in range(1, 101):
 ```
 
 ### Chat Mode 
-Often it is important to preserve and recall a conversation. `sgpt` creates conversational dialogue with each LLM completion requested. The dialogue can develop one-by-one (chat mode) or interactively, in a REPL loop (REPL mode). Both ways rely on the same underlying object, called a chat session. The session is located at the [configurable](#runtime-configuration-file) `CHAT_CACHE_PATH`.
+Often it is important to preserve and recall a conversation. `sgptAgent` creates conversational dialogue with each LLM completion requested. The dialogue can develop one-by-one (chat mode) or interactively, in a REPL loop (REPL mode). Both ways rely on the same underlying object, called a chat session. The session is located at the [configurable](#runtime-configuration-file) `CHAT_CACHE_PATH`.
 
 To start a conversation, use the `--chat` option followed by a unique session name and a prompt.
 ```shell
-sgpt --chat conversation_1 "please remember my favorite number: 4"
+sgptAgent --chat conversation_1 "please remember my favorite number: 4"
 # -> I will remember that your favorite number is 4.
-sgpt --chat conversation_1 "what would be my favorite number + 4?"
+sgptAgent --chat conversation_1 "what would be my favorite number + 4?"
 # -> Your favorite number is 4, so if we add 4 to it, the result would be 8.
 ```
 
 You can use chat sessions to iteratively improve GPT suggestions by providing additional details.  It is possible to use `--code` or `--shell` options to initiate `--chat`:
 ```shell
-sgpt --chat conversation_2 --code "make a request to localhost using python"
+sgptAgent --chat conversation_2 --code "make a request to localhost using python"
 ```
 ```python
 import requests
@@ -231,7 +231,7 @@ print(response.text)
 
 Let's ask LLM to add caching to our request:
 ```shell
-sgpt --chat conversation_2 --code "add caching"
+sgptAgent --chat conversation_2 --code "add caching"
 ```
 ```python
 import requests
@@ -246,26 +246,26 @@ print(response.text)
 
 Same applies for shell commands:
 ```shell
-sgpt --chat conversation_3 --shell "what is in current folder"
+sgptAgent --chat conversation_3 --shell "what is in current folder"
 # -> ls
-sgpt --chat conversation_3 "Sort by name"
+sgptAgent --chat conversation_3 "Sort by name"
 # -> ls | sort
-sgpt --chat conversation_3 "Concatenate them using FFMPEG"
+sgptAgent --chat conversation_3 "Concatenate them using FFMPEG"
 # -> ffmpeg -i "concat:$(ls | sort | tr '\n' '|')" -codec copy output.mp4
-sgpt --chat conversation_3 "Convert the resulting file into an MP3"
+sgptAgent --chat conversation_3 "Convert the resulting file into an MP3"
 # -> ffmpeg -i output.mp4 -vn -acodec libmp3lame -ac 2 -ab 160k -ar 48000 final_output.mp3
 ```
 
 To list all the sessions from either conversational mode, use the `--list-chats` or `-lc` option:  
 ```shell
-sgpt --list-chats
+sgptAgent --list-chats
 # .../shell_gpt/chat_cache/conversation_1  
 # .../shell_gpt/chat_cache/conversation_2
 ```
 
 To show all the messages related to a specific conversation, use the `--show-chat` option followed by the session name:
 ```shell
-sgpt --show-chat conversation_1
+sgptAgent --show-chat conversation_1
 # user: please remember my favorite number: 4
 # assistant: I will remember that your favorite number is 4.
 # user: what would be my favorite number + 4?
@@ -280,7 +280,7 @@ There is very handy REPL (read–eval–print loop) mode, which allows you to in
 </p>
 
 ```text
-sgpt --repl temp
+sgptAgent --repl temp
 Entering REPL mode, press Ctrl+C to exit.
 >>> What is REPL?
 REPL stands for Read-Eval-Print Loop. It is a programming environment ...
@@ -290,7 +290,7 @@ To use Python with REPL, you can simply open a terminal or command prompt ...
 
 REPL mode can work with `--shell` and `--code` options, which makes it very handy for interactive shell commands and code generation:
 ```text
-sgpt --repl temp --shell
+sgptAgent --repl temp --shell
 Entering shell REPL mode, type [e] to execute commands or press Ctrl+C to exit.
 >>> What is in current folder?
 ls
@@ -303,7 +303,7 @@ ls -lhS
 
 To provide multiline prompt use triple quotes `"""`:
 ```text
-sgpt --repl temp
+sgptAgent --repl temp
 Entering REPL mode, press Ctrl+C to exit.
 >>> """
 ... Explain following code:
@@ -315,7 +315,7 @@ It is a Python script that uses the random module to generate and print a random
 
 You can also enter REPL mode with initial prompt by passing it as an argument or stdin or even both:
 ```shell
-sgpt --repl temp < my_app.py
+sgptAgent --repl temp < my_app.py
 ```
 ```text
 Entering REPL mode, press Ctrl+C to exit.
@@ -329,9 +329,9 @@ The snippet of code you've provided is written in Python. It prompts the user...
 ```
 
 ### Function calling  
-[Function calls](https://platform.openai.com/docs/guides/function-calling) is a powerful feature OpenAI provides. It allows LLM to execute functions in your system, which can be used to accomplish a variety of tasks. To install [default functions](https://github.com/TheR1D/shell_gpt/tree/main/sgpt/llm_functions/) run:
+[Function calls](https://platform.openai.com/docs/guides/function-calling) is a powerful feature OpenAI provides. It allows LLM to execute functions in your system, which can be used to accomplish a variety of tasks. To install [default functions](https://github.com/TheR1D/shell_gpt/tree/main/sgptAgent/llm_functions/) run:
 ```shell
-sgpt --install-functions
+sgptAgent --install-functions
 ```
 
 ShellGPT has a convenient way to define functions and use them. In order to create your custom function, navigate to `~/.config/shell_gpt/functions` and create a new .py file with the function name. Inside this file, you can define your function using the following syntax:
@@ -359,7 +359,7 @@ class Function(OpenAISchema):
 
 The docstring comment inside the class will be passed to OpenAI API as a description for the function, along with the `title` attribute and parameters descriptions. The `execute` function will be called if LLM decides to use your function. In this case we are allowing LLM to execute any Shell commands in our system. Since we are returning the output of the command, LLM will be able to analyze it and decide if it is a good fit for the prompt. Here is an example how the function might be executed by LLM:
 ```shell
-sgpt "What are the files in /tmp folder?"
+sgptAgent "What are the files in /tmp folder?"
 # -> @FunctionCall execute_shell_command(shell_command="ls /tmp")
 # -> The /tmp folder contains the following files and directories:
 # -> test.txt
@@ -368,7 +368,7 @@ sgpt "What are the files in /tmp folder?"
 
 Note that if for some reason the function (execute_shell_command) will return an error, LLM might try to accomplish the task based on the output. Let's say we don't have installed `jq` in our system, and we ask LLM to parse JSON file:
 ```shell
-sgpt "parse /tmp/test.json file using jq and return only email value"
+sgptAgent "parse /tmp/test.json file using jq and return only email value"
 # -> @FunctionCall execute_shell_command(shell_command="jq -r '.email' /tmp/test.json")
 # -> It appears that jq is not installed on the system. Let me try to install it using brew.
 # -> @FunctionCall execute_shell_command(shell_command="brew install jq")
@@ -379,7 +379,7 @@ sgpt "parse /tmp/test.json file using jq and return only email value"
 
 It is also possible to chain multiple function calls in the prompt:
 ```shell
-sgpt "Play music and open hacker news"
+sgptAgent "Play music and open hacker news"
 # -> @FunctionCall play_music()
 # -> @FunctionCall open_url(url="https://news.ycombinator.com")
 # -> Music is now playing, and Hacker News has been opened in your browser. Enjoy!
@@ -389,11 +389,11 @@ This is just a simple example of how you can use function calls. It is truly a p
 LLM might execute destructive commands, so please use it at your own risk❗️
 
 ### Roles
-ShellGPT allows you to create custom roles, which can be utilized to generate code, shell commands, or to fulfill your specific needs. To create a new role, use the `--create-role` option followed by the role name. You will be prompted to provide a description for the role, along with other details. This will create a JSON file in `~/.config/shell_gpt/roles` with the role name. Inside this directory, you can also edit default `sgpt` roles, such as **shell**, **code**, and **default**. Use the `--list-roles` option to list all available roles, and the `--show-role` option to display the details of a specific role. Here's an example of a custom role:
+ShellGPT allows you to create custom roles, which can be utilized to generate code, shell commands, or to fulfill your specific needs. To create a new role, use the `--create-role` option followed by the role name. You will be prompted to provide a description for the role, along with other details. This will create a JSON file in `~/.config/shell_gpt/roles` with the role name. Inside this directory, you can also edit default `sgptAgent` roles, such as **shell**, **code**, and **default**. Use the `--list-roles` option to list all available roles, and the `--show-role` option to display the details of a specific role. Here's an example of a custom role:
 ```shell
-sgpt --create-role json_generator
+sgptAgent --create-role json_generator
 # Enter role description: Provide only valid json as response.
-sgpt --role json_generator "random: user, password, email, address"
+sgptAgent --role json_generator "random: user, password, email, address"
 ```
 ```json
 {
@@ -412,17 +412,17 @@ sgpt --role json_generator "random: user, password, email, address"
 If the description of the role contains the words "APPLY MARKDOWN" (case sensitive), then chats will be displayed using markdown formatting unless it is explicitly turned off with `--no-md`.
 
 ### Request cache
-Control cache using `--cache` (default) and `--no-cache` options. This caching applies for all `sgpt` requests to OpenAI API:
+Control cache using `--cache` (default) and `--no-cache` options. This caching applies for all `sgptAgent` requests to OpenAI API:
 ```shell
-sgpt "what are the colors of a rainbow"
+sgptAgent "what are the colors of a rainbow"
 # -> The colors of a rainbow are red, orange, yellow, green, blue, indigo, and violet.
 ```
-Next time, same exact query will get results from local cache instantly. Note that `sgpt "what are the colors of a rainbow" --temperature 0.5` will make a new request, since we didn't provide `--temperature` (same applies to `--top-probability`) on previous request.
+Next time, same exact query will get results from local cache instantly. Note that `sgptAgent "what are the colors of a rainbow" --temperature 0.5` will make a new request, since we didn't provide `--temperature` (same applies to `--top-probability`) on previous request.
 
 This is just some examples of what we can do using OpenAI GPT models, I'm sure you will find it useful for your specific use cases.
 
 ### Runtime configuration file
-You can setup some parameters in runtime configuration file `~/.config/shell_gpt/.sgptrc`:
+You can setup some parameters in runtime configuration file `~/.config/shell_gpt/.sgptAgentrc`:
 ```text
 # API key, also it is possible to define OPENAI_API_KEY env.
 OPENAI_API_KEY=your_api_key
@@ -509,16 +509,16 @@ docker run --rm \
 
 Example of a conversation, using an alias and the `OPENAI_API_KEY` environment variable:
 ```shell
-alias sgpt="docker run --rm --volume gpt-cache:/tmp/shell_gpt --env OPENAI_API_KEY --env OS_NAME=$(uname -s) --env SHELL_NAME=$(echo $SHELL) ghcr.io/ther1d/shell_gpt"
+alias sgptAgent="docker run --rm --volume gpt-cache:/tmp/shell_gpt --env OPENAI_API_KEY --env OS_NAME=$(uname -s) --env SHELL_NAME=$(echo $SHELL) ghcr.io/ther1d/shell_gpt"
 export OPENAI_API_KEY="your OPENAI API key"
-sgpt --chat rainbow "what are the colors of a rainbow"
-sgpt --chat rainbow "inverse the list of your last answer"
-sgpt --chat rainbow "translate your last answer in french"
+sgptAgent --chat rainbow "what are the colors of a rainbow"
+sgptAgent --chat rainbow "inverse the list of your last answer"
+sgptAgent --chat rainbow "translate your last answer in french"
 ```
 
 You also can use the provided `Dockerfile` to build your own image:
 ```shell
-docker build -t sgpt .
+docker build -t sgptAgent .
 ```
 
 ### Docker + Ollama
@@ -546,7 +546,7 @@ RUN pip install --no-cache /app[litellm] && mkdir -p /tmp/shell_gpt
 
 VOLUME /tmp/shell_gpt
 
-ENTRYPOINT ["sgpt"]
+ENTRYPOINT ["sgptAgent"]
 ```
 
 

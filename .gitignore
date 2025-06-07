@@ -39,6 +39,7 @@ pytest_cache/
 
 # Misc
 *.sqlite3
+documents/
 *.db
 
 # Ollama models (if any are downloaded here)
