@@ -1,0 +1,294 @@
+import sys
+import os
+from pathlib import Path
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QTextEdit, QPushButton, QFileDialog, QComboBox, QMenuBar, QAction, QMessageBox
+)
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtCore import Qt
+
+# --- Configurable paths and constants ---
+DOCUMENTS_DIR = Path(__file__).resolve().parent.parent / "documents"
+DEFAULT_MODEL = "llama3"
+APP_TITLE = "Shell GPT Research Agent GUI"
+
+# --- Import backend ---
+from sgptAgent.agent import ResearchAgent
+import traceback
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
+
+# --- Helper functions ---
+def ensure_documents_dir():
+    DOCUMENTS_DIR.mkdir(exist_ok=True)
+
+# --- Main Window ---
+class ResearchAgentGUI(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(APP_TITLE)
+        self.setMinimumSize(800, 600)
+        self.setWindowIcon(QIcon.fromTheme("applications-science"))
+        self._init_ui()
+
+    def _init_ui(self):
+        # Main layout
+        central = QWidget()
+        vbox = QVBoxLayout()
+        vbox.setSpacing(16)
+        vbox.setContentsMargins(24, 18, 24, 18)
+
+        # Title
+        title = QLabel(APP_TITLE)
+        title.setFont(QFont("Montserrat", 22, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        vbox.addWidget(title)
+
+        # Query input
+        query_label = QLabel("Research Query:")
+        query_label.setFont(QFont("Montserrat", 12, QFont.Bold))
+        self.query_input = QTextEdit()
+        self.query_input.setFont(QFont("Fira Mono", 12))
+        self.query_input.setPlaceholderText("Enter your research question or topic...")
+        vbox.addWidget(query_label)
+        vbox.addWidget(self.query_input)
+
+        # Audience, Tone, Improvement fields
+        extras_layout = QHBoxLayout()
+        audience_label = QLabel("Audience:")
+        audience_label.setFont(QFont("Montserrat", 11))
+        self.audience_input = QLineEdit()
+        self.audience_input.setFont(QFont("Fira Mono", 11))
+        self.audience_input.setPlaceholderText("e.g., C-suite, technical, general")
+        tone_label = QLabel("Tone:")
+        tone_label.setFont(QFont("Montserrat", 11))
+        self.tone_input = QLineEdit()
+        self.tone_input.setFont(QFont("Fira Mono", 11))
+        self.tone_input.setPlaceholderText("e.g., formal, technical, accessible")
+        improvement_label = QLabel("Improvement:")
+        improvement_label.setFont(QFont("Montserrat", 11))
+        self.improvement_input = QLineEdit()
+        self.improvement_input.setFont(QFont("Fira Mono", 11))
+        self.improvement_input.setPlaceholderText("Anything to improve or focus on (optional)")
+        extras_layout.addWidget(audience_label)
+        extras_layout.addWidget(self.audience_input)
+        extras_layout.addWidget(tone_label)
+        extras_layout.addWidget(self.tone_input)
+        extras_layout.addWidget(improvement_label)
+        extras_layout.addWidget(self.improvement_input)
+        vbox.addLayout(extras_layout)
+
+        # Model selection
+        model_layout = QHBoxLayout()
+        model_label = QLabel("Ollama Model:")
+        model_label.setFont(QFont("Montserrat", 11))
+        self.model_combo = QComboBox()
+        self.model_combo.setFont(QFont("Fira Mono", 11))
+        # Dynamically populate model list
+        import subprocess, re
+        self.model_combo.setEditable(False)
+        try:
+            result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
+            lines = result.stdout.strip().split('\n')
+            models = []
+            for line in lines[1:]:  # skip header
+                fields = re.split(r'\s{2,}', line.strip())
+                if len(fields) >= 3:
+                    name = fields[0]
+                    size = fields[2]
+                    models.append({'name': name, 'size': size})
+            if not models:
+                self.model_combo.addItem(DEFAULT_MODEL)
+            else:
+                for m in models:
+                    self.model_combo.addItem(f"{m['name']}  [size: {m['size']}]", m['name'])
+        except Exception as e:
+            self.model_combo.addItem(DEFAULT_MODEL)
+            QMessageBox.warning(self, "Ollama Models Not Found", f"Could not list Ollama models. Defaulting to '{DEFAULT_MODEL}'.\nError: {e}")
+        model_layout.addWidget(model_label)
+        model_layout.addWidget(self.model_combo)
+        vbox.addLayout(model_layout)
+
+        # File name
+        file_layout = QHBoxLayout()
+        file_label = QLabel("Save Report As:")
+        file_label.setFont(QFont("Montserrat", 11))
+        self.file_input = QLineEdit()
+        self.file_input.setFont(QFont("Fira Mono", 11))
+        self.file_input.setPlaceholderText("research_report.txt")
+        browse_btn = QPushButton("Browse…")
+        browse_btn.clicked.connect(self.browse_file)
+        file_layout.addWidget(file_label)
+        file_layout.addWidget(self.file_input)
+        file_layout.addWidget(browse_btn)
+        vbox.addLayout(file_layout)
+
+        # Progress bar and status
+        progress_layout = QHBoxLayout()
+        self.progress_label = QLabel("")
+        self.progress_label.setFont(QFont("Montserrat", 11, QFont.Bold))
+        self.progress_bar = QLabel("")
+        self.progress_bar.setFont(QFont("Fira Mono", 11))
+        progress_layout.addWidget(self.progress_label)
+        progress_layout.addWidget(self.progress_bar, stretch=1)
+        vbox.addLayout(progress_layout)
+
+        # Run button
+        self.run_btn = QPushButton("Run Research")
+        self.run_btn.setFont(QFont("Montserrat", 13, QFont.Bold))
+        self.run_btn.clicked.connect(self.run_research)
+        vbox.addWidget(self.run_btn)
+
+        # Output display
+        output_label = QLabel("Research Report:")
+        output_label.setFont(QFont("Montserrat", 12, QFont.Bold))
+        self.output_box = QTextEdit()
+        self.output_box.setFont(QFont("Fira Mono", 12))
+        self.output_box.setReadOnly(True)
+        vbox.addWidget(output_label)
+        vbox.addWidget(self.output_box)
+
+        # Set central widget
+        central.setLayout(vbox)
+        self.setCentralWidget(central)
+
+        # Menu bar
+        menu = self.menuBar()
+        file_menu = menu.addMenu("File")
+        save_action = QAction("Save Report", self)
+        save_action.triggered.connect(self.save_report)
+        file_menu.addAction(save_action)
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        help_menu = menu.addMenu("Help")
+        about_action = QAction("About", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
+
+        # Ensure documents directory exists
+        ensure_documents_dir()
+
+    def browse_file(self):
+        fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report", str(DOCUMENTS_DIR / "research_report.txt"), "Text Files (*.txt);;All Files (*)")
+        if fname:
+            self.file_input.setText(fname)
+
+    def run_research(self):
+        query = self.query_input.toPlainText().strip()
+        # If user selected from dropdown, extract model name (strip size info)
+        model_data = self.model_combo.currentData()
+        if model_data:
+            model = model_data.strip()
+        else:
+            model = self.model_combo.currentText().split()[0].strip()
+        filename = self.file_input.text().strip() or str(DOCUMENTS_DIR / "research_report.txt")
+        audience = self.audience_input.text().strip()
+        tone = self.tone_input.text().strip()
+        improvement = self.improvement_input.text().strip()
+        if not query:
+            QMessageBox.warning(self, "Missing Query", "Please enter a research query.")
+            return
+        self.output_box.setPlainText("Running research... Please wait.")
+        self.progress_label.setText("Initializing...")
+        self.progress_bar.setText("")
+        self.run_btn.setEnabled(False)
+        # Start backend in a thread
+        self.worker = ResearchWorker(query, model, filename, audience, tone, improvement)
+        self.worker.finished.connect(self.on_research_finished)
+        self.worker.error.connect(self.on_research_error)
+        self.worker.progress.connect(self.on_progress_update)
+        self.worker.start()
+
+    def on_progress_update(self, desc, bar):
+        self.progress_label.setText(desc)
+        self.progress_bar.setText(bar)
+
+    def on_research_finished(self, result, filename):
+        self.output_box.setPlainText(result)
+        self.run_btn.setEnabled(True)
+        self.progress_label.setText("Done!")
+        self.progress_bar.setText("")
+        QMessageBox.information(self, "Research Complete", f"Research report saved to:\n{filename}")
+
+    def on_research_error(self, error_msg, tb):
+        self.output_box.setPlainText(f"[Error]\n{error_msg}\n{tb}")
+        self.run_btn.setEnabled(True)
+        QMessageBox.critical(self, "Error", f"An error occurred:\n{error_msg}")
+
+    def save_report(self):
+        content = self.output_box.toPlainText()
+        if not content.strip():
+            QMessageBox.information(self, "Nothing to Save", "There is no research report to save.")
+            return
+        fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report", str(DOCUMENTS_DIR / "research_report.txt"), "Text Files (*.txt);;All Files (*)")
+        if fname:
+            with open(fname, "w", encoding="utf-8") as f:
+                f.write(content)
+            QMessageBox.information(self, "Saved", f"Report saved to {fname}")
+
+    def show_about(self):
+        QMessageBox.about(self, "About Shell GPT Research Agent GUI",
+            "<b>Shell GPT Research Agent GUI</b><br>"
+            "A scientific, modern interface for research synthesis using local LLMs and web search.<br><br>"
+            "Created by Christopher Bradford.<br>Inspired by Shell-GPT.<br>"
+            "<a href='https://github.com/sunkencity999/shell_gpt_researchAgent'>Project Repository</a>")
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName(APP_TITLE)
+    gui = ResearchAgentGUI()
+    gui.show()
+    sys.exit(app.exec_())
+
+# --- Threaded backend worker ---
+class ResearchWorker(QThread):
+    finished = pyqtSignal(str, str)  # result, filename
+    error = pyqtSignal(str, str)     # error_msg, traceback
+    progress = pyqtSignal(str, str)  # desc, bar
+
+    def __init__(self, query, model, filename, audience, tone, improvement):
+        super().__init__()
+        self.query = query
+        self.model = model
+        self.filename = filename
+        self.audience = audience
+        self.tone = tone
+        self.improvement = improvement
+
+    def run(self):
+        try:
+            agent = ResearchAgent(model=self.model)
+            # Progress simulation: update at each phase
+            def gui_progress(desc, frac):
+                bar = self._make_bar(frac)
+                self.progress.emit(desc, bar)
+            gui_progress("Running research...", 0.1)
+            # The CLI run() method does everything (plan, search, summarize, synthesize, save)
+            agent.run(self.query, audience=self.audience, tone=self.tone, improvement=self.improvement)
+            # Find the most recent report file (should be self.filename or latest in documents)
+            import os, glob
+            if os.path.exists(self.filename):
+                with open(self.filename, "r", encoding="utf-8") as f:
+                    content = f.read()
+            else:
+                # Fallback: try to find the latest file in documents
+                doc_dir = os.path.dirname(self.filename)
+                files = sorted(glob.glob(os.path.join(doc_dir, '*.txt')) + glob.glob(os.path.join(doc_dir, '*.md')), key=os.path.getmtime, reverse=True)
+                content = files[0] and open(files[0], encoding="utf-8").read() if files else "[No report found]"
+            gui_progress("Done!", 1.0)
+            self.finished.emit(content, self.filename)
+        except Exception as e:
+            tb = traceback.format_exc()
+            self.error.emit(str(e), tb)
+
+    def _make_bar(self, frac):
+        total = 20
+        filled = int(frac * total)
+        bar = "[" + "█" * filled + "-" * (total - filled) + f"] {int(frac*100)}%"
+        return bar
+
+if __name__ == "__main__":
+    main()

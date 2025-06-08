@@ -80,6 +80,44 @@ A next-generation, autonomous command-line research assistant for deep technical
 
 ---
 
+## 🖥️ Cross-Platform GUI Usage
+
+A native Python GUI is included for all platforms. Launch it as follows:
+
+### Linux
+- Run from the project root:
+  ```bash
+  ./sgpt-research-gui
+  ```
+- Or use the global command if you symlinked it.
+
+### macOS
+- Double-click `sgpt-research-gui.command` in Finder, or run from Terminal:
+  ```bash
+  ./sgpt-research-gui.command
+  ```
+- If you get a permissions error, run:
+  ```bash
+  chmod +x sgpt-research-gui.command
+  ```
+
+### Windows
+- Double-click `sgpt-research-gui.bat` in Explorer, or run from Command Prompt:
+  ```bat
+  sgpt-research-gui.bat
+  ```
+- Or launch manually:
+  ```bat
+  venv\Scripts\python sgptAgent\gui_app.py
+  ```
+
+**Note:**
+- The GUI will list all available Ollama models for selection.
+- All dependencies must be installed and Ollama must be running (see installation instructions).
+- On first launch, the GUI may take a few seconds to start as it loads models and dependencies.
+
+---
+
 ## ⚠️ Troubleshooting
 
 - **Ollama Models:** Pull at least one model with `ollama pull <model>` before launching.

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Launcher for the Shell GPT Research Agent GUI
+cd "$(dirname "$0")/sgptAgent"
+PYTHONPATH="$(dirname "$PWD")" exec ../venv/bin/python gui_app.py "$@"
