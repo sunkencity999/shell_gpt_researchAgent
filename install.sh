@@ -156,6 +156,26 @@ echo -e "${green}✔ sgpt-research CLI alias created at ~/.local/bin/sgpt-resear
 echo -e "\nYou can now launch the research agent from anywhere with:"
 echo -e "  ${yellow}sgpt-research${reset}"
 
+# --- Linux Desktop Launcher Install ---
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo -e "${yellow}Installing desktop launcher for Linux...${reset}"
+    LAUNCHER_SRC="$PWD/sgpt-research-gui.desktop"
+    LAUNCHER_DEST="$HOME/.local/share/applications/sgpt-research-gui.desktop"
+    ICON_SRC="$PWD/sgptAgent/Assets/sgptRAicon.png"
+    ICON_DEST="$HOME/.local/share/icons/sgptRAicon.png"
+    mkdir -p "$HOME/.local/share/applications" "$HOME/.local/share/icons"
+    cp "$LAUNCHER_SRC" "$LAUNCHER_DEST"
+    if command -v convert &>/dev/null; then
+        convert "$ICON_SRC" -resize 128x128 "$ICON_DEST"
+    else
+        cp "$ICON_SRC" "$ICON_DEST"
+    fi
+    # Update icon path in .desktop file
+    sed -i "s|^Icon=.*|Icon=$ICON_DEST|" "$LAUNCHER_DEST"
+    update-desktop-database "$HOME/.local/share/applications/" || true
+    echo -e "${green}✔ GUI launcher installed! You can now find 'Shell GPT Research Agent GUI' in your app menu or search.${reset}"
+fi
+
 echo -e "${green}✔ Installation complete!${reset}"
 echo -e "\nTo launch the research agent, run:"
 echo -e "  ${yellow}./launch_sgpt_research.sh${reset}"

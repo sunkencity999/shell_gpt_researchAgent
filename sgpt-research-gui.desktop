@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Shell GPT Research Agent GUI
+Comment=Local research agent with LLM synthesis and web search
+Exec=/home/administrator/shell_gpt_researchAgent/sgpt-research-gui
+Icon=/home/administrator/shell_gpt_researchAgent/sgptAgent/Assets/sgptRAicon.png
+Terminal=false
+Categories=Science;Utility;AI;
