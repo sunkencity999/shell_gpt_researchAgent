@@ -1,4 +1,8 @@
-# Shell GPT Research Agent
+<div align="center">
+  <img src="sgptAgent/Assets/sgptRAicon.png" alt="Shell GPT Research Agent Logo" width="160"/>
+  <br/>
+  <em>Shell GPT Research Agent</em>
+</div>
 
 A next-generation, autonomous command-line research assistant for deep technical, business, and scientific investigations. This tool orchestrates multi-provider web search, advanced content extraction, and multi-step LLM synthesis—all locally, with robust user experience and privacy.
 

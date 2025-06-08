@@ -28,7 +28,12 @@ class ResearchAgentGUI(QMainWindow):
         super().__init__()
         self.setWindowTitle(APP_TITLE)
         self.setMinimumSize(800, 600)
-        self.setWindowIcon(QIcon.fromTheme("applications-science"))
+        # Set custom window icon
+        icon_path = os.path.join(os.path.dirname(__file__), "Assets", "sgptRAicon.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        else:
+            self.setWindowIcon(QIcon.fromTheme("applications-science"))
         self._init_ui()
 
     def _init_ui(self):
@@ -38,11 +43,16 @@ class ResearchAgentGUI(QMainWindow):
         vbox.setSpacing(16)
         vbox.setContentsMargins(24, 18, 24, 18)
 
-        # Title
-        title = QLabel(APP_TITLE)
-        title.setFont(QFont("Montserrat", 22, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        vbox.addWidget(title)
+        # Logo (bigger, no text title)
+        import os
+        from PyQt5.QtGui import QPixmap
+        logo_path = os.path.join(os.path.dirname(__file__), "Assets", "sgptRAicon.png")
+        logo_label = QLabel()
+        if os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path)
+            logo_label.setPixmap(pixmap.scaled(104, 104, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo_label.setAlignment(Qt.AlignCenter)
+        vbox.addWidget(logo_label)
 
         # Query input
         query_label = QLabel("Research Query:")
