@@ -24,13 +24,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class ResearchAgent:
-    def __init__(self, model=None):
+    def __init__(self, model=None, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048):
         self.model = model or cfg.get("DEFAULT_MODEL")
         # Remove 'ollama/' prefix if present
         if self.model.startswith('ollama/'):
             self.model = self.model.split('/', 1)[1]
         self.llm = OllamaClient()
         self.memory = []  # Simple in-memory history for now
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.system_prompt = system_prompt
+        self.ctx_window = ctx_window
 
     def plan(self, goal: str, audience: str = "", tone: str = "", improvement: str = "") -> list:
         """Use the LLM to break down the research goal into steps, with context."""
@@ -44,7 +48,11 @@ class ResearchAgent:
         prompt = (
             f"{context}\nBreak down the following research goal into step-by-step actions:\n{goal}\nRespond with a bullet list."
         )
-        steps = self.llm.generate(prompt, model=self.model)
+        steps = self.llm.generate(
+            prompt, model=self.model,
+            temperature=self.temperature, max_tokens=self.max_tokens,
+            system_prompt=self.system_prompt, context_window=self.ctx_window
+        )
         self.memory.append({"goal": goal, "plan": steps, "audience": audience, "tone": tone, "improvement": improvement})
         return steps
 
@@ -74,7 +82,11 @@ class ResearchAgent:
         print(f"[DEBUG] Prompt length: {len(prompt)}")
         print(f"[DEBUG] Prompt preview: {prompt[:500].replace(chr(10),' ')})")
         try:
-            summary = self.llm.generate(prompt, model=self.model)
+            summary = self.llm.generate(
+                prompt, model=self.model,
+                temperature=self.temperature, max_tokens=self.max_tokens,
+                system_prompt=self.system_prompt, context_window=self.ctx_window
+            )
             print(f"[DEBUG] LLM returned summary of length {len(summary) if summary else 0}")
             return summary
         except Exception as e:
@@ -109,9 +121,19 @@ class ResearchAgent:
             f"Research goal: {goal}\n\n"
             "Summaries:\n" + "\n---\n".join(summaries)
         )
-        return self.llm.generate(prompt, model=self.model)
+        return self.llm.generate(
+            prompt, model=self.model,
+            temperature=self.temperature, max_tokens=self.max_tokens,
+            system_prompt=self.system_prompt, context_window=self.ctx_window
+        )
 
-    def run(self, goal: str, audience: str = "", tone: str = "", improvement: str = ""):
+    def run(self, goal: str, audience: str = "", tone: str = "", improvement: str = "",
+            num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048):
+        # Update instance parameters for this run
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.system_prompt = system_prompt
+        self.ctx_window = ctx_window
         console = Console()
         console.rule("[bold blue]Shell GPT Research Agent Progress")
         console.print(f"[bold]Goal:[/bold] {goal}")
@@ -137,12 +159,12 @@ class ResearchAgent:
 
             # Web search step
             search_task = progress.add_task("Searching the web...", total=1)
-            results = self.web_search(goal, max_results=10)
+            results = self.web_search(goal, max_results=num_results)
             progress.update(search_task, advance=1, description=f"Found {len(results)} web results.")
             progress.refresh()
 
-            if len(results) < 10:
-                console.print(f"[yellow][WARNING] Only {len(results)} results found (requested 10). Research may be less comprehensive.")
+            if len(results) < num_results:
+                console.print(f"[yellow][WARNING] Only {len(results)} results found (requested {num_results}). Research may be less comprehensive.")
             console.print(f"\n[bold]Top {len(results)} Web Results:[/bold]")
             web_results_md = []
             for idx, r in enumerate(results, 1):

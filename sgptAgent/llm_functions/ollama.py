@@ -14,13 +14,26 @@ class OllamaClient:
         """
         Sends a prompt to the Ollama server and returns the completion.
         Handles streaming/multi-line JSON responses.
+        Maps system_prompt to 'system' and context_window to 'context_window' for the Ollama API.
         """
         model = model or self.model
         payload = {
             "model": model,
             "prompt": prompt,
-            **kwargs,
         }
+        # Map advanced kwargs to Ollama API
+        if "system_prompt" in kwargs and kwargs["system_prompt"]:
+            payload["system"] = kwargs["system_prompt"]
+        if "context_window" in kwargs and kwargs["context_window"]:
+            payload["context_window"] = kwargs["context_window"]
+        if "temperature" in kwargs and kwargs["temperature"] is not None:
+            payload["temperature"] = kwargs["temperature"]
+        if "max_tokens" in kwargs and kwargs["max_tokens"]:
+            payload["num_predict"] = kwargs["max_tokens"]
+        # Forward any other kwargs
+        for k, v in kwargs.items():
+            if k not in ("system_prompt", "context_window", "temperature", "max_tokens"):
+                payload[k] = v
         def stream_and_concat(resp):
             output = ""
             for line in resp.iter_lines():

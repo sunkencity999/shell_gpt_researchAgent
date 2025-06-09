@@ -119,6 +119,46 @@ class ResearchAgentGUI(QMainWindow):
         model_layout.addWidget(self.model_combo)
         vbox.addLayout(model_layout)
 
+        # Number of web results
+        from PyQt5.QtWidgets import QSpinBox, QDoubleSpinBox, QGroupBox, QFormLayout
+        results_layout = QHBoxLayout()
+        results_label = QLabel("Number of Web Results:")
+        results_label.setFont(QFont("Montserrat", 11))
+        self.results_spin = QSpinBox()
+        self.results_spin.setRange(1, 20)
+        self.results_spin.setValue(10)
+        self.results_spin.setFont(QFont("Fira Mono", 11))
+        results_layout.addWidget(results_label)
+        results_layout.addWidget(self.results_spin)
+        vbox.addLayout(results_layout)
+
+        # Advanced LLM Settings
+        adv_group = QGroupBox("Advanced LLM Settings")
+        adv_form = QFormLayout()
+        # Temperature
+        self.temp_spin = QDoubleSpinBox()
+        self.temp_spin.setRange(0.0, 1.5)
+        self.temp_spin.setSingleStep(0.01)
+        self.temp_spin.setValue(0.7)
+        adv_form.addRow("Temperature:", self.temp_spin)
+        # Max Tokens
+        self.max_tokens_spin = QSpinBox()
+        self.max_tokens_spin.setRange(128, 4096)
+        self.max_tokens_spin.setValue(1024)
+        adv_form.addRow("Max Tokens:", self.max_tokens_spin)
+        # System Prompt
+        self.system_prompt_input = QTextEdit()
+        self.system_prompt_input.setPlaceholderText("Optional system prompt for the LLM")
+        self.system_prompt_input.setFixedHeight(40)
+        adv_form.addRow("System Prompt:", self.system_prompt_input)
+        # Context Window
+        self.ctx_window_spin = QSpinBox()
+        self.ctx_window_spin.setRange(128, 8192)
+        self.ctx_window_spin.setValue(2048)
+        adv_form.addRow("Context Window:", self.ctx_window_spin)
+        adv_group.setLayout(adv_form)
+        vbox.addWidget(adv_group)
+
         # File name
         file_layout = QHBoxLayout()
         file_label = QLabel("Save Report As:")
@@ -205,7 +245,16 @@ class ResearchAgentGUI(QMainWindow):
         self.progress_bar.setText("")
         self.run_btn.setEnabled(False)
         # Start backend in a thread
-        self.worker = ResearchWorker(query, model, filename, audience, tone, improvement)
+        # Gather advanced/extra parameters
+        num_results = self.results_spin.value()
+        temperature = self.temp_spin.value()
+        max_tokens = self.max_tokens_spin.value()
+        system_prompt = self.system_prompt_input.toPlainText().strip()
+        ctx_window = self.ctx_window_spin.value()
+        self.worker = ResearchWorker(
+            query, model, filename, audience, tone, improvement,
+            num_results=num_results, temperature=temperature, max_tokens=max_tokens, system_prompt=system_prompt, ctx_window=ctx_window
+        )
         self.worker.finished.connect(self.on_research_finished)
         self.worker.error.connect(self.on_research_error)
         self.worker.progress.connect(self.on_progress_update)
@@ -259,7 +308,8 @@ class ResearchWorker(QThread):
     error = pyqtSignal(str, str)     # error_msg, traceback
     progress = pyqtSignal(str, str)  # desc, bar
 
-    def __init__(self, query, model, filename, audience, tone, improvement):
+    def __init__(self, query, model, filename, audience, tone, improvement,
+                 num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048):
         super().__init__()
         self.query = query
         self.model = model
@@ -267,6 +317,11 @@ class ResearchWorker(QThread):
         self.audience = audience
         self.tone = tone
         self.improvement = improvement
+        self.num_results = num_results
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.system_prompt = system_prompt
+        self.ctx_window = ctx_window
 
     def run(self):
         try:
@@ -277,7 +332,17 @@ class ResearchWorker(QThread):
                 self.progress.emit(desc, bar)
             gui_progress("Running research...", 0.1)
             # The CLI run() method does everything (plan, search, summarize, synthesize, save)
-            agent.run(self.query, audience=self.audience, tone=self.tone, improvement=self.improvement)
+            agent.run(
+                self.query,
+                audience=self.audience,
+                tone=self.tone,
+                improvement=self.improvement,
+                num_results=self.num_results,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                system_prompt=self.system_prompt,
+                ctx_window=self.ctx_window
+            )
             # Find the most recent report file (should be self.filename or latest in documents)
             import os, glob
             if os.path.exists(self.filename):
