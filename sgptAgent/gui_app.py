@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QTextEdit, QPushButton, QFileDialog, QComboBox, QMenuBar, QAction, QMessageBox
+    QTextEdit, QPushButton, QFileDialog, QComboBox, QMenuBar, QAction, QMessageBox,
+    QTabWidget, QListWidget, QSplitter, QSpinBox, QDoubleSpinBox, QGroupBox, QFormLayout
 )
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt
@@ -189,14 +190,44 @@ class ResearchAgentGUI(QMainWindow):
         self.run_btn.clicked.connect(self.run_research)
         vbox.addWidget(self.run_btn)
 
-        # Output display
+        # Output display as tabbed viewer
+
         output_label = QLabel("Research Report:")
         output_label.setFont(QFont("Montserrat", 12, QFont.Bold))
+        vbox.addWidget(output_label)
+
+        self.tab_widget = QTabWidget()
+        # --- Current Report Tab ---
         self.output_box = QTextEdit()
         self.output_box.setFont(QFont("Fira Mono", 12))
         self.output_box.setReadOnly(True)
-        vbox.addWidget(output_label)
-        vbox.addWidget(self.output_box)
+        self.tab_widget.addTab(self.output_box, "Current Report")
+
+        # --- Previous Reports Tab ---
+        prev_tab = QWidget()
+        prev_layout = QVBoxLayout()
+        # Search bar
+        self.report_search = QLineEdit()
+        self.report_search.setPlaceholderText("Search previous reports...")
+        self.report_search.textChanged.connect(self.filter_report_list)
+        prev_layout.addWidget(self.report_search)
+        # List of files
+        self.report_list = QListWidget()
+        self.report_list.itemClicked.connect(self.load_selected_report)
+        prev_layout.addWidget(self.report_list)
+        # Preview area
+        self.report_preview = QTextEdit()
+        self.report_preview.setFont(QFont("Fira Mono", 11))
+        self.report_preview.setReadOnly(True)
+        prev_layout.addWidget(self.report_preview)
+        # Add 'Open in Current Tab' button
+        self.open_in_current_btn = QPushButton("Open in Current Tab")
+        self.open_in_current_btn.setFont(QFont("Montserrat", 11))
+        self.open_in_current_btn.clicked.connect(self.open_report_in_current)
+        prev_layout.addWidget(self.open_in_current_btn)
+        prev_tab.setLayout(prev_layout)
+        self.tab_widget.addTab(prev_tab, "Previous Reports")
+        vbox.addWidget(self.tab_widget)
 
         # Multi-step: Use output as new query
         self.use_output_btn = QPushButton("Use Output as New Query")
@@ -204,10 +235,12 @@ class ResearchAgentGUI(QMainWindow):
         self.use_output_btn.clicked.connect(self.use_output_as_query)
         vbox.addWidget(self.use_output_btn)
 
-        # Save button
-        save_btn = QPushButton("Save Report")
-        save_btn.clicked.connect(self.save_report)
-        vbox.addWidget(save_btn)
+        # Export button
+        export_btn = QPushButton("Export Report...")
+        export_btn.clicked.connect(self.export_report)
+        vbox.addWidget(export_btn)
+
+        self.refresh_report_list()
 
         # Set central widget
         central.setLayout(vbox)
@@ -232,7 +265,7 @@ class ResearchAgentGUI(QMainWindow):
         ensure_documents_dir()
 
     def browse_file(self):
-        fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report", str(DOCUMENTS_DIR / "research_report.txt"), "Text Files (*.txt);;All Files (*)")
+        fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report As", str(DOCUMENTS_DIR / "research_report.txt"), "Text/Markdown Files (*.txt *.md)")
         if fname:
             self.file_input.setText(fname)
 
@@ -244,24 +277,31 @@ class ResearchAgentGUI(QMainWindow):
             model = model_data.strip()
         else:
             model = self.model_combo.currentText().split()[0].strip()
-        filename = self.file_input.text().strip() or str(DOCUMENTS_DIR / "research_report.txt")
+        filename = self.file_input.text().strip()
+        # If only a filename (no path), prepend DOCUMENTS_DIR
+        if filename and not os.path.isabs(filename):
+            filename = str(DOCUMENTS_DIR / filename)
+        if not filename:
+            filename = str(DOCUMENTS_DIR / "research_report.txt")
         audience = self.audience_input.text().strip()
         tone = self.tone_input.text().strip()
         improvement = self.improvement_input.text().strip()
         if not query:
-            QMessageBox.warning(self, "Missing Query", "Please enter a research query.")
+            QMessageBox.warning(self, "No Query", "Please enter a research question or topic.")
             return
-        self.output_box.setPlainText("Running research... Please wait.")
-        self.progress_label.setText("Initializing...")
-        self.progress_bar.setText("")
-        self.run_btn.setEnabled(False)
-        # Start backend in a thread
-        # Gather advanced/extra parameters
+        # Validate filename
+        if not filename.lower().endswith(('.txt', '.md')):
+            filename += '.txt'
         num_results = self.results_spin.value()
         temperature = self.temp_spin.value()
         max_tokens = self.max_tokens_spin.value()
         system_prompt = self.system_prompt_input.toPlainText().strip()
         ctx_window = self.ctx_window_spin.value()
+        self.output_box.setPlainText("Running research... Please wait.")
+        self.progress_label.setText("Initializing...")
+        self.progress_bar.setText("")
+        self.run_btn.setEnabled(False)
+        # Start backend in a thread
         self.worker = ResearchWorker(
             query, model, filename, audience, tone, improvement,
             num_results=num_results, temperature=temperature, max_tokens=max_tokens, system_prompt=system_prompt, ctx_window=ctx_window
@@ -284,12 +324,80 @@ class ResearchAgentGUI(QMainWindow):
         self.run_btn.setEnabled(True)
         self.progress_label.setText("Done!")
         self.progress_bar.setText("")
+        # Refresh previous reports list and select the new report
+        self.refresh_report_list()
+        # Try to select and preview the new report in the list
+        for i in range(self.report_list.count()):
+            item = self.report_list.item(i)
+            if item.text() == os.path.basename(filename):
+                self.report_list.setCurrentItem(item)
+                self.load_selected_report(item)
+                break
         QMessageBox.information(self, "Research Complete", f"Research report saved to:\n{filename}")
 
     def on_research_error(self, error_msg, tb):
         self.output_box.setPlainText(f"[Error]\n{error_msg}\n{tb}")
         self.run_btn.setEnabled(True)
         QMessageBox.critical(self, "Error", f"An error occurred:\n{error_msg}")
+
+    def export_report(self):
+        content = self.output_box.toPlainText()
+        if not content.strip():
+            QMessageBox.information(self, "Nothing to Export", "There is no research report to export.")
+            return
+        from PyQt5.QtWidgets import QFileDialog
+        fname, selected_filter = QFileDialog.getSaveFileName(
+            self, "Export Research Report", str(DOCUMENTS_DIR / "research_report"),
+            "Markdown (*.md);;HTML (*.html);;PDF (*.pdf);;Word Document (*.docx);;Text (*.txt)")
+        if not fname:
+            return
+        ext = os.path.splitext(fname)[1].lower()
+        try:
+            if ext == ".md":
+                with open(fname, "w", encoding="utf-8") as f:
+                    f.write(content)
+            elif ext == ".html":
+                try:
+                    import markdown2
+                    html = markdown2.markdown(content)
+                except ImportError:
+                    html = "<pre>" + content + "</pre>"
+                with open(fname, "w", encoding="utf-8") as f:
+                    f.write(html)
+            elif ext == ".pdf":
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.pdfgen import canvas
+                    c = canvas.Canvas(fname, pagesize=letter)
+                    width, height = letter
+                    lines = content.splitlines()
+                    y = height - 40
+                    for line in lines:
+                        c.drawString(40, y, line[:120])
+                        y -= 14
+                        if y < 40:
+                            c.showPage()
+                            y = height - 40
+                    c.save()
+                except ImportError:
+                    QMessageBox.warning(self, "PDF Export Error", "reportlab is not installed. Please install it for PDF export.")
+                    return
+            elif ext == ".docx":
+                try:
+                    from docx import Document
+                    doc = Document()
+                    for para in content.split('\n\n'):
+                        doc.add_paragraph(para)
+                    doc.save(fname)
+                except ImportError:
+                    QMessageBox.warning(self, "DOCX Export Error", "python-docx is not installed. Please install it for DOCX export.")
+                    return
+            else:
+                with open(fname, "w", encoding="utf-8") as f:
+                    f.write(content)
+            QMessageBox.information(self, "Exported", f"Report exported to {fname}")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Could not export report:\n{e}")
 
     def save_report(self):
         content = self.output_box.toPlainText()
@@ -306,6 +414,45 @@ class ResearchAgentGUI(QMainWindow):
         """Copy the research report to the query box for further refinement."""
         report_text = self.output_box.toPlainText()
         self.query_input.setPlainText(report_text)
+
+    # --- Report Viewer Functions ---
+    def refresh_report_list(self):
+        self.report_list.clear()
+        files = []
+        for ext in (".md", ".txt"):
+            files += sorted(DOCUMENTS_DIR.glob(f"*{ext}"), key=os.path.getmtime, reverse=True)
+        for file in files:
+            self.report_list.addItem(str(file.name))
+
+    def filter_report_list(self, text):
+        for i in range(self.report_list.count()):
+            item = self.report_list.item(i)
+            item.setHidden(text.lower() not in item.text().lower())
+
+    def load_selected_report(self, item):
+        fname = DOCUMENTS_DIR / item.text()
+        self._last_selected_report_path = str(fname)
+        try:
+            with open(fname, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.report_preview.setPlainText(content)
+        except Exception as e:
+            self.report_preview.setPlainText(f"[Error loading report: {e}]")
+
+    def open_report_in_current(self):
+        """Load the selected previous report into the Current Report tab for editing/refinement."""
+        selected_items = self.report_list.selectedItems()
+        if not selected_items:
+            QMessageBox.information(self, "No Report Selected", "Please select a report to open.")
+            return
+        fname = DOCUMENTS_DIR / selected_items[0].text()
+        try:
+            with open(fname, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.output_box.setPlainText(content)
+            self.tab_widget.setCurrentIndex(0)  # Switch to Current Report tab
+        except Exception as e:
+            QMessageBox.critical(self, "Open Report Error", f"Could not open report:\n{e}")
 
     def show_about(self):
         QMessageBox.about(self, "About Shell GPT Research Agent GUI",

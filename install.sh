@@ -57,6 +57,10 @@ fi
 
 # Step 3: Pip dependencies
 echo -e "${yellow}Installing Python requirements...${reset}"
+echo -e "${yellow}The following packages will be installed for report export features:${reset}"
+echo -e "  - markdown2 (HTML export)"
+echo -e "  - reportlab (PDF export)"
+echo -e "  - python-docx (Word DOCX export)"
 ./venv/bin/pip install --upgrade pip
 
 PIP_FLAGS=""
@@ -68,6 +72,8 @@ if ! ./venv/bin/pip install -r requirements.txt $PIP_FLAGS; then
     echo -e "${red}Failed to install Python dependencies. If you see an error about 'externally-managed-environment', try deleting the venv directory and rerunning the script, or manually run: ./venv/bin/pip install --break-system-packages -r requirements.txt${reset}"
     exit 1
 fi
+
+echo -e "${green}✔ Export dependencies installed. You can now export reports as Markdown, HTML, PDF, and DOCX from the GUI.${reset}"
 
 # Step 4: Playwright browser dependencies
 echo -e "${yellow}Installing Playwright browsers (for robust extraction)...${reset}"

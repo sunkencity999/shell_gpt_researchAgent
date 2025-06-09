@@ -8,3 +8,6 @@ newspaper3k
 playwright
 lxml_html_clean
 PyQt5
+markdown2
+reportlab
+python-docx
