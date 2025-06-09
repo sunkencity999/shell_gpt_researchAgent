@@ -198,6 +198,17 @@ class ResearchAgentGUI(QMainWindow):
         vbox.addWidget(output_label)
         vbox.addWidget(self.output_box)
 
+        # Multi-step: Use output as new query
+        self.use_output_btn = QPushButton("Use Output as New Query")
+        self.use_output_btn.setFont(QFont("Montserrat", 11))
+        self.use_output_btn.clicked.connect(self.use_output_as_query)
+        vbox.addWidget(self.use_output_btn)
+
+        # Save button
+        save_btn = QPushButton("Save Report")
+        save_btn.clicked.connect(self.save_report)
+        vbox.addWidget(save_btn)
+
         # Set central widget
         central.setLayout(vbox)
         self.setCentralWidget(central)
@@ -265,7 +276,11 @@ class ResearchAgentGUI(QMainWindow):
         self.progress_bar.setText(bar)
 
     def on_research_finished(self, result, filename):
-        self.output_box.setPlainText(result)
+        # Only show the report if the filename matches what we expect (not README)
+        if os.path.basename(filename).lower().startswith("readme"):
+            self.output_box.setPlainText("[Error: Report file was not generated. Please check your save path and try again.]")
+        else:
+            self.output_box.setPlainText(result)
         self.run_btn.setEnabled(True)
         self.progress_label.setText("Done!")
         self.progress_bar.setText("")
@@ -286,6 +301,11 @@ class ResearchAgentGUI(QMainWindow):
             with open(fname, "w", encoding="utf-8") as f:
                 f.write(content)
             QMessageBox.information(self, "Saved", f"Report saved to {fname}")
+
+    def use_output_as_query(self):
+        """Copy the research report to the query box for further refinement."""
+        report_text = self.output_box.toPlainText()
+        self.query_input.setPlainText(report_text)
 
     def show_about(self):
         QMessageBox.about(self, "About Shell GPT Research Agent GUI",
@@ -332,6 +352,7 @@ class ResearchWorker(QThread):
                 self.progress.emit(desc, bar)
             gui_progress("Running research...", 0.1)
             # The CLI run() method does everything (plan, search, summarize, synthesize, save)
+            # Always use the filename provided for saving and reading the report
             agent.run(
                 self.query,
                 audience=self.audience,
@@ -343,18 +364,16 @@ class ResearchWorker(QThread):
                 system_prompt=self.system_prompt,
                 ctx_window=self.ctx_window
             )
-            # Find the most recent report file (should be self.filename or latest in documents)
-            import os, glob
-            if os.path.exists(self.filename):
-                with open(self.filename, "r", encoding="utf-8") as f:
+            import os
+            # Always read the report from the expected filename
+            report_file = self.filename
+            if os.path.exists(report_file):
+                with open(report_file, "r", encoding="utf-8") as f:
                     content = f.read()
             else:
-                # Fallback: try to find the latest file in documents
-                doc_dir = os.path.dirname(self.filename)
-                files = sorted(glob.glob(os.path.join(doc_dir, '*.txt')) + glob.glob(os.path.join(doc_dir, '*.md')), key=os.path.getmtime, reverse=True)
-                content = files[0] and open(files[0], encoding="utf-8").read() if files else "[No report found]"
+                content = "[Report file not found: {}]".format(report_file)
             gui_progress("Done!", 1.0)
-            self.finished.emit(content, self.filename)
+            self.finished.emit(content, report_file)
         except Exception as e:
             tb = traceback.format_exc()
             self.error.emit(str(e), tb)
