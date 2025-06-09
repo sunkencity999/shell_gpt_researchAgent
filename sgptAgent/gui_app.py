@@ -37,6 +37,32 @@ class ResearchAgentGUI(QMainWindow):
             self.setWindowIcon(QIcon.fromTheme("applications-science"))
         self._init_ui()
 
+    def toggle_theme(self):
+        from PyQt5.QtGui import QPalette, QColor
+        app = QApplication.instance()
+        if not self.theme_is_dark:
+            dark_palette = QPalette()
+            dark_palette.setColor(QPalette.Window, QColor(30, 30, 30))
+            dark_palette.setColor(QPalette.WindowText, QColor(220, 220, 220))
+            dark_palette.setColor(QPalette.Base, QColor(24, 24, 24))
+            dark_palette.setColor(QPalette.AlternateBase, QColor(40, 40, 40))
+            dark_palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 220))
+            dark_palette.setColor(QPalette.ToolTipText, QColor(0, 0, 0))
+            dark_palette.setColor(QPalette.Text, QColor(220, 220, 220))
+            dark_palette.setColor(QPalette.Button, QColor(45, 45, 45))
+            dark_palette.setColor(QPalette.ButtonText, QColor(220, 220, 220))
+            dark_palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
+            dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
+            app.setPalette(dark_palette)
+            self.theme_btn.setText("☀️ Light Mode")
+            self.theme_is_dark = True
+        else:
+            app.setPalette(app.style().standardPalette())
+            self.theme_btn.setText("🌙 Dark Mode")
+            self.theme_is_dark = False
+
     def _init_ui(self):
         # Main layout
         central = QWidget()
@@ -174,15 +200,34 @@ class ResearchAgentGUI(QMainWindow):
         file_layout.addWidget(browse_btn)
         vbox.addLayout(file_layout)
 
-        # Progress bar and status
-        progress_layout = QHBoxLayout()
+        # --- Progress/Status Panel ---
+        from PyQt5.QtWidgets import QProgressBar
+        progress_panel = QVBoxLayout()
         self.progress_label = QLabel("")
         self.progress_label.setFont(QFont("Montserrat", 11, QFont.Bold))
-        self.progress_bar = QLabel("")
-        self.progress_bar.setFont(QFont("Fira Mono", 11))
-        progress_layout.addWidget(self.progress_label)
-        progress_layout.addWidget(self.progress_bar, stretch=1)
-        vbox.addLayout(progress_layout)
+        self.progress_substep = QLabel("")
+        self.progress_substep.setFont(QFont("Fira Mono", 10))
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(True)
+        self.progress_log = QTextEdit()
+        self.progress_log.setFont(QFont("Fira Mono", 9))
+        self.progress_log.setReadOnly(True)
+        self.progress_log.setMaximumHeight(80)
+        progress_panel.addWidget(self.progress_label)
+        progress_panel.addWidget(self.progress_substep)
+        progress_panel.addWidget(self.progress_bar)
+        progress_panel.addWidget(self.progress_log)
+        vbox.addLayout(progress_panel)
+
+        # Theme toggle button
+        self.theme_is_dark = False
+        self.theme_btn = QPushButton("🌙 Dark Mode")
+        self.theme_btn.setFont(QFont("Montserrat", 10))
+        self.theme_btn.clicked.connect(self.toggle_theme)
+        vbox.addWidget(self.theme_btn)
 
         # Run button
         self.run_btn = QPushButton("Run Research")
@@ -209,9 +254,10 @@ class ResearchAgentGUI(QMainWindow):
 
         self.tab_widget = QTabWidget()
         # --- Current Report Tab ---
-        self.output_box = QTextEdit()
+        from PyQt5.QtWidgets import QTextBrowser
+        self.output_box = QTextBrowser()
         self.output_box.setFont(QFont("Fira Mono", 12))
-        self.output_box.setReadOnly(True)
+        self.output_box.setOpenExternalLinks(True)
         self.tab_widget.addTab(self.output_box, "Current Report")
 
         # --- Previous Reports Tab ---
@@ -311,7 +357,9 @@ class ResearchAgentGUI(QMainWindow):
         ctx_window = self.ctx_window_spin.value()
         self.output_box.setPlainText("Running research... Please wait.")
         self.progress_label.setText("Initializing...")
-        self.progress_bar.setText("")
+        self.progress_substep.setText("")
+        self.progress_bar.setValue(0)
+        self.progress_log.clear()
         self.run_btn.setEnabled(False)
         # Start backend in a thread
         citation_style = self.citation_combo.currentText()
@@ -325,19 +373,38 @@ class ResearchAgentGUI(QMainWindow):
         self.worker.progress.connect(self.on_progress_update)
         self.worker.start()
 
-    def on_progress_update(self, desc, bar):
+    def on_progress_update(self, desc, bar, substep=None, percent=None, log=None):
         self.progress_label.setText(desc)
-        self.progress_bar.setText(bar)
+        if substep is not None:
+            self.progress_substep.setText(substep)
+        if percent is not None:
+            self.progress_bar.setValue(percent)
+        else:
+            self.progress_bar.setValue(0)
+        if log:
+            self.append_log(log)
+
+    def append_log(self, msg):
+        self.progress_log.append(msg)
+        self.progress_log.moveCursor(self.progress_log.textCursor().End)
 
     def on_research_finished(self, result, filename):
         # Only show the report if the filename matches what we expect (not README)
         if os.path.basename(filename).lower().startswith("readme"):
             self.output_box.setPlainText("[Error: Report file was not generated. Please check your save path and try again.]")
         else:
-            self.output_box.setPlainText(result)
+            # Try to render Markdown as HTML
+            try:
+                import markdown2
+                html = markdown2.markdown(result)
+                self.output_box.setHtml(html)
+            except ImportError:
+                self.output_box.setPlainText(result)
         self.run_btn.setEnabled(True)
         self.progress_label.setText("Done!")
-        self.progress_bar.setText("")
+        self.progress_substep.setText("")
+        self.progress_bar.setValue(100)
+        # Optionally clear or finalize log
         # Refresh previous reports list and select the new report
         self.refresh_report_list()
         # Try to select and preview the new report in the list
@@ -487,7 +554,7 @@ def main():
 class ResearchWorker(QThread):
     finished = pyqtSignal(str, str)  # result, filename
     error = pyqtSignal(str, str)     # error_msg, traceback
-    progress = pyqtSignal(str, str)  # desc, bar
+    progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
     def __init__(self, query, model, filename, audience, tone, improvement,
                  num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048, citation_style="APA"):
@@ -508,13 +575,8 @@ class ResearchWorker(QThread):
     def run(self):
         try:
             agent = ResearchAgent(model=self.model)
-            # Progress simulation: update at each phase
-            def gui_progress(desc, frac):
-                bar = self._make_bar(frac)
-                self.progress.emit(desc, bar)
-            gui_progress("Running research...", 0.1)
-            # The CLI run() method does everything (plan, search, summarize, synthesize, save)
-            # Always use the filename provided for saving and reading the report
+            def progress_callback(desc, bar, substep, percent, log):
+                self.progress.emit(desc, bar, substep, percent, log)
             agent.run(
                 self.query,
                 audience=self.audience,
@@ -526,21 +588,15 @@ class ResearchWorker(QThread):
                 system_prompt=self.system_prompt,
                 ctx_window=self.ctx_window,
                 citation_style=self.citation_style,
-                filename=self.filename
+                filename=self.filename,
+                progress_callback=progress_callback
             )
-            import os
-            # Always read the report from the expected filename
-            report_file = self.filename
-            if os.path.exists(report_file):
-                with open(report_file, "r", encoding="utf-8") as f:
-                    content = f.read()
-            else:
-                content = "[Report file not found: {}]".format(report_file)
-            gui_progress("Done!", 1.0)
-            self.finished.emit(content, report_file)
+            with open(self.filename, "r", encoding="utf-8") as f:
+                result = f.read()
+            self.finished.emit(result, self.filename)
         except Exception as e:
-            tb = traceback.format_exc()
-            self.error.emit(str(e), tb)
+            import traceback as tb
+            self.error.emit(str(e), tb.format_exc())
 
     def _make_bar(self, frac):
         total = 20

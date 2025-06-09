@@ -144,9 +144,8 @@ class ResearchAgent:
         return '\n'.join(bib_lines)
 
     def run(self, goal: str, audience: str = "", tone: str = "", improvement: str = "",
-            num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048, citation_style="APA", filename=None):
+            num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048, citation_style="APA", filename=None, progress_callback=None):
         self.filename = filename
-        # Update instance parameters for this run
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
@@ -161,100 +160,78 @@ class ResearchAgent:
         if improvement:
             console.print(f"[bold]Improvement Goal:[/bold] {improvement}")
         self.citation_style = citation_style
-        self.sources = []  # Track sources for bibliography
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TimeElapsedColumn(),
-            console=console,
-            transient=True,
-        ) as progress:
-            # Planning step
-            plan_task = progress.add_task("Planning research steps...", total=1)
-            steps = self.plan(goal, audience=audience, tone=tone, improvement=improvement)
-            progress.update(plan_task, advance=1, description="Planning complete!")
-            progress.refresh()
-
-            # Web search step
-            search_task = progress.add_task("Searching the web...", total=1)
-            results = self.web_search(goal, max_results=num_results)
-            progress.update(search_task, advance=1, description=f"Found {len(results)} web results.")
-            progress.refresh()
-
-            if len(results) < num_results:
-                console.print(f"[yellow][WARNING] Only {len(results)} results found (requested {num_results}). Research may be less comprehensive.")
-            console.print(f"\n[bold]Top {len(results)} Web Results:[/bold]")
-            web_results_md = []
-            self.sources = []
-            for idx, r in enumerate(results, 1):
-                console.print(f"{idx}. [link={r['href']}] {r['title']} [/link]\n   {r['snippet']}")
-                web_results_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{r['snippet']}")
-                self.sources.append({"title": r.get("title", f"Source {idx}"), "href": r.get("href", ""), "snippet": r.get("snippet", "")})
-
-            # Summarizing URLs with progress
-            summarize_task = progress.add_task("Summarizing web results...", total=len(results))
-            summaries = []
-            summaries_md = []
-            for idx, r in enumerate(results, 1):
-                progress.update(summarize_task, description=f"Summarizing result {idx}/{len(results)}: {r['title']}")
-                summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
-                summaries.append(summary)
-                summaries_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{summary}")
-                progress.advance(summarize_task)
-            progress.update(summarize_task, description="Summarization complete!")
-            progress.refresh()
-
-            # Synthesis step
-            synth_task = progress.add_task("Synthesizing research summary...", total=1)
-            synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
-            progress.update(synth_task, advance=1, description="Synthesis complete!")
-            progress.refresh()
-
-            # Write markdown report with timestamp
-            report_task = progress.add_task("Writing Markdown report...", total=1)
-            from datetime import datetime
-            import os
-            # Use provided filename if given, else auto-generate
-            report_path = self.filename
-            if not report_path:
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-                safe_goal = ''.join(c for c in goal if c.isalnum() or c in (' ', '_', '-')).rstrip()
-                documents_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'documents')
-                documents_dir = os.path.abspath(documents_dir)
-                os.makedirs(documents_dir, exist_ok=True)
-                report_path = os.path.join(documents_dir, f"research_report_{timestamp}.md")
-            # Remove any text before the Shell GPT Research Agent banner (for dual CLI coexistence)
-            def strip_pre_banner(text, banner="Shell GPT Research Agent"):
-                idx = text.find(banner)
-                return text[idx:] if idx != -1 else text
-
-            with open(report_path, "w", encoding="utf-8") as f:
-                report_content = f"# Research Report: {goal}\n\n"
-                report_content += f"**Audience:** {audience}\n\n"
-                report_content += f"**Tone/Style:** {tone}\n\n"
-                if improvement:
-                    report_content += f"**Improvement Goal:** {improvement}\n\n"
-                report_content += "## Research Plan\n"
-                report_content += f"{steps}\n\n"
-                report_content += "## Web Results\n"
-                report_content += "\n".join(web_results_md) + "\n\n"
-                report_content += "## Summaries\n"
-                report_content += "\n".join(summaries_md) + "\n\n"
-                report_content += "## Synthesized Research Summary\n"
-                report_content += f"{synthesis}\n"
-                # Bibliography section
-                if self.sources:
-                    report_content += "\n## Bibliography\n"
-                    report_content += self.generate_bibliography(self.sources, style=self.citation_style) + "\n"
-                # Strip any stray output before the banner
-                report_content = strip_pre_banner(report_content, banner="Shell GPT Research Agent")
-                f.write(report_content)
-            progress.update(report_task, advance=1, description="Report written!")
-            progress.refresh()
-
-        console.print(f"\n[green][Research report written to {report_path}]")
-        return steps
+        self.sources = []
+        total_steps = 4 + num_results  # Plan, Search, N x Summarize, Synthesize, Write
+        current_step = 0
+        def emit(desc, substep=None, percent=None, log=None):
+            if progress_callback:
+                progress_callback(desc, '', substep, percent, log)
+        # Planning step
+        emit("Planning research steps...", substep="Planning", percent=int(100 * current_step/total_steps), log="Started planning.")
+        steps = self.plan(goal, audience=audience, tone=tone, improvement=improvement)
+        current_step += 1
+        emit("Planning complete!", substep="Planning", percent=int(100 * current_step/total_steps), log="Planning complete.")
+        # Web search step
+        emit("Searching the web...", substep="Web Search", percent=int(100 * current_step/total_steps), log="Starting web search...")
+        results = self.web_search(goal, max_results=num_results)
+        current_step += 1
+        emit(f"Found {len(results)} web results.", substep="Web Search", percent=int(100 * current_step/total_steps), log=f"Found {len(results)} web results.")
+        web_results_md = []
+        self.sources = []
+        for idx, r in enumerate(results, 1):
+            web_results_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{r['snippet']}")
+            self.sources.append({"title": r.get("title", f"Source {idx}"), "href": r.get("href", ""), "snippet": r.get("snippet", "")})
+        # Summarizing URLs
+        summaries = []
+        summaries_md = []
+        for idx, r in enumerate(results, 1):
+            emit(f"Summarizing result {idx}/{len(results)}", substep=f"Summarizing {idx}/{len(results)}", percent=int(100 * (current_step+idx-1)/total_steps), log=f"Summarizing {r['title']}")
+            summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+            summaries.append(summary)
+            summaries_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{summary}")
+        current_step += len(results)
+        emit("Summarization complete!", substep="Summarizing", percent=int(100 * current_step/total_steps), log="All web results summarized.")
+        # Synthesis step
+        emit("Synthesizing research summary...", substep="Synthesizing", percent=int(100 * (current_step+1)/total_steps), log="Synthesizing report.")
+        synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
+        current_step += 1
+        emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
+        # Write markdown report
+        emit("Writing Markdown report...", substep="Writing Report", percent=int(100 * (current_step+1)/total_steps), log="Writing report to disk.")
+        from datetime import datetime
+        import os
+        report_path = self.filename
+        if not report_path:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+            safe_goal = ''.join(c for c in goal if c.isalnum() or c in (' ', '_', '-')).rstrip()
+            documents_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'documents')
+            documents_dir = os.path.abspath(documents_dir)
+            os.makedirs(documents_dir, exist_ok=True)
+            report_path = os.path.join(documents_dir, f"research_report_{timestamp}.md")
+        def strip_pre_banner(text, banner="Shell GPT Research Agent"):
+            idx = text.find(banner)
+            return text[idx:] if idx != -1 else text
+        with open(report_path, "w", encoding="utf-8") as f:
+            report_content = f"# Research Report: {goal}\n\n"
+            report_content += f"**Audience:** {audience}\n\n"
+            report_content += f"**Tone/Style:** {tone}\n\n"
+            if improvement:
+                report_content += f"**Improvement Goal:** {improvement}\n\n"
+            report_content += "## Research Plan\n"
+            report_content += f"{steps}\n\n"
+            report_content += "## Web Results\n"
+            report_content += "\n".join(web_results_md) + "\n\n"
+            report_content += "## Summaries\n"
+            report_content += "\n".join(summaries_md) + "\n\n"
+            report_content += "## Synthesized Research Summary\n"
+            report_content += synthesis + "\n\n"
+            if self.sources:
+                report_content += "\n## Bibliography\n"
+                report_content += self.generate_bibliography(self.sources, style=self.citation_style) + "\n"
+            content = strip_pre_banner(report_content, banner="Shell GPT Research Agent")
+            f.write(content)
+        emit("Report written.", substep="Done", percent=100, log=f"Research report written to {report_path}")
+        return report_path
 
 if __name__ == "__main__":
     print("\nShell GPT Research Agent\n========================\n")
