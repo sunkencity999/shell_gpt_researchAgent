@@ -190,6 +190,17 @@ class ResearchAgentGUI(QMainWindow):
         self.run_btn.clicked.connect(self.run_research)
         vbox.addWidget(self.run_btn)
 
+        # Citation style selector
+        citation_layout = QHBoxLayout()
+        citation_label = QLabel("Citation Style:")
+        citation_label.setFont(QFont("Montserrat", 11))
+        self.citation_combo = QComboBox()
+        self.citation_combo.setFont(QFont("Fira Mono", 11))
+        self.citation_combo.addItems(["APA", "MLA"])
+        citation_layout.addWidget(citation_label)
+        citation_layout.addWidget(self.citation_combo)
+        citation_layout.addStretch()
+        vbox.addLayout(citation_layout)
         # Output display as tabbed viewer
 
         output_label = QLabel("Research Report:")
@@ -278,11 +289,12 @@ class ResearchAgentGUI(QMainWindow):
         else:
             model = self.model_combo.currentText().split()[0].strip()
         filename = self.file_input.text().strip()
-        # If only a filename (no path), prepend DOCUMENTS_DIR
-        if filename and not os.path.isabs(filename):
-            filename = str(DOCUMENTS_DIR / filename)
+        # If blank, use default in DOCUMENTS_DIR
         if not filename:
             filename = str(DOCUMENTS_DIR / "research_report.txt")
+        # If only a filename (no path), prepend DOCUMENTS_DIR
+        elif not os.path.isabs(filename):
+            filename = str(DOCUMENTS_DIR / filename)
         audience = self.audience_input.text().strip()
         tone = self.tone_input.text().strip()
         improvement = self.improvement_input.text().strip()
@@ -302,9 +314,11 @@ class ResearchAgentGUI(QMainWindow):
         self.progress_bar.setText("")
         self.run_btn.setEnabled(False)
         # Start backend in a thread
+        citation_style = self.citation_combo.currentText()
         self.worker = ResearchWorker(
             query, model, filename, audience, tone, improvement,
-            num_results=num_results, temperature=temperature, max_tokens=max_tokens, system_prompt=system_prompt, ctx_window=ctx_window
+            num_results=num_results, temperature=temperature, max_tokens=max_tokens, system_prompt=system_prompt, ctx_window=ctx_window,
+            citation_style=citation_style
         )
         self.worker.finished.connect(self.on_research_finished)
         self.worker.error.connect(self.on_research_error)
@@ -476,7 +490,7 @@ class ResearchWorker(QThread):
     progress = pyqtSignal(str, str)  # desc, bar
 
     def __init__(self, query, model, filename, audience, tone, improvement,
-                 num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048):
+                 num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048, citation_style="APA"):
         super().__init__()
         self.query = query
         self.model = model
@@ -489,6 +503,7 @@ class ResearchWorker(QThread):
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
         self.ctx_window = ctx_window
+        self.citation_style = citation_style
 
     def run(self):
         try:
@@ -509,7 +524,9 @@ class ResearchWorker(QThread):
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 system_prompt=self.system_prompt,
-                ctx_window=self.ctx_window
+                ctx_window=self.ctx_window,
+                citation_style=self.citation_style,
+                filename=self.filename
             )
             import os
             # Always read the report from the expected filename

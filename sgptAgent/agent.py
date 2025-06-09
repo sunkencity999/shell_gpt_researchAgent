@@ -127,8 +127,25 @@ class ResearchAgent:
             system_prompt=self.system_prompt, context_window=self.ctx_window
         )
 
+    def generate_bibliography(self, sources, style="APA"):
+        """Generate bibliography section for a list of sources. Supports APA and MLA."""
+        bib_lines = []
+        for idx, src in enumerate(sources, 1):
+            title = src.get('title', 'Untitled')
+            url = src.get('href', '')
+            # For now, no author/date extraction
+            if style.upper() == "MLA":
+                # MLA: Title. Website, URL.
+                bib = f"{idx}. [{title}]({url})."
+            else:  # APA
+                # APA: Title. (n.d.). Website. URL
+                bib = f"{idx}. {title}. (n.d.). [Link]({url})"
+            bib_lines.append(bib)
+        return '\n'.join(bib_lines)
+
     def run(self, goal: str, audience: str = "", tone: str = "", improvement: str = "",
-            num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048):
+            num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048, citation_style="APA", filename=None):
+        self.filename = filename
         # Update instance parameters for this run
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -143,6 +160,8 @@ class ResearchAgent:
             console.print(f"[bold]Tone/Style:[/bold] {tone}")
         if improvement:
             console.print(f"[bold]Improvement Goal:[/bold] {improvement}")
+        self.citation_style = citation_style
+        self.sources = []  # Track sources for bibliography
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -167,9 +186,11 @@ class ResearchAgent:
                 console.print(f"[yellow][WARNING] Only {len(results)} results found (requested {num_results}). Research may be less comprehensive.")
             console.print(f"\n[bold]Top {len(results)} Web Results:[/bold]")
             web_results_md = []
+            self.sources = []
             for idx, r in enumerate(results, 1):
                 console.print(f"{idx}. [link={r['href']}] {r['title']} [/link]\n   {r['snippet']}")
                 web_results_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{r['snippet']}")
+                self.sources.append({"title": r.get("title", f"Source {idx}"), "href": r.get("href", ""), "snippet": r.get("snippet", "")})
 
             # Summarizing URLs with progress
             summarize_task = progress.add_task("Summarizing web results...", total=len(results))
@@ -194,12 +215,15 @@ class ResearchAgent:
             report_task = progress.add_task("Writing Markdown report...", total=1)
             from datetime import datetime
             import os
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-            safe_goal = ''.join(c for c in goal if c.isalnum() or c in (' ', '_', '-')).rstrip()
-            documents_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'documents')
-            documents_dir = os.path.abspath(documents_dir)
-            os.makedirs(documents_dir, exist_ok=True)
-            report_path = os.path.join(documents_dir, f"research_report_{timestamp}.md")
+            # Use provided filename if given, else auto-generate
+            report_path = self.filename
+            if not report_path:
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+                safe_goal = ''.join(c for c in goal if c.isalnum() or c in (' ', '_', '-')).rstrip()
+                documents_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'documents')
+                documents_dir = os.path.abspath(documents_dir)
+                os.makedirs(documents_dir, exist_ok=True)
+                report_path = os.path.join(documents_dir, f"research_report_{timestamp}.md")
             # Remove any text before the Shell GPT Research Agent banner (for dual CLI coexistence)
             def strip_pre_banner(text, banner="Shell GPT Research Agent"):
                 idx = text.find(banner)
@@ -219,6 +243,10 @@ class ResearchAgent:
                 report_content += "\n".join(summaries_md) + "\n\n"
                 report_content += "## Synthesized Research Summary\n"
                 report_content += f"{synthesis}\n"
+                # Bibliography section
+                if self.sources:
+                    report_content += "\n## Bibliography\n"
+                    report_content += self.generate_bibliography(self.sources, style=self.citation_style) + "\n"
                 # Strip any stray output before the banner
                 report_content = strip_pre_banner(report_content, banner="Shell GPT Research Agent")
                 f.write(report_content)
