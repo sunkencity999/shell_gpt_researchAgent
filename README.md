@@ -4,7 +4,7 @@
   <em>Shell GPT Research Agent</em>
 </div>
 
-A next-generation, autonomous command-line research assistant for deep technical, business, and scientific investigations. This tool orchestrates multi-provider web search, advanced content extraction, and multi-step LLM synthesis—all locally, with robust user experience and privacy.
+A next-generation, autonomous command-line and GUI research assistant for deep, multi-domain investigations. This tool orchestrates multi-provider web search, advanced content extraction, and multi-step LLM synthesis—all locally, with robust user experience and privacy.
 
 ---
 
@@ -159,7 +159,7 @@ GOOGLE_CSE_ID=your_cse_id
 ## 🙏 Credits
 
 - **Created by Christopher Bradford**
-- **Special thanks to the creators of [shell-gpt](https://github.com/TheR1D/shell_gpt)**, whose work inspired this research agent.
+- **Special thanks to the creators of [shell-gpt](https://github.com/TheR1D/shell_gpt)**, whose work inspired this research agent. Also thanks to the Ollama team for their hard work on [Ollama](https://ollama.com).
 
 ---
 
