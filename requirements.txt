@@ -11,3 +11,4 @@ PyQt5
 markdown2
 reportlab
 python-docx
+instructor
