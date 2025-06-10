@@ -34,7 +34,24 @@ if exist requirements.txt (
 REM 6. Optional: Install Playwright browsers (for web search scraping)
 python -m playwright install
 
-REM 7. Run the GUI application
+REM 7. Prompt for API keys and create .env if needed
+if exist .env (
+    echo .env file already exists. Skipping API key setup.
+) else (
+    echo.
+    echo To enable robust web search, you need a Google Custom Search API key and CSE ID.
+    echo - Get your API key here: https://console.developers.google.com/apis/credentials
+    echo - Create a Custom Search Engine here: https://cse.google.com/cse/all
+    echo - Add 'www.google.com' as a site to search (for full web search, enable 'Search the entire web').
+    echo - Find your CSE ID in the control panel.
+    set /p GKEY=Enter your Google API Key: 
+    set /p GCSE=Enter your Google CSE ID: 
+    (echo GOOGLE_API_KEY=%GKEY%) > .env
+    (echo GOOGLE_CSE_ID=%GCSE%) >> .env
+    echo .env file created with your credentials.
+)
+
+REM 8. Run the GUI application
 python -m sgptAgent.gui_app
 
 echo Installation complete. To run the app in the future:
