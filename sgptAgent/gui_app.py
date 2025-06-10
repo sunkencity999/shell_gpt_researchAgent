@@ -64,13 +64,20 @@ class ResearchAgentGUI(QMainWindow):
             self.theme_is_dark = False
 
     def _init_ui(self):
-        # Main layout
-        central = QWidget()
-        vbox = QVBoxLayout()
-        vbox.setSpacing(16)
-        vbox.setContentsMargins(24, 18, 24, 18)
+        print("DEBUG: Entered _init_ui")
+        from PyQt5.QtWidgets import QSizePolicy
+        # Main splitter for responsive layout
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.setChildrenCollapsible(False)
 
-        # Logo (bigger, no text title)
+        # --- Left panel: Inputs & Controls ---
+        print("DEBUG: Initializing left panel widgets")
+        left_widget = QWidget()
+        left_vbox = QVBoxLayout()
+        left_vbox.setSpacing(16)
+        left_vbox.setContentsMargins(24, 18, 12, 18)
+
+        # Logo
         import os
         from PyQt5.QtGui import QPixmap
         logo_path = os.path.join(os.path.dirname(__file__), "Assets", "sgptRAicon.png")
@@ -79,7 +86,7 @@ class ResearchAgentGUI(QMainWindow):
             pixmap = QPixmap(logo_path)
             logo_label.setPixmap(pixmap.scaled(104, 104, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         logo_label.setAlignment(Qt.AlignCenter)
-        vbox.addWidget(logo_label)
+        left_vbox.addWidget(logo_label)
 
         # Query input
         query_label = QLabel("Research Query:")
@@ -87,8 +94,9 @@ class ResearchAgentGUI(QMainWindow):
         self.query_input = QTextEdit()
         self.query_input.setFont(QFont("Fira Mono", 12))
         self.query_input.setPlaceholderText("Enter your research question or topic...")
-        vbox.addWidget(query_label)
-        vbox.addWidget(self.query_input)
+        self.query_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        left_vbox.addWidget(query_label)
+        left_vbox.addWidget(self.query_input, 2)
 
         # Audience, Tone, Improvement fields
         extras_layout = QHBoxLayout()
@@ -113,7 +121,7 @@ class ResearchAgentGUI(QMainWindow):
         extras_layout.addWidget(self.tone_input)
         extras_layout.addWidget(improvement_label)
         extras_layout.addWidget(self.improvement_input)
-        vbox.addLayout(extras_layout)
+        left_vbox.addLayout(extras_layout)
 
         # Model selection
         model_layout = QHBoxLayout()
@@ -144,7 +152,7 @@ class ResearchAgentGUI(QMainWindow):
             QMessageBox.warning(self, "Ollama Models Not Found", f"Could not list Ollama models. Defaulting to '{DEFAULT_MODEL}'.\nError: {e}")
         model_layout.addWidget(model_label)
         model_layout.addWidget(self.model_combo)
-        vbox.addLayout(model_layout)
+        left_vbox.addLayout(model_layout)
 
         # Number of web results
         from PyQt5.QtWidgets import QSpinBox, QDoubleSpinBox, QGroupBox, QFormLayout
@@ -157,7 +165,7 @@ class ResearchAgentGUI(QMainWindow):
         self.results_spin.setFont(QFont("Fira Mono", 11))
         results_layout.addWidget(results_label)
         results_layout.addWidget(self.results_spin)
-        vbox.addLayout(results_layout)
+        left_vbox.addLayout(results_layout)
 
         # Advanced LLM Settings
         adv_group = QGroupBox("Advanced LLM Settings")
@@ -184,7 +192,7 @@ class ResearchAgentGUI(QMainWindow):
         self.ctx_window_spin.setValue(2048)
         adv_form.addRow("Context Window:", self.ctx_window_spin)
         adv_group.setLayout(adv_form)
-        vbox.addWidget(adv_group)
+        left_vbox.addWidget(adv_group)
 
         # File name
         file_layout = QHBoxLayout()
@@ -198,7 +206,7 @@ class ResearchAgentGUI(QMainWindow):
         file_layout.addWidget(file_label)
         file_layout.addWidget(self.file_input)
         file_layout.addWidget(browse_btn)
-        vbox.addLayout(file_layout)
+        left_vbox.addLayout(file_layout)
 
         # --- Progress/Status Panel ---
         from PyQt5.QtWidgets import QProgressBar
@@ -220,20 +228,20 @@ class ResearchAgentGUI(QMainWindow):
         progress_panel.addWidget(self.progress_substep)
         progress_panel.addWidget(self.progress_bar)
         progress_panel.addWidget(self.progress_log)
-        vbox.addLayout(progress_panel)
+        left_vbox.addLayout(progress_panel)
 
         # Theme toggle button
         self.theme_is_dark = False
         self.theme_btn = QPushButton("🌙 Dark Mode")
         self.theme_btn.setFont(QFont("Montserrat", 10))
         self.theme_btn.clicked.connect(self.toggle_theme)
-        vbox.addWidget(self.theme_btn)
+        left_vbox.addWidget(self.theme_btn)
 
         # Run button
         self.run_btn = QPushButton("Run Research")
         self.run_btn.setFont(QFont("Montserrat", 13, QFont.Bold))
         self.run_btn.clicked.connect(self.run_research)
-        vbox.addWidget(self.run_btn)
+        left_vbox.addWidget(self.run_btn)
 
         # Citation style selector
         citation_layout = QHBoxLayout()
@@ -245,65 +253,59 @@ class ResearchAgentGUI(QMainWindow):
         citation_layout.addWidget(citation_label)
         citation_layout.addWidget(self.citation_combo)
         citation_layout.addStretch()
-        vbox.addLayout(citation_layout)
-        # Output display as tabbed viewer
+        left_vbox.addLayout(citation_layout)
 
-        output_label = QLabel("Research Report:")
-        output_label.setFont(QFont("Montserrat", 12, QFont.Bold))
-        vbox.addWidget(output_label)
+        left_widget.setLayout(left_vbox)
+        print("DEBUG: Left panel widgets added and layout set")
 
-        self.tab_widget = QTabWidget()
-        # --- Current Report Tab ---
-        from PyQt5.QtWidgets import QTextBrowser
-        self.output_box = QTextBrowser()
-        self.output_box.setFont(QFont("Fira Mono", 12))
-        self.output_box.setOpenExternalLinks(True)
-        self.tab_widget.addTab(self.output_box, "Current Report")
+        # --- Right panel: Output & Reports ---
+        print("DEBUG: Initializing right panel widgets")
+        right_panel = QWidget()
+        right_vbox = QVBoxLayout()
+        right_vbox.setSpacing(16)
+        right_vbox.setContentsMargins(24, 18, 12, 18)
 
-        # --- Previous Reports Tab ---
-        prev_tab = QWidget()
-        prev_layout = QVBoxLayout()
-        # Search bar
-        self.report_search = QLineEdit()
-        self.report_search.setPlaceholderText("Search previous reports...")
-        self.report_search.textChanged.connect(self.filter_report_list)
-        prev_layout.addWidget(self.report_search)
-        # List of files
+        # Output box
+        self.output_box = QTextEdit()
+        self.output_box.setFont(QFont("Fira Mono", 11))
+        self.output_box.setReadOnly(True)
+        right_vbox.addWidget(self.output_box)
+
+        # Report list
         self.report_list = QListWidget()
-        self.report_list.itemClicked.connect(self.load_selected_report)
-        prev_layout.addWidget(self.report_list)
-        # Preview area
+        self.report_list.setFont(QFont("Fira Mono", 11))
+        right_vbox.addWidget(self.report_list)
+
+        # Report preview
         self.report_preview = QTextEdit()
         self.report_preview.setFont(QFont("Fira Mono", 11))
         self.report_preview.setReadOnly(True)
-        prev_layout.addWidget(self.report_preview)
-        # Add 'Open in Current Tab' button
-        self.open_in_current_btn = QPushButton("Open in Current Tab")
-        self.open_in_current_btn.setFont(QFont("Montserrat", 11))
-        self.open_in_current_btn.clicked.connect(self.open_report_in_current)
-        prev_layout.addWidget(self.open_in_current_btn)
-        prev_tab.setLayout(prev_layout)
-        self.tab_widget.addTab(prev_tab, "Previous Reports")
-        vbox.addWidget(self.tab_widget)
+        right_vbox.addWidget(self.report_preview)
 
-        # Multi-step: Use output as new query
-        self.use_output_btn = QPushButton("Use Output as New Query")
-        self.use_output_btn.setFont(QFont("Montserrat", 11))
-        self.use_output_btn.clicked.connect(self.use_output_as_query)
-        vbox.addWidget(self.use_output_btn)
+        # Report actions
+        report_actions_layout = QHBoxLayout()
+        open_report_btn = QPushButton("Open Report")
+        open_report_btn.clicked.connect(self.open_report_in_current)
+        report_actions_layout.addWidget(open_report_btn)
+        refresh_reports_btn = QPushButton("Refresh Reports")
+        refresh_reports_btn.clicked.connect(self.refresh_report_list)
+        report_actions_layout.addWidget(refresh_reports_btn)
+        right_vbox.addLayout(report_actions_layout)
 
-        # Export button
-        export_btn = QPushButton("Export Report...")
-        export_btn.clicked.connect(self.export_report)
-        vbox.addWidget(export_btn)
+        right_panel.setLayout(right_vbox)
+        print("DEBUG: Right panel widgets added and layout set")
 
-        self.refresh_report_list()
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_panel)
+        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(1, 3)
+        splitter.setSizes([500, 700])
 
-        # Set central widget
-        central.setLayout(vbox)
-        self.setCentralWidget(central)
+        self.setCentralWidget(splitter)
+        print("DEBUG: Splitter and central widget set")
 
-        # Menu bar
+        # Menu bar setup (must be before any use of 'menu')
+        print("DEBUG: Setting up menu bar")
         menu = self.menuBar()
         file_menu = menu.addMenu("File")
         save_action = QAction("Save Report", self)
@@ -312,14 +314,15 @@ class ResearchAgentGUI(QMainWindow):
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
-
         help_menu = menu.addMenu("Help")
         about_action = QAction("About", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
+        print("DEBUG: Menu bar setup complete")
 
         # Ensure documents directory exists
         ensure_documents_dir()
+        print("DEBUG: Finished _init_ui")
 
     def browse_file(self):
         fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report As", str(DOCUMENTS_DIR / "research_report.txt"), "Text/Markdown Files (*.txt *.md)")
@@ -521,7 +524,7 @@ class ResearchAgentGUI(QMainWindow):
             self.report_preview.setPlainText(f"[Error loading report: {e}]")
 
     def open_report_in_current(self):
-        """Load the selected previous report into the Current Report tab for editing/refinement."""
+        """Load the selected previous report into the main output area for editing/refinement."""
         selected_items = self.report_list.selectedItems()
         if not selected_items:
             QMessageBox.information(self, "No Report Selected", "Please select a report to open.")
@@ -531,7 +534,7 @@ class ResearchAgentGUI(QMainWindow):
             with open(fname, "r", encoding="utf-8") as f:
                 content = f.read()
             self.output_box.setPlainText(content)
-            self.tab_widget.setCurrentIndex(0)  # Switch to Current Report tab
+            # Removed: self.tab_widget.setCurrentIndex(0)
         except Exception as e:
             QMessageBox.critical(self, "Open Report Error", f"Could not open report:\n{e}")
 
