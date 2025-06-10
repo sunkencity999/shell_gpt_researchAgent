@@ -1,7 +1,10 @@
 import os
 
 # To allow users to use arrow keys in the REPL.
-import readline  # noqa: F401
+try:
+    import readline  # noqa: F401
+except ImportError:
+    pass  # readline is not available on Windows
 import sys
 
 import typer
