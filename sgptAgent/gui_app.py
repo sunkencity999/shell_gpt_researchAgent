@@ -243,6 +243,12 @@ class ResearchAgentGUI(QMainWindow):
         self.run_btn.clicked.connect(self.run_research)
         left_vbox.addWidget(self.run_btn)
 
+        # Clear button
+        self.clear_btn = QPushButton("Clear")
+        self.clear_btn.setFont(QFont("Montserrat", 11))
+        self.clear_btn.clicked.connect(self.clear_fields)
+        left_vbox.addWidget(self.clear_btn)
+
         # Citation style selector
         citation_layout = QHBoxLayout()
         citation_label = QLabel("Citation Style:")
@@ -323,6 +329,19 @@ class ResearchAgentGUI(QMainWindow):
         # Ensure documents directory exists
         ensure_documents_dir()
         print("DEBUG: Finished _init_ui")
+
+    def clear_fields(self):
+        """Clear all input fields and output box to prepare for a new query."""
+        self.query_input.clear()
+        self.audience_input.clear()
+        self.tone_input.clear()
+        self.improvement_input.clear()
+        self.file_input.clear()
+        self.output_box.clear()
+        self.progress_label.setText("")
+        self.progress_substep.setText("")
+        self.progress_bar.setValue(0)
+        self.progress_log.clear()
 
     def browse_file(self):
         fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report As", str(DOCUMENTS_DIR / "research_report.txt"), "Text/Markdown Files (*.txt *.md)")
