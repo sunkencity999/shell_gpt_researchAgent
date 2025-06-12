@@ -30,12 +30,24 @@ A next-generation, autonomous command-line and GUI research assistant for deep, 
   - Synthesizes actual information and findings from all sources into a unified, actionable report.
   - Provides more than just a summary review of the information.
 
+- **Automatic Reflective Refinement Loop**
+  - The agent autonomously critiques its own synthesized answers for missing info or ambiguity, then issues new search queries and refines its output until all gaps are filled or a maximum depth is reached.
+  - Entirely automatic and powered by local open-source LLMs—no user intervention required.
+
 - **Automatic Report Saving**
   - Saves all research reports in a dedicated `documents/` folder (git-ignored for privacy).
 
 - **Easy Setup and Launch**
   - Installs dependencies and sets up the Python virtual environment via `install.sh`.
   - Launches the Research Agent via `launch_sgpt_research.sh`.
+
+---
+
+> **⏳ Processing Time Notice**
+>
+> Because Shell GPT Research Agent performs multi-step, deep research with iterative refinement, generating a comprehensive report can take up to **15 minutes or longer**. Actual processing time depends on your system resources, internet speed, and the local LLM model you select. Please be patient—this approach ensures the most thorough and accurate results possible.
+
+---
 
 ---
 

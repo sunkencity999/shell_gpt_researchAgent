@@ -101,6 +101,28 @@ class ResearchAgent:
         )
         return self.llm.generate(prompt, model=self.model)
 
+    def critique_and_find_gaps(self, synthesis: str, goal: str):
+        """
+        Use the LLM to critique the synthesized answer for missing info or ambiguity and extract gaps as a list of follow-up queries.
+        Returns (critique, gaps_list). If no gaps, gaps_list will be empty.
+        """
+        prompt = (
+            f"You are a critical research assistant. Review the following synthesized research answer for the goal: {goal}\n"
+            f"Answer:\n{synthesis}\n"
+            "List any missing information, ambiguities, or unanswered aspects as a bullet list of specific follow-up research questions.\n"
+            "If the answer is fully complete and no gaps remain, reply with 'NO GAPS'.\n"
+        )
+        critique = self.llm.generate(prompt, model=self.model, temperature=0.2, max_tokens=512, system_prompt=self.system_prompt, context_window=self.ctx_window)
+        # Extract gaps as list
+        gaps = []
+        if 'NO GAPS' in critique.upper():
+            return critique, gaps
+        for line in critique.splitlines():
+            line = line.strip('-*• 	')
+            if line and not line.lower().startswith('missing') and len(line) > 8:
+                gaps.append(line)
+        return critique, gaps
+
     def synthesize(self, summaries: list, goal: str, audience: str = "", tone: str = "", improvement: str = "") -> str:
         context = ""
         if audience:
@@ -196,6 +218,23 @@ class ResearchAgent:
         synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
         current_step += 1
         emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
+
+        # --- Automatic Reflective Refinement Loop ---
+        MAX_REFINE = 3
+        for refine_iter in range(MAX_REFINE):
+            critique, gaps = self.critique_and_find_gaps(synthesis, goal)
+            if not gaps:
+                break  # No more gaps found
+            emit(f"Refinement iteration {refine_iter+1}: Found gaps, performing additional search...", substep="Refinement", percent=int(100 * current_step/total_steps), log=f"Gaps: {gaps}")
+            # For each gap, perform a new web search and summarize
+            for gap in gaps:
+                gap_results = self.web_search(gap, max_results=2)
+                for r in gap_results:
+                    gap_summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+                    summaries.append(gap_summary)
+                    summaries_md.append(f"[Refinement] {gap}: {gap_summary}")
+            synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
+        # --- End refinement loop ---
         # Write markdown report
         emit("Writing Markdown report...", substep="Writing Report", percent=int(100 * (current_step+1)/total_steps), log="Writing report to disk.")
         from datetime import datetime
