@@ -179,7 +179,7 @@ class ResearchAgentGUI(QMainWindow):
         # Max Tokens
         self.max_tokens_spin = QSpinBox()
         self.max_tokens_spin.setRange(128, 4096)
-        self.max_tokens_spin.setValue(1024)
+        self.max_tokens_spin.setValue(2048)
         adv_form.addRow("Max Tokens:", self.max_tokens_spin)
         # System Prompt
         self.system_prompt_input = QTextEdit()
@@ -579,7 +579,7 @@ class ResearchWorker(QThread):
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
     def __init__(self, query, model, filename, audience, tone, improvement,
-                 num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048, citation_style="APA"):
+                 num_results=10, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048, citation_style="APA"): 
         super().__init__()
         self.query = query
         self.model = model

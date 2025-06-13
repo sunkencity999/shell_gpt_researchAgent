@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class ResearchAgent:
-    def __init__(self, model=None, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048):
+    def __init__(self, model=None, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048):
         self.model = model or cfg.get("DEFAULT_MODEL")
         # Remove 'ollama/' prefix if present
         if self.model.startswith('ollama/'):
@@ -46,15 +46,28 @@ class ResearchAgent:
         if improvement:
             context += f"Special instructions: {improvement}. "
         prompt = (
-            f"{context}\nBreak down the following research goal into step-by-step actions:\n{goal}\nRespond with a bullet list."
+            f"{context}\nYou are a research assistant. Break down the following research goal into the smallest number of sub-questions needed to answer it directly and completely. Only include sub-questions that are strictly necessary and directly related to the goal. Do not include generic, unrelated, or redundant research topics. Each sub-question must reference the main topic.\n\nResearch goal: {goal}\nRespond with a bullet list."
         )
         steps = self.llm.generate(
             prompt, model=self.model,
-            temperature=self.temperature, max_tokens=self.max_tokens,
+            temperature=0.2, max_tokens=self.max_tokens,  # lower temp for focus
             system_prompt=self.system_prompt, context_window=self.ctx_window
         )
-        self.memory.append({"goal": goal, "plan": steps, "audience": audience, "tone": tone, "improvement": improvement})
-        return steps
+        # Filter out generic/unrelated/redundant steps (post-process)
+        filtered_steps = []
+        for s in steps.splitlines():
+            s_clean = s.strip('-*• \t')
+            if not s_clean:
+                continue
+            # Must mention the main topic (goal) or its key terms
+            if goal.lower().split()[0] not in s_clean.lower() and not any(word in s_clean.lower() for word in goal.lower().split()):
+                continue
+            # Filter out generic patterns
+            if any(generic in s_clean.lower() for generic in ["history", "overview", "definition", "introduction", "background", "future directions", "controversy", "general"]):
+                continue
+            filtered_steps.append(s_clean)
+        self.memory.append({"goal": goal, "plan": filtered_steps, "audience": audience, "tone": tone, "improvement": improvement})
+        return filtered_steps
 
     def web_search(self, query: str, max_results: int = 3) -> list:
         """Perform a real web search (with fallback) and return results."""
@@ -133,12 +146,12 @@ class ResearchAgent:
             context += f"Special instructions: {improvement}. "
         prompt = (
             f"{context}\nYou are an expert research assistant. Your task is to extract, merge, and cross-reference the actual factual information, data, and findings from the following summaries.\n"
-            "Do NOT review, critique, or comment on the writing style, structure, or quality of the summaries.\n"
-            "Instead, synthesize the core facts, insights, and evidence presented across all summaries into a single, unified, and information-rich research report.\n"
+            "Write a complete, information-rich research synthesis as if you were presenting your findings directly to the user.\n"
+            "Do NOT ask the user any questions, request further instructions, or offer possible ways to help. Do NOT include meta-commentary about your process or abilities.\n"
+            "Present only the synthesized findings, insights, and recommendations relevant to the research goal, in clear and direct language.\n"
             "- Identify and merge overlapping facts or data points.\n"
             "- Cross-reference and reconcile any differing details.\n"
-            "- Present the synthesized findings as if you had direct access to all the original source material.\n"
-            "- Focus on delivering new, integrated knowledge and clarity, not meta-analysis.\n"
+            "- Focus on delivering new, integrated knowledge and clarity, not meta-analysis or process commentary.\n"
             "If technical topics are present, explain them clearly for the intended audience.\n"
             f"Research goal: {goal}\n\n"
             "Summaries:\n" + "\n---\n".join(summaries)
@@ -166,7 +179,7 @@ class ResearchAgent:
         return '\n'.join(bib_lines)
 
     def run(self, goal: str, audience: str = "", tone: str = "", improvement: str = "",
-            num_results=10, temperature=0.7, max_tokens=1024, system_prompt="", ctx_window=2048, citation_style="APA", filename=None, progress_callback=None):
+            num_results=10, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048, citation_style="APA", filename=None, progress_callback=None):
         self.filename = filename
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -193,48 +206,97 @@ class ResearchAgent:
         steps = self.plan(goal, audience=audience, tone=tone, improvement=improvement)
         current_step += 1
         emit("Planning complete!", substep="Planning", percent=int(100 * current_step/total_steps), log="Planning complete.")
-        # Web search step
-        emit("Searching the web...", substep="Web Search", percent=int(100 * current_step/total_steps), log="Starting web search...")
-        results = self.web_search(goal, max_results=num_results)
-        current_step += 1
-        emit(f"Found {len(results)} web results.", substep="Web Search", percent=int(100 * current_step/total_steps), log=f"Found {len(results)} web results.")
-        web_results_md = []
-        self.sources = []
-        for idx, r in enumerate(results, 1):
-            web_results_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{r['snippet']}")
-            self.sources.append({"title": r.get("title", f"Source {idx}"), "href": r.get("href", ""), "snippet": r.get("snippet", "")})
-        # Summarizing URLs
-        summaries = []
-        summaries_md = []
-        for idx, r in enumerate(results, 1):
-            emit(f"Summarizing result {idx}/{len(results)}", substep=f"Summarizing {idx}/{len(results)}", percent=int(100 * (current_step+idx-1)/total_steps), log=f"Summarizing {r['title']}")
-            summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
-            summaries.append(summary)
-            summaries_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{summary}")
-        current_step += len(results)
-        emit("Summarization complete!", substep="Summarizing", percent=int(100 * current_step/total_steps), log="All web results summarized.")
-        # Synthesis step
-        emit("Synthesizing research summary...", substep="Synthesizing", percent=int(100 * (current_step+1)/total_steps), log="Synthesizing report.")
-        synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
-        current_step += 1
-        emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
 
-        # --- Automatic Reflective Refinement Loop ---
-        MAX_REFINE = 3
-        for refine_iter in range(MAX_REFINE):
-            critique, gaps = self.critique_and_find_gaps(synthesis, goal)
-            if not gaps:
-                break  # No more gaps found
-            emit(f"Refinement iteration {refine_iter+1}: Found gaps, performing additional search...", substep="Refinement", percent=int(100 * current_step/total_steps), log=f"Gaps: {gaps}")
-            # For each gap, perform a new web search and summarize
-            for gap in gaps:
-                gap_results = self.web_search(gap, max_results=2)
-                for r in gap_results:
-                    gap_summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
-                    summaries.append(gap_summary)
-                    summaries_md.append(f"[Refinement] {gap}: {gap_summary}")
+        # --- Multi-Step Web Reasoning ---
+        if isinstance(steps, str):
+            steps_list = [s.strip('-*• 	') for s in steps.split('\n') if s.strip('-*• 	')]
+        else:
+            steps_list = steps
+        # Filter out steps that are just the original goal or empty
+        steps_list = [s for s in steps_list if s and s.lower() not in [goal.lower(), '']]
+        if steps_list:
+            step_summaries = []
+            step_summaries_md = []
+            for idx, step in enumerate(steps_list, 1):
+                emit(f"Step {idx}/{len(steps_list)}: {step}", substep=f"Step {idx}", percent=int(100 * (current_step+idx-1)/total_steps), log=f"Sub-question: {step}")
+                results = self.web_search(step, max_results=num_results)
+                step_md = []
+                for ridx, r in enumerate(results, 1):
+                    step_md.append(f"### {ridx}. [{r['title']}]({r['href']})\n{r['snippet']}")
+                step_summaries_md.append(f"#### Step {idx}: {step}\n" + "\n".join(step_md))
+                summaries = []
+                for r in results:
+                    summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+                    summaries.append(summary)
+                step_summary = self.synthesize(summaries, step, audience=audience, tone=tone, improvement=improvement)
+                step_summaries.append(step_summary)
+            # Synthesize all step summaries into a final answer
+            emit("Synthesizing multi-step research summary...", substep="Synthesizing", percent=int(100 * (current_step+len(steps_list))/total_steps), log="Synthesizing final answer from all steps.")
+            synthesis = self.synthesize(step_summaries, goal, audience=audience, tone=tone, improvement=improvement)
+            current_step += len(steps_list)
+            emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
+            # Reflective refinement loop on final synthesis
+            MAX_REFINE = 3
+            for refine_iter in range(MAX_REFINE):
+                critique, gaps = self.critique_and_find_gaps(synthesis, goal)
+                if not gaps:
+                    break
+                emit(f"Refinement iteration {refine_iter+1}: Found gaps, performing additional search...", substep="Refinement", percent=int(100 * current_step/total_steps), log=f"Gaps: {gaps}")
+                for gap in gaps:
+                    gap_results = self.web_search(gap, max_results=2)
+                    for r in gap_results:
+                        gap_summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+                        step_summaries.append(gap_summary)
+                        step_summaries_md.append(f"[Refinement] {gap}: {gap_summary}")
+                synthesis = self.synthesize(step_summaries, goal, audience=audience, tone=tone, improvement=improvement)
+            # --- End refinement loop ---
+            web_results_md = step_summaries_md
+            summaries_md = step_summaries_md  # Fix: ensure summaries_md is defined for report
+            summaries = step_summaries        # Fix: ensure summaries is defined for report
+        else:
+            # Fallback to original single-step logic if no steps detected
+            emit("Searching the web...", substep="Web Search", percent=int(100 * current_step/total_steps), log="Starting web search...")
+            results = self.web_search(goal, max_results=num_results)
+            current_step += 1
+            emit(f"Found {len(results)} web results.", substep="Web Search", percent=int(100 * current_step/total_steps), log=f"Found {len(results)} web results.")
+            web_results_md = []
+            self.sources = []
+            for idx, r in enumerate(results, 1):
+                web_results_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{r['snippet']}")
+                self.sources.append({"title": r.get("title", f"Source {idx}"), "href": r.get("href", ""), "snippet": r.get("snippet", "")})
+            # Summarizing URLs
+            summaries = []
+            summaries_md = []
+            for idx, r in enumerate(results, 1):
+                emit(f"Summarizing result {idx}/{len(results)}", substep=f"Summarizing {idx}/{len(results)}", percent=int(100 * (current_step+idx-1)/total_steps), log=f"Summarizing {r['title']}")
+                summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+                summaries.append(summary)
+                summaries_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{summary}")
+            current_step += len(results)
+            emit("Summarization complete!", substep="Summarizing", percent=int(100 * current_step/total_steps), log="All web results summarized.")
+            # Synthesis step
+            emit("Synthesizing research summary...", substep="Synthesizing", percent=int(100 * (current_step+1)/total_steps), log="Synthesizing report.")
             synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
-        # --- End refinement loop ---
+            current_step += 1
+            emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
+            # --- Automatic Reflective Refinement Loop ---
+            MAX_REFINE = 3
+            for refine_iter in range(MAX_REFINE):
+                critique, gaps = self.critique_and_find_gaps(synthesis, goal)
+                if not gaps:
+                    break  # No more gaps found
+                emit(f"Refinement iteration {refine_iter+1}: Found gaps, performing additional search...", substep="Refinement", percent=int(100 * current_step/total_steps), log=f"Gaps: {gaps}")
+                # For each gap, perform a new web search and summarize
+                for gap in gaps:
+                    gap_results = self.web_search(gap, max_results=2)
+                    for r in gap_results:
+                        gap_summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+                        summaries.append(gap_summary)
+                        summaries_md.append(f"[Refinement] {gap}: {gap_summary}")
+                synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
+            # --- End refinement loop ---
+            web_results_md = summaries_md
+
         # Write markdown report
         emit("Writing Markdown report...", substep="Writing Report", percent=int(100 * (current_step+1)/total_steps), log="Writing report to disk.")
         from datetime import datetime
