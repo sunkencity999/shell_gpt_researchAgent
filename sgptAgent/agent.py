@@ -219,16 +219,36 @@ class ResearchAgent:
             step_summaries_md = []
             for idx, step in enumerate(steps_list, 1):
                 emit(f"Step {idx}/{len(steps_list)}: {step}", substep=f"Step {idx}", percent=int(100 * (current_step+idx-1)/total_steps), log=f"Sub-question: {step}")
+                # --- Relevance filtering for web results ---
+                def is_relevant_result(result, goal_keywords):
+                    text = (result.get('title', '') + ' ' + result.get('snippet', '')).lower()
+                    return any(kw in text for kw in goal_keywords)
+                goal_keywords = [w.lower() for w in goal.split() if len(w) > 2] + [goal.lower()]
                 results = self.web_search(step, max_results=num_results)
+                filtered_results = [r for r in results if is_relevant_result(r, goal_keywords)]
+                # Fallback: if all filtered out, retry with a simpler query (first noun phrase or keyword)
+                if not filtered_results:
+                    simple_query = goal.split()[0] if goal.split() else goal
+                    emit(f"No relevant results for step '{step}'. Retrying with simpler query '{simple_query}'...", substep=f"Step {idx}", percent=int(100 * (current_step+idx-1)/total_steps), log="Retrying with simpler query.")
+                    filtered_results = self.web_search(simple_query, max_results=num_results)
+                    # Try filtering again
+                    filtered_results = [r for r in filtered_results if is_relevant_result(r, goal_keywords)] or filtered_results
                 step_md = []
-                for ridx, r in enumerate(results, 1):
+                for ridx, r in enumerate(filtered_results, 1):
                     step_md.append(f"### {ridx}. [{r['title']}]({r['href']})\n{r['snippet']}")
                 step_summaries_md.append(f"#### Step {idx}: {step}\n" + "\n".join(step_md))
                 summaries = []
-                for r in results:
+                for r in filtered_results:
                     summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
                     summaries.append(summary)
-                step_summary = self.synthesize(summaries, step, audience=audience, tone=tone, improvement=improvement)
+                # --- Relevance filtering for summaries ---
+                def is_relevant_summary(summary, goal_keywords):
+                    text = summary.lower()
+                    return any(kw in text for kw in goal_keywords)
+                filtered_summaries = [s for s in summaries if is_relevant_summary(s, goal_keywords)]
+                if not filtered_summaries:
+                    filtered_summaries = summaries  # fallback: use all if all are filtered
+                step_summary = self.synthesize(filtered_summaries, step, audience=audience, tone=tone, improvement=improvement)
                 step_summaries.append(step_summary)
             # Synthesize all step summaries into a final answer
             emit("Synthesizing multi-step research summary...", substep="Synthesizing", percent=int(100 * (current_step+len(steps_list))/total_steps), log="Synthesizing final answer from all steps.")
@@ -274,11 +294,30 @@ class ResearchAgent:
                 summaries_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{summary}")
             current_step += len(results)
             emit("Summarization complete!", substep="Summarizing", percent=int(100 * current_step/total_steps), log="All web results summarized.")
+            # --- General-purpose filtering for summaries ---
+            def is_relevant_summary(summary, goal):
+                # Simple keyword overlap; can be replaced with semantic similarity for advanced use
+                goal_words = set(goal.lower().split())
+                summary_words = set(summary.lower().split())
+                overlap = goal_words.intersection(summary_words)
+                # Filter out summaries with no overlap or that appear to be errors/boilerplate
+                error_phrases = [
+                    "error message", "page not found", "copyright", "terms and conditions", "login to access", "cannot be provided", "generic webpage", "Elsevier", "faq", "frequently asked questions", "no relevant results"
+                ]
+                if any(phrase in summary.lower() for phrase in error_phrases):
+                    return False
+                return len(overlap) > 0 or goal.lower() in summary.lower()
+            filtered_summaries = [s for s in summaries if is_relevant_summary(s, goal)]
+            if not filtered_summaries:
+                filtered_summaries = summaries  # fallback: use all if all are filtered
             # Synthesis step
             emit("Synthesizing research summary...", substep="Synthesizing", percent=int(100 * (current_step+1)/total_steps), log="Synthesizing report.")
-            synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
+            synthesis = self.synthesize(filtered_summaries, goal, audience=audience, tone=tone, improvement=improvement)
             current_step += 1
             emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
+            # --- Post-synthesis topicality check ---
+            if goal.lower().split()[0] not in synthesis.lower() and not any(word in synthesis.lower() for word in goal.lower().split()):
+                synthesis = f"[Warning] The synthesized answer may not be relevant to your original query: '{goal}'. Please review the web results and consider refining your query for better results.\n\n" + synthesis
             # --- Automatic Reflective Refinement Loop ---
             MAX_REFINE = 3
             for refine_iter in range(MAX_REFINE):
@@ -292,10 +331,60 @@ class ResearchAgent:
                     for r in gap_results:
                         gap_summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
                         summaries.append(gap_summary)
-                        summaries_md.append(f"[Refinement] {gap}: {gap_summary}")
-                synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
-            # --- End refinement loop ---
-            web_results_md = summaries_md
+        web_results_md = []
+        self.sources = []
+        for idx, r in enumerate(results, 1):
+            web_results_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{r['snippet']}")
+            self.sources.append({"title": r.get("title", f"Source {idx}"), "href": r.get("href", ""), "snippet": r.get("snippet", "")})
+        # Summarizing URLs
+        summaries = []
+        summaries_md = []
+        for idx, r in enumerate(results, 1):
+            emit(f"Summarizing result {idx}/{len(results)}", substep=f"Summarizing {idx}/{len(results)}", percent=int(100 * (current_step+idx-1)/total_steps), log=f"Summarizing {r['title']}")
+            summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+            summaries.append(summary)
+            summaries_md.append(f"### {idx}. [{r['title']}]({r['href']})\n{summary}")
+        current_step += len(results)
+        emit("Summarization complete!", substep="Summarizing", percent=int(100 * current_step/total_steps), log="All web results summarized.")
+        # --- General-purpose filtering for summaries ---
+        def is_relevant_summary(summary, goal):
+            # Simple keyword overlap; can be replaced with semantic similarity for advanced use
+            goal_words = set(goal.lower().split())
+            summary_words = set(summary.lower().split())
+            overlap = goal_words.intersection(summary_words)
+            # Filter out summaries with no overlap or that appear to be errors/boilerplate
+            error_phrases = [
+                "error message", "page not found", "copyright", "terms and conditions", "login to access", "cannot be provided", "generic webpage", "Elsevier", "faq", "frequently asked questions", "no relevant results"
+            ]
+            if any(phrase in summary.lower() for phrase in error_phrases):
+                return False
+            return len(overlap) > 0 or goal.lower() in summary.lower()
+        filtered_summaries = [s for s in summaries if is_relevant_summary(s, goal)]
+        if not filtered_summaries:
+            filtered_summaries = summaries  # fallback: use all if all are filtered
+        # Synthesis step
+        emit("Synthesizing research summary...", substep="Synthesizing", percent=int(100 * (current_step+1)/total_steps), log="Synthesizing report.")
+        synthesis = self.synthesize(filtered_summaries, goal, audience=audience, tone=tone, improvement=improvement)
+        current_step += 1
+        emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
+        # --- Post-synthesis topicality check ---
+        if goal.lower().split()[0] not in synthesis.lower() and not any(word in synthesis.lower() for word in goal.lower().split()):
+            synthesis = f"[Warning] The synthesized answer may not be relevant to your original query: '{goal}'. Please review the web results and consider refining your query for better results.\n\n" + synthesis
+        # --- Automatic Reflective Refinement Loop ---
+        MAX_REFINE = 3
+        for refine_iter in range(MAX_REFINE):
+            critique, gaps = self.critique_and_find_gaps(synthesis, goal)
+            if not gaps:
+                break  # No more gaps found
+            emit(f"Refinement iteration {refine_iter+1}: Found gaps, performing additional search...", substep="Refinement", percent=int(100 * current_step/total_steps), log=f"Gaps: {gaps}")
+            # For each gap, perform a new web search and summarize
+            for gap in gaps:
+                gap_results = self.web_search(gap, max_results=2)
+                for r in gap_results:
+                    gap_summary = self.fetch_and_summarize_url(r['href'], r.get('snippet', ''), audience=audience, tone=tone, improvement=improvement)
+                    summaries.append(gap_summary)
+                    summaries_md.append(f"[Refinement] {gap}: {gap_summary}")
+            synthesis = self.synthesize(summaries, goal, audience=audience, tone=tone, improvement=improvement)
 
         # Write markdown report
         emit("Writing Markdown report...", substep="Writing Report", percent=int(100 * (current_step+1)/total_steps), log="Writing report to disk.")
