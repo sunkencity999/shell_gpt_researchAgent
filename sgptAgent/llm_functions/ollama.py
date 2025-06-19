@@ -74,6 +74,14 @@ class OllamaClient:
             print(f"[OLLAMA ERROR] Unexpected error: {e}")
             return f"[Ollama error: {e}]"
 
+    def chat(self, model: str, prompt: str, **kwargs) -> str:
+        """
+        Chat method that wraps generate() for compatibility with agent interface.
+        Maps the expected chat parameters to generate parameters.
+        """
+        return self.generate(prompt, model=model, **kwargs)
+
 # Example usage:
 client = OllamaClient()
 print(client.generate("What is the capital of France?", model="qwen3:8b"))
+print(client.chat("qwen3:8b", "What is the capital of France?"))

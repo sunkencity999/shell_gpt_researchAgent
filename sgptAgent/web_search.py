@@ -79,11 +79,13 @@ def search_web_google_cse(query: str, max_results: int = 10) -> List[Dict[str, s
             "num": num,
             "start": start
         }
+        print(f"[Google CSE] Query: {query} | Params: {params}")
         try:
             resp = requests.get(url, params=params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             items = data.get("items", [])
+            print(f"[Google CSE] Returned {len(items)} items for query: '{query}' (start={start}, num={num})")
             for item in items:
                 results.append({
                     "title": item.get("title"),

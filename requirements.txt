@@ -12,3 +12,11 @@ markdown2
 reportlab
 python-docx
 instructor
+sentence-transformers
+torch
+numpy
+spacy
+nltk
+scikit-learn
+fuzzywuzzy
+python-levenshtein

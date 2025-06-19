@@ -56,10 +56,72 @@ python -m pip install --upgrade pip >nul || (
 )
 
 REM ===============================================
-REM 5. Install dependencies from requirements.txt
+REM 5. Install Python requirements
+REM ===============================================
+echo [5/8] Installing Python requirements from requirements.txt...
+echo Enhanced research capabilities will be installed:
+echo   - spacy + nltk (Advanced NLP for entity recognition and query enhancement)
+echo   - scikit-learn (Relevance scoring and text similarity)
+echo   - fuzzywuzzy (Fuzzy text matching)
+echo   - sentence-transformers (Semantic similarity)
+echo   - Export features (markdown2, reportlab, python-docx)
+venv\Scripts\pip install -r requirements.txt || (
+    echo [ERROR] Failed to install Python requirements.
+    pause
+    exit /b 1
+)
+echo [5/8] Requirements installed.
+
+REM ===============================================
+REM 5.5. Setup NLP models and data
+REM ===============================================
+echo [5.5/8] Setting up NLP models and data...
+
+REM Download spaCy English model
+echo Downloading spaCy English model (en_core_web_sm)...
+venv\Scripts\python -m spacy download en_core_web_sm || (
+    echo [WARNING] Failed to download spaCy English model via spacy command.
+    echo Trying alternative method...
+    venv\Scripts\pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl || (
+        echo [WARNING] Failed to install spaCy model. The application will fall back to basic entity extraction.
+    )
+)
+
+REM Download NLTK data
+echo Downloading NLTK data (wordnet, punkt, stopwords)...
+venv\Scripts\python -c "import nltk; import ssl; ssl._create_default_https_context = ssl._create_unverified_context; nltk.download('wordnet', quiet=True); nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True); nltk.download('omw-1.4', quiet=True); print('NLTK data downloaded successfully')" || (
+    echo [WARNING] NLTK data download failed. The application will work with reduced query enhancement capabilities.
+)
+
+echo [5.5/8] NLP setup completed. Enhanced query construction and entity recognition are now available.
+
+REM ===============================================
+REM 6. Ensure Ollama embedding model is present
+REM ===============================================
+echo [6/8] Pulling Ollama embedding model 'nomic-embed-text:latest'...
+ollama pull nomic-embed-text:latest || (
+    echo [ERROR] Failed to pull embedding model from Ollama.
+    pause
+    exit /b 1
+)
+echo [6/8] Embedding model installed.
+
+REM ===============================================
+REM 7. Re-run requirements.txt to ensure sentence-transformers is installed
+REM ===============================================
+echo [7/8] Re-installing Python requirements to ensure embedding dependencies...
+venv\Scripts\pip install -r requirements.txt || (
+    echo [ERROR] Failed to re-install Python requirements.
+    pause
+    exit /b 1
+)
+echo [7/8] Embedding dependencies ensured.
+
+REM ===============================================
+REM 8. Install dependencies from requirements.txt
 REM ===============================================
 if exist requirements.txt (
-    echo [5/8] Installing Python dependencies from requirements.txt...
+    echo [8/8] Installing Python dependencies from requirements.txt...
     pip install -r requirements.txt || (
         echo [ERROR] Failed to install dependencies from requirements.txt.
         echo Please check the file for errors or check your internet connection.
@@ -119,12 +181,31 @@ python -m sgptAgent.gui_app || (
     exit /b 1
 )
 
+echo [8/8] Installation complete!
+
+REM Final verification step
+echo Running setup verification...
+venv\Scripts\python verify_setup.py
+if %errorlevel% equ 0 (
+    echo All systems verified and ready!
+) else (
+    echo Some verification tests failed, but the application should still work.
+)
+
 echo.
-echo ---
-echo Installation complete and application started.
-echo To run the app again in the future:
-echo 1. Open a command prompt in this directory.
-echo 2. Activate the virtual environment: venv\Scripts\activate.bat
-echo 3. Run the app: python -m sgptAgent.gui_app
-echo ---
-pause
+echo 🎉 Shell GPT Research Agent is ready to use!
+echo.
+echo Enhanced AI capabilities now available:
+echo   • Advanced entity recognition with spaCy
+echo   • Query expansion with NLTK WordNet
+echo   • Relevance scoring with TF-IDF
+echo   • Domain-specific query enhancement
+echo   • Progressive fallback strategies
+echo   • Fuzzy text matching
+echo.
+echo To run the application:
+echo   venv\Scripts\python sgptAgent\gui_app.py
+echo.
+echo To verify setup anytime:
+echo   venv\Scripts\python verify_setup.py
+echo.

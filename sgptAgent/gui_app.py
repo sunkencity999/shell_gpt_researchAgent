@@ -627,4 +627,24 @@ class ResearchWorker(QThread):
         return bar
 
 if __name__ == "__main__":
+    # --- Embedding model and dependency check ---
+    import subprocess, sys, re
+    from PyQt5.QtWidgets import QApplication, QMessageBox
+    app = QApplication(sys.argv)
+    # 1. Check for Ollama embedding model
+    try:
+        ollama_models = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True).stdout.strip().split('\n')
+        embedding_model_present = any('nomic-embed-text:latest' in line for line in ollama_models)
+        if not embedding_model_present:
+            QMessageBox.critical(None, "Embedding Model Missing", "Required embedding model 'nomic-embed-text:latest' not found in Ollama. Please run:\n\nollama pull nomic-embed-text:latest")
+            sys.exit(1)
+    except Exception as e:
+        QMessageBox.critical(None, "Ollama Error", f"Could not check Ollama models: {e}")
+        sys.exit(1)
+    # 2. Check for Python embedding dependencies
+    try:
+        import sentence_transformers, torch, numpy
+    except ImportError as e:
+        QMessageBox.critical(None, "Python Embedding Dependencies Missing", "Required Python embedding dependencies missing. Please install with:\n\npip install sentence-transformers torch numpy")
+        sys.exit(1)
     main()

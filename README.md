@@ -41,6 +41,32 @@ A next-generation, autonomous command-line and GUI research assistant for deep, 
   - Installs dependencies and sets up the Python virtual environment via `install.sh`.
   - Launches the Research Agent via `launch_sgpt_research.sh`.
 
+## 🧠 Enhanced AI Capabilities
+
+- **Advanced Entity Recognition**
+  - Uses spaCy NLP models to identify organizations, people, locations, dates, and events.
+  - Extracts key entities from research goals for targeted query construction.
+
+- **Intelligent Query Enhancement**
+  - Automatically expands queries with synonyms using NLTK WordNet.
+  - Generates domain-specific query variations (sports, technology, business, science, etc.).
+  - Creates temporal and comparative query variants for comprehensive coverage.
+
+- **Progressive Search Strategies**
+  - Multi-level fallback system: enhanced queries → fallback queries → domain-enhanced → original.
+  - Quality thresholds ensure sufficient results before moving to next strategy.
+  - Robust error handling with graceful degradation.
+
+- **Advanced Relevance Scoring**
+  - TF-IDF vectorization and cosine similarity for semantic relevance.
+  - Entity presence scoring and keyword overlap analysis.
+  - Multi-phrase matching with intelligent stopword filtering.
+
+- **Domain-Aware Research**
+  - Automatic domain detection (sports, technology, business, science, health, politics, finance, education).
+  - Domain-specific keyword enhancement and query patterns.
+  - Comparison query detection for competitive analysis research.
+
 ---
 
 > **⏳ Processing Time Notice**

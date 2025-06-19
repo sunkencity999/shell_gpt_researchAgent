@@ -1,2 +1,4 @@
-from .app import main as main
-from .app import entry_point as cli  # noqa: F401
+# Core ResearchAgent functionality
+from .agent import ResearchAgent
+
+__all__ = ['ResearchAgent']

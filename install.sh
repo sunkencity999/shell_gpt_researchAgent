@@ -57,7 +57,11 @@ fi
 
 # Step 3: Pip dependencies
 echo -e "${yellow}Installing Python requirements...${reset}"
-echo -e "${yellow}The following packages will be installed for report export features:${reset}"
+echo -e "${yellow}The following packages will be installed for enhanced research capabilities:${reset}"
+echo -e "  - spacy + nltk (Advanced NLP for entity recognition and query enhancement)"
+echo -e "  - scikit-learn (Relevance scoring and text similarity)"
+echo -e "  - fuzzywuzzy (Fuzzy text matching)"
+echo -e "  - sentence-transformers (Semantic similarity)"
 echo -e "  - markdown2 (HTML export)"
 echo -e "  - reportlab (PDF export)"
 echo -e "  - python-docx (Word DOCX export)"
@@ -73,7 +77,48 @@ if ! ./venv/bin/pip install -r requirements.txt $PIP_FLAGS; then
     exit 1
 fi
 
-echo -e "${green}✔ Export dependencies installed. You can now export reports as Markdown, HTML, PDF, and DOCX from the GUI.${reset}"
+echo -e "${green}✔ Python dependencies installed successfully${reset}"
+
+# Step 3.5: Download NLP models and data
+echo -e "${yellow}Setting up NLP models and data...${reset}"
+
+# Download spaCy English model
+echo -e "${yellow}Downloading spaCy English model (en_core_web_sm)...${reset}"
+if ! ./venv/bin/python -m spacy download en_core_web_sm; then
+    echo -e "${red}Failed to download spaCy English model. Trying alternative method...${reset}"
+    if ! ./venv/bin/pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl $PIP_FLAGS; then
+        echo -e "${red}Failed to install spaCy model. The application will fall back to basic entity extraction.${reset}"
+    else
+        echo -e "${green}✔ spaCy English model installed via direct download${reset}"
+    fi
+else
+    echo -e "${green}✔ spaCy English model downloaded successfully${reset}"
+fi
+
+# Download NLTK data
+echo -e "${yellow}Downloading NLTK data (wordnet, punkt, stopwords)...${reset}"
+./venv/bin/python -c "
+import nltk
+import ssl
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+try:
+    nltk.download('wordnet', quiet=True)
+    nltk.download('punkt', quiet=True) 
+    nltk.download('stopwords', quiet=True)
+    nltk.download('omw-1.4', quiet=True)
+    print('✔ NLTK data downloaded successfully')
+except Exception as e:
+    print(f'⚠ NLTK download warning: {e}')
+    print('The application will work with reduced query enhancement capabilities')
+"
+
+echo -e "${green}✔ NLP setup completed. Enhanced query construction and entity recognition are now available.${reset}"
 
 # Step 4: Playwright browser dependencies
 echo -e "${yellow}Installing Playwright browsers (for robust extraction)...${reset}"
@@ -183,8 +228,32 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 fi
 
 echo -e "${green}✔ Installation complete!${reset}"
-echo -e "\nTo launch the research agent, run:"
-echo -e "  ${yellow}./launch_sgpt_research.sh${reset}"
-echo -e "\nTo activate the venv manually:"
-echo -e "  ${yellow}source venv/bin/activate${reset}"
-echo -e "\nHappy researching!"
+
+# Final verification step
+echo -e "${yellow}Running setup verification...${reset}"
+if ./venv/bin/python verify_setup.py; then
+    echo -e "${green}✔ All systems verified and ready!${reset}"
+else
+    echo -e "${yellow}⚠ Some verification tests failed, but the application should still work.${reset}"
+fi
+
+echo -e "${green}
+🎉 Shell GPT Research Agent is ready to use!
+
+Enhanced AI capabilities now available:
+  • Advanced entity recognition with spaCy
+  • Query expansion with NLTK WordNet  
+  • Relevance scoring with TF-IDF
+  • Domain-specific query enhancement
+  • Progressive fallback strategies
+  • Fuzzy text matching
+
+To run the application:
+  ./launch_sgpt_research.sh
+  
+Or directly:
+  source venv/bin/activate && python sgptAgent/gui_app.py
+
+To verify setup anytime:
+  source venv/bin/activate && python verify_setup.py
+${reset}"

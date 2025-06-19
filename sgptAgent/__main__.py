@@ -11,10 +11,26 @@ if __name__ == "__main__":
     else:
         os.system('clear')
     print("\nShell GPT Research Agent\n========================\n")
+    # --- Embedding model and dependency check ---
+    import subprocess, sys, re
+    # 1. Check for Ollama embedding model
+    try:
+        ollama_models = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True).stdout.strip().split('\n')
+        embedding_model_present = any('nomic-embed-text:latest' in line for line in ollama_models)
+        if not embedding_model_present:
+            print("[ERROR] Required embedding model 'nomic-embed-text:latest' not found in Ollama. Please run: ollama pull nomic-embed-text:latest")
+            sys.exit(1)
+    except Exception as e:
+        print(f"[ERROR] Could not check Ollama models: {e}")
+        sys.exit(1)
+    # 2. Check for Python embedding dependencies
+    try:
+        import sentence_transformers, torch, numpy
+    except ImportError as e:
+        print("[ERROR] Required Python embedding dependencies missing. Please install with: pip install sentence-transformers torch numpy")
+        sys.exit(1)
     try:
         # List installed Ollama models
-        import subprocess
-        import re
         models = []
         try:
             result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
