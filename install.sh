@@ -248,8 +248,15 @@ Enhanced AI capabilities now available:
   • Progressive fallback strategies
   • Fuzzy text matching
 
+Creating desktop launcher...${reset}"
+
+# Create desktop file with correct paths
+./create_desktop_file.sh
+
+echo -e "${green}
 To run the application:
-  ./launch_sgpt_research.sh
+  CLI: ./launch_sgpt_research.sh
+  GUI: ./sgpt-research-gui or double-click sgpt-research-gui.desktop
   
 Or directly:
   source venv/bin/activate && python sgptAgent/gui_app.py
