@@ -23,7 +23,7 @@ if exist "%SCRIPT_DIR%.env" (
 
 REM Launch GUI
 echo [INFO] Launching Shell GPT Research Agent GUI...
-"%VENV_PATH%\python.exe" sgptAgent\gui_app.py %*
+"%VENV_PATH%\python.exe" -m sgptAgent.gui_app %*
 
 REM Check for errors
 if errorlevel 1 (

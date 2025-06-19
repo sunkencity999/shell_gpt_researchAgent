@@ -27,7 +27,7 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
 fi
 
 # Launch GUI
-"$SCRIPT_DIR/venv/bin/python" sgptAgent/gui_app.py "$@"
+"$SCRIPT_DIR/venv/bin/python" -m sgptAgent.gui_app "$@"
 
 # Keep terminal open on macOS for any error messages
 if [ $? -ne 0 ]; then

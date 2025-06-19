@@ -72,11 +72,6 @@ class QueryEnhancer:
     def _load_domain_keywords(self) -> Dict[str, List[str]]:
         """Load domain-specific keywords for query enhancement."""
         return {
-            'sports': [
-                'team', 'player', 'game', 'season', 'championship', 'league', 'score', 'win', 'loss', 'record', 'statistics', 'performance',
-                'vs', 'versus', 'compare', 'comparison', 'better', 'best', 'worst', 'ranking', 'standings', 'playoff', 'tournament',
-                'decade', 'years', 'career', 'stats', 'ERA', 'batting', 'pitching', 'defense', 'offense', 'wins', 'losses'
-            ],
             'technology': [
                 'software', 'hardware', 'algorithm', 'system', 'platform', 'framework', 'API', 'database', 'security', 'performance',
                 'vs', 'versus', 'compare', 'comparison', 'better', 'best', 'benchmark', 'evaluation', 'review', 'analysis',
@@ -397,13 +392,7 @@ class QueryEnhancer:
                 queries.append(f'{query} {keyword}')
         
         # Domain-specific patterns
-        if domain == 'sports':
-            queries.extend([
-                f'{query} statistics',
-                f'{query} performance analysis',
-                f'{query} season records'
-            ])
-        elif domain == 'business':
+        if domain == 'business':
             queries.extend([
                 f'{query} financial performance',
                 f'{query} market analysis',

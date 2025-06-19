@@ -139,9 +139,10 @@ The search results contained content that was not related to your specific quest
 **Suggestions:**
 - Try rephrasing your research question with more specific terms
 - Consider breaking down your question into smaller, more focused parts
-- Look for official sources like team websites, MLB.com, or sports statistics databases
+- Look for official sources, academic papers, or industry-specific databases
+- Try using more specific keywords related to your topic
 
-**Alternative approach:** You might want to search for specific statistics like "LA Dodgers wins 2015-2024" or "SF Giants playoff appearances this decade" to get more targeted results."""
+**Alternative approach:** You might want to search for more specific aspects of your topic or try different keyword combinations to get more targeted results."""
         
         # Enhanced synthesis with data quality awareness
         context = ""
@@ -223,17 +224,6 @@ Make each gap a specific search query that could find the missing information.""
         goal_lower = goal.lower()
         queries = []
         
-        # Baseball-specific query generation (example for the user's case)
-        if any(term in goal_lower for term in ['dodgers', 'giants', 'baseball', 'mlb']):
-            if 'dodgers' in goal_lower and 'giants' in goal_lower:
-                queries.extend([
-                    "LA Dodgers vs SF Giants head to head record 2015-2024",
-                    "Los Angeles Dodgers wins losses 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024",
-                    "San Francisco Giants season records 2015-2024 wins losses",
-                    "Dodgers Giants playoff appearances World Series 2015-2024",
-                    "MLB standings NL West Dodgers Giants decade comparison"
-                ])
-        
         # Generic query enhancement patterns
         if 'better' in goal_lower or 'compare' in goal_lower:
             # Extract entities for comparison
@@ -269,8 +259,6 @@ Make each gap a specific search query that could find the missing information.""
         """Add domain-specific targeting to the search query."""
         if domain == 'general':
             return query
-        elif domain == 'sports':
-            return f"{query} site:mlb.com OR site:espn.com OR site:baseball-reference.com OR site:fangraphs.com OR site:bleacherreport.com"
         elif domain == 'technology':
             return f"{query} site:techcrunch.com OR site:arstechnica.com OR site:wired.com OR site:theverge.com"
         elif domain == 'business':

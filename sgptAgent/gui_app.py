@@ -1,13 +1,25 @@
-import sys
 import os
+import sys
 from pathlib import Path
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QTextEdit, QPushButton, QFileDialog, QComboBox, QMenuBar, QAction, QMessageBox,
-    QTabWidget, QListWidget, QSplitter, QSpinBox, QDoubleSpinBox, QGroupBox, QFormLayout
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, 
+    QTextEdit, QLineEdit, QPushButton, QSplitter, QComboBox, QSpinBox, 
+    QDoubleSpinBox, QGroupBox, QFormLayout, QListWidget, QProgressBar, 
+    QMessageBox, QFileDialog, QAction, QMenuBar, QScrollArea, QSizePolicy
 )
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QThread, pyqtSignal, Qt, QTimer
+from PyQt5.QtGui import QIcon, QFont, QPalette, QColor
+
+# Import our modern styling system and components
+from sgptAgent.gui_styles import (
+    get_modern_stylesheet, get_font, apply_button_style, 
+    create_dark_palette, create_light_palette, COLORS, SPACING, RADIUS
+)
+from sgptAgent.gui_components import (
+    ModernCard, IconButton, ModernInput, ModernComboBox, ModernSpinBox,
+    ModernProgressBar, StatusBadge, CollapsibleSection, create_form_row,
+    create_button_row, ICONS
+)
 
 # --- Configurable paths and constants ---
 DOCUMENTS_DIR = Path(__file__).resolve().parent.parent / "documents"
@@ -17,7 +29,6 @@ APP_TITLE = "Shell GPT Research Agent GUI"
 # --- Import backend ---
 from sgptAgent.agent import ResearchAgent
 import traceback
-from PyQt5.QtCore import QThread, pyqtSignal, Qt
 
 # --- Helper functions ---
 def ensure_documents_dir():
@@ -27,308 +38,63 @@ def ensure_documents_dir():
 class ResearchAgentGUI(QMainWindow):
     def __init__(self):
         super().__init__()
+        
+        # Initialize theme state
+        self.theme_is_dark = False
+        
+        # Set window properties
         self.setWindowTitle(APP_TITLE)
-        self.setMinimumSize(800, 600)
-        # Set custom window icon
+        self.setMinimumSize(800, 600)  # Increased minimum size for better layout
+        self.resize(1200, 800)
+        
+        # Set application icon
         icon_path = os.path.join(os.path.dirname(__file__), "Assets", "sgptRAicon.png")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
         else:
             self.setWindowIcon(QIcon.fromTheme("applications-science"))
+        
+        # Apply modern styling
+        self._apply_modern_styling()
+        
+        # Initialize UI
         self._init_ui()
+        
+        # Set up research stages for progress tracking
+        self.research_stages = [
+            {'name': 'Planning', 'icon': '🧠', 'color': 'blue'},
+            {'name': 'Searching', 'icon': '🔍', 'color': 'orange'},
+            {'name': 'Processing', 'icon': '⚙️', 'color': 'purple'},
+            {'name': 'Synthesizing', 'icon': '📝', 'color': 'green'},
+            {'name': 'Finalizing', 'icon': '✨', 'color': 'success'}
+        ]
+    
+    def _apply_modern_styling(self):
+        """Apply modern styling to the application."""
+        # Set application font
+        app = QApplication.instance()
+        app.setFont(get_font('body_md'))
+        
+        # Apply stylesheet
+        stylesheet = get_modern_stylesheet(self.theme_is_dark)
+        app.setStyleSheet(stylesheet)
+        
+        # Set palette
+        if self.theme_is_dark:
+            app.setPalette(create_dark_palette())
+        else:
+            app.setPalette(create_light_palette())
 
     def toggle_theme(self):
-        from PyQt5.QtGui import QPalette, QColor
-        app = QApplication.instance()
-        if not self.theme_is_dark:
-            dark_palette = QPalette()
-            dark_palette.setColor(QPalette.Window, QColor(30, 30, 30))
-            dark_palette.setColor(QPalette.WindowText, QColor(220, 220, 220))
-            dark_palette.setColor(QPalette.Base, QColor(24, 24, 24))
-            dark_palette.setColor(QPalette.AlternateBase, QColor(40, 40, 40))
-            dark_palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 220))
-            dark_palette.setColor(QPalette.ToolTipText, QColor(0, 0, 0))
-            dark_palette.setColor(QPalette.Text, QColor(220, 220, 220))
-            dark_palette.setColor(QPalette.Button, QColor(45, 45, 45))
-            dark_palette.setColor(QPalette.ButtonText, QColor(220, 220, 220))
-            dark_palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
-            dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-            dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-            dark_palette.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
-            app.setPalette(dark_palette)
-            self.theme_btn.setText("☀️ Light Mode")
-            self.theme_is_dark = True
+        """Toggle between dark and light themes using modern styling system."""
+        self.theme_is_dark = not self.theme_is_dark
+        self._apply_modern_styling()
+        
+        # Update theme button text and icon
+        if self.theme_is_dark:
+            self.theme_btn.setText(f"{ICONS['light_mode']} Light Mode")
         else:
-            app.setPalette(app.style().standardPalette())
-            self.theme_btn.setText("🌙 Dark Mode")
-            self.theme_is_dark = False
-
-    def _init_ui(self):
-        print("DEBUG: Entered _init_ui")
-        from PyQt5.QtWidgets import QSizePolicy
-        # Main splitter for responsive layout
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.setChildrenCollapsible(False)
-
-        # --- Left panel: Inputs & Controls ---
-        print("DEBUG: Initializing left panel widgets")
-        left_widget = QWidget()
-        left_vbox = QVBoxLayout()
-        left_vbox.setSpacing(16)
-        left_vbox.setContentsMargins(24, 18, 12, 18)
-
-        # Logo
-        import os
-        from PyQt5.QtGui import QPixmap
-        logo_path = os.path.join(os.path.dirname(__file__), "Assets", "sgptRAicon.png")
-        logo_label = QLabel()
-        if os.path.exists(logo_path):
-            pixmap = QPixmap(logo_path)
-            logo_label.setPixmap(pixmap.scaled(104, 104, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        logo_label.setAlignment(Qt.AlignCenter)
-        left_vbox.addWidget(logo_label)
-
-        # Query input
-        query_label = QLabel("Research Query:")
-        query_label.setFont(QFont("Montserrat", 12, QFont.Bold))
-        self.query_input = QTextEdit()
-        self.query_input.setFont(QFont("Fira Mono", 12))
-        self.query_input.setPlaceholderText("Enter your research question or topic...")
-        self.query_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        left_vbox.addWidget(query_label)
-        left_vbox.addWidget(self.query_input, 2)
-
-        # Audience, Tone, Improvement fields
-        extras_layout = QHBoxLayout()
-        audience_label = QLabel("Audience:")
-        audience_label.setFont(QFont("Montserrat", 11))
-        self.audience_input = QLineEdit()
-        self.audience_input.setFont(QFont("Fira Mono", 11))
-        self.audience_input.setPlaceholderText("e.g., C-suite, technical, general")
-        tone_label = QLabel("Tone:")
-        tone_label.setFont(QFont("Montserrat", 11))
-        self.tone_input = QLineEdit()
-        self.tone_input.setFont(QFont("Fira Mono", 11))
-        self.tone_input.setPlaceholderText("e.g., formal, technical, accessible")
-        improvement_label = QLabel("Improvement:")
-        improvement_label.setFont(QFont("Montserrat", 11))
-        self.improvement_input = QLineEdit()
-        self.improvement_input.setFont(QFont("Fira Mono", 11))
-        self.improvement_input.setPlaceholderText("Anything to improve or focus on (optional)")
-        extras_layout.addWidget(audience_label)
-        extras_layout.addWidget(self.audience_input)
-        extras_layout.addWidget(tone_label)
-        extras_layout.addWidget(self.tone_input)
-        extras_layout.addWidget(improvement_label)
-        extras_layout.addWidget(self.improvement_input)
-        left_vbox.addLayout(extras_layout)
-
-        # Model selection
-        model_layout = QHBoxLayout()
-        model_label = QLabel("Ollama Model:")
-        model_label.setFont(QFont("Montserrat", 11))
-        self.model_combo = QComboBox()
-        self.model_combo.setFont(QFont("Fira Mono", 11))
-        # Dynamically populate model list
-        import subprocess, re
-        self.model_combo.setEditable(False)
-        try:
-            result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
-            lines = result.stdout.strip().split('\n')
-            models = []
-            for line in lines[1:]:  # skip header
-                fields = re.split(r'\s{2,}', line.strip())
-                if len(fields) >= 3:
-                    name = fields[0]
-                    size = fields[2]
-                    models.append({'name': name, 'size': size})
-            if not models:
-                self.model_combo.addItem(DEFAULT_MODEL)
-            else:
-                for m in models:
-                    self.model_combo.addItem(f"{m['name']}  [size: {m['size']}]", m['name'])
-        except Exception as e:
-            self.model_combo.addItem(DEFAULT_MODEL)
-            QMessageBox.warning(self, "Ollama Models Not Found", f"Could not list Ollama models. Defaulting to '{DEFAULT_MODEL}'.\nError: {e}")
-        model_layout.addWidget(model_label)
-        model_layout.addWidget(self.model_combo)
-        left_vbox.addLayout(model_layout)
-
-        # Number of web results
-        from PyQt5.QtWidgets import QSpinBox, QDoubleSpinBox, QGroupBox, QFormLayout
-        results_layout = QHBoxLayout()
-        results_label = QLabel("Number of Web Results:")
-        results_label.setFont(QFont("Montserrat", 11))
-        self.results_spin = QSpinBox()
-        self.results_spin.setRange(1, 20)
-        self.results_spin.setValue(10)
-        self.results_spin.setFont(QFont("Fira Mono", 11))
-        results_layout.addWidget(results_label)
-        results_layout.addWidget(self.results_spin)
-        left_vbox.addLayout(results_layout)
-
-        # Advanced LLM Settings
-        adv_group = QGroupBox("Advanced LLM Settings")
-        adv_form = QFormLayout()
-        # Temperature
-        self.temp_spin = QDoubleSpinBox()
-        self.temp_spin.setRange(0.0, 1.5)
-        self.temp_spin.setSingleStep(0.01)
-        self.temp_spin.setValue(0.7)
-        adv_form.addRow("Temperature:", self.temp_spin)
-        # Max Tokens
-        self.max_tokens_spin = QSpinBox()
-        self.max_tokens_spin.setRange(128, 4096)
-        self.max_tokens_spin.setValue(2048)
-        adv_form.addRow("Max Tokens:", self.max_tokens_spin)
-        # System Prompt
-        self.system_prompt_input = QTextEdit()
-        self.system_prompt_input.setPlaceholderText("Optional system prompt for the LLM")
-        self.system_prompt_input.setFixedHeight(40)
-        adv_form.addRow("System Prompt:", self.system_prompt_input)
-        # Context Window
-        self.ctx_window_spin = QSpinBox()
-        self.ctx_window_spin.setRange(128, 8192)
-        self.ctx_window_spin.setValue(2048)
-        adv_form.addRow("Context Window:", self.ctx_window_spin)
-        adv_group.setLayout(adv_form)
-        left_vbox.addWidget(adv_group)
-
-        # File name
-        file_layout = QHBoxLayout()
-        file_label = QLabel("Save Report As:")
-        file_label.setFont(QFont("Montserrat", 11))
-        self.file_input = QLineEdit()
-        self.file_input.setFont(QFont("Fira Mono", 11))
-        self.file_input.setPlaceholderText("research_report.txt")
-        browse_btn = QPushButton("Browse…")
-        browse_btn.clicked.connect(self.browse_file)
-        file_layout.addWidget(file_label)
-        file_layout.addWidget(self.file_input)
-        file_layout.addWidget(browse_btn)
-        left_vbox.addLayout(file_layout)
-
-        # --- Progress/Status Panel ---
-        from PyQt5.QtWidgets import QProgressBar
-        progress_panel = QVBoxLayout()
-        self.progress_label = QLabel("")
-        self.progress_label.setFont(QFont("Montserrat", 11, QFont.Bold))
-        self.progress_substep = QLabel("")
-        self.progress_substep.setFont(QFont("Fira Mono", 10))
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(True)
-        self.progress_log = QTextEdit()
-        self.progress_log.setFont(QFont("Fira Mono", 9))
-        self.progress_log.setReadOnly(True)
-        self.progress_log.setMaximumHeight(80)
-        progress_panel.addWidget(self.progress_label)
-        progress_panel.addWidget(self.progress_substep)
-        progress_panel.addWidget(self.progress_bar)
-        progress_panel.addWidget(self.progress_log)
-        left_vbox.addLayout(progress_panel)
-
-        # Theme toggle button
-        self.theme_is_dark = False
-        self.theme_btn = QPushButton("🌙 Dark Mode")
-        self.theme_btn.setFont(QFont("Montserrat", 10))
-        self.theme_btn.clicked.connect(self.toggle_theme)
-        left_vbox.addWidget(self.theme_btn)
-
-        # Run button
-        self.run_btn = QPushButton("Run Research")
-        self.run_btn.setFont(QFont("Montserrat", 13, QFont.Bold))
-        self.run_btn.clicked.connect(self.run_research)
-        left_vbox.addWidget(self.run_btn)
-
-        # Clear button
-        self.clear_btn = QPushButton("Clear")
-        self.clear_btn.setFont(QFont("Montserrat", 11))
-        self.clear_btn.clicked.connect(self.clear_fields)
-        left_vbox.addWidget(self.clear_btn)
-
-        # Citation style selector
-        citation_layout = QHBoxLayout()
-        citation_label = QLabel("Citation Style:")
-        citation_label.setFont(QFont("Montserrat", 11))
-        self.citation_combo = QComboBox()
-        self.citation_combo.setFont(QFont("Fira Mono", 11))
-        self.citation_combo.addItems(["APA", "MLA"])
-        citation_layout.addWidget(citation_label)
-        citation_layout.addWidget(self.citation_combo)
-        citation_layout.addStretch()
-        left_vbox.addLayout(citation_layout)
-
-        left_widget.setLayout(left_vbox)
-        print("DEBUG: Left panel widgets added and layout set")
-
-        # --- Right panel: Output & Reports ---
-        print("DEBUG: Initializing right panel widgets")
-        right_panel = QWidget()
-        right_vbox = QVBoxLayout()
-        right_vbox.setSpacing(16)
-        right_vbox.setContentsMargins(24, 18, 12, 18)
-
-        # Output box
-        self.output_box = QTextEdit()
-        self.output_box.setFont(QFont("Fira Mono", 11))
-        self.output_box.setReadOnly(True)
-        right_vbox.addWidget(self.output_box)
-
-        # Report list
-        self.report_list = QListWidget()
-        self.report_list.setFont(QFont("Fira Mono", 11))
-        right_vbox.addWidget(self.report_list)
-
-        # Report preview
-        self.report_preview = QTextEdit()
-        self.report_preview.setFont(QFont("Fira Mono", 11))
-        self.report_preview.setReadOnly(True)
-        right_vbox.addWidget(self.report_preview)
-
-        # Report actions
-        report_actions_layout = QHBoxLayout()
-        open_report_btn = QPushButton("Open Report")
-        open_report_btn.clicked.connect(self.open_report_in_current)
-        report_actions_layout.addWidget(open_report_btn)
-        refresh_reports_btn = QPushButton("Refresh Reports")
-        refresh_reports_btn.clicked.connect(self.refresh_report_list)
-        report_actions_layout.addWidget(refresh_reports_btn)
-        right_vbox.addLayout(report_actions_layout)
-
-        right_panel.setLayout(right_vbox)
-        print("DEBUG: Right panel widgets added and layout set")
-
-        splitter.addWidget(left_widget)
-        splitter.addWidget(right_panel)
-        splitter.setStretchFactor(0, 2)
-        splitter.setStretchFactor(1, 3)
-        splitter.setSizes([500, 700])
-
-        self.setCentralWidget(splitter)
-        print("DEBUG: Splitter and central widget set")
-
-        # Menu bar setup (must be before any use of 'menu')
-        print("DEBUG: Setting up menu bar")
-        menu = self.menuBar()
-        file_menu = menu.addMenu("File")
-        save_action = QAction("Save Report", self)
-        save_action.triggered.connect(self.save_report)
-        file_menu.addAction(save_action)
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-        help_menu = menu.addMenu("Help")
-        about_action = QAction("About", self)
-        about_action.triggered.connect(self.show_about)
-        help_menu.addAction(about_action)
-        print("DEBUG: Menu bar setup complete")
-
-        # Ensure documents directory exists
-        ensure_documents_dir()
-        print("DEBUG: Finished _init_ui")
+            self.theme_btn.setText(f"{ICONS['dark_mode']} Dark Mode")
 
     def clear_fields(self):
         """Clear all input fields and output box to prepare for a new query."""
@@ -337,11 +103,13 @@ class ResearchAgentGUI(QMainWindow):
         self.tone_input.clear()
         self.improvement_input.clear()
         self.file_input.clear()
+        self.system_prompt_input.clear()
         self.output_box.clear()
+        self.progress_bar.setValue(0)
         self.progress_label.setText("")
         self.progress_substep.setText("")
-        self.progress_bar.setValue(0)
         self.progress_log.clear()
+        self.run_btn.setEnabled(True)
 
     def browse_file(self):
         fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report As", str(DOCUMENTS_DIR / "research_report.txt"), "Text/Markdown Files (*.txt *.md)")
@@ -349,100 +117,101 @@ class ResearchAgentGUI(QMainWindow):
             self.file_input.setText(fname)
 
     def run_research(self):
+        """Start the research process in a separate thread."""
+        # Get values from modern input components
         query = self.query_input.toPlainText().strip()
-        # If user selected from dropdown, extract model name (strip size info)
-        model_data = self.model_combo.currentData()
-        if model_data:
-            model = model_data.strip()
-        else:
-            model = self.model_combo.currentText().split()[0].strip()
-        filename = self.file_input.text().strip()
-        # If blank, use default in DOCUMENTS_DIR
-        if not filename:
-            filename = str(DOCUMENTS_DIR / "research_report.txt")
-        # If only a filename (no path), prepend DOCUMENTS_DIR
-        elif not os.path.isabs(filename):
-            filename = str(DOCUMENTS_DIR / filename)
         audience = self.audience_input.text().strip()
         tone = self.tone_input.text().strip()
         improvement = self.improvement_input.text().strip()
-        if not query:
-            QMessageBox.warning(self, "No Query", "Please enter a research question or topic.")
-            return
-        # Validate filename
-        if not filename.lower().endswith(('.txt', '.md')):
-            filename += '.txt'
+        
+        # Get model name from combo box
+        model_text = self.model_combo.currentText()
+        if '[' in model_text:
+            model = self.model_combo.currentData() or model_text.split('[')[0].strip()
+        else:
+            model = model_text
+        
         num_results = self.results_spin.value()
         temperature = self.temp_spin.value()
         max_tokens = self.max_tokens_spin.value()
         system_prompt = self.system_prompt_input.toPlainText().strip()
         ctx_window = self.ctx_window_spin.value()
-        self.output_box.setPlainText("Running research... Please wait.")
-        self.progress_label.setText("Initializing...")
-        self.progress_substep.setText("")
-        self.progress_bar.setValue(0)
-        self.progress_log.clear()
-        self.run_btn.setEnabled(False)
-        # Start backend in a thread
         citation_style = self.citation_combo.currentText()
+        filename = self.file_input.text().strip() or "research_report.txt"
+
+        if not query:
+            QMessageBox.warning(self, "Input Required", "Please enter a research query.")
+            return
+
+        # Disable the run button and clear output
+        self.run_btn.setEnabled(False)
+        self.output_box.clear()
+        self.progress_bar.setValue(0)
+        self.progress_label.setText("Initializing research...")
+        self.progress_substep.setText("")
+
+        # Create and start the worker thread
         self.worker = ResearchWorker(
-            query, model, filename, audience, tone, improvement,
-            num_results=num_results, temperature=temperature, max_tokens=max_tokens, system_prompt=system_prompt, ctx_window=ctx_window,
-            citation_style=citation_style
+            query, audience, tone, improvement, model, num_results,
+            temperature, max_tokens, system_prompt, ctx_window, citation_style, filename
         )
-        self.worker.finished.connect(self.on_research_finished)
-        self.worker.error.connect(self.on_research_error)
-        self.worker.progress.connect(self.on_progress_update)
+        self.worker.progress.connect(self.update_progress)
+        self.worker.finished.connect(self.research_finished)
+        self.worker.error.connect(self.research_error)
         self.worker.start()
 
-    def on_progress_update(self, desc, bar, substep=None, percent=None, log=None):
-        self.progress_label.setText(desc)
-        if substep is not None:
+    def update_progress(self, desc, bar, substep=None, percent=None, log=None):
+        """Update progress display with modern styling."""
+        if desc:
+            self.progress_label.setText(desc)
+        if bar:
+            # Update progress bar with stage information
+            if isinstance(bar, str) and bar.endswith('%'):
+                try:
+                    value = int(bar.replace('%', ''))
+                    self.progress_bar.setValue(value)
+                except ValueError:
+                    pass
+            else:
+                self.progress_bar.setFormat(str(bar))
+        if substep:
             self.progress_substep.setText(substep)
         if percent is not None:
-            self.progress_bar.setValue(percent)
-        else:
-            self.progress_bar.setValue(0)
+            self.progress_bar.setValue(int(percent))
         if log:
-            self.append_log(log)
-
-    def append_log(self, msg):
-        self.progress_log.append(msg)
-        self.progress_log.moveCursor(self.progress_log.textCursor().End)
-
-    def on_research_finished(self, result, filename):
-        # Only show the report if the filename matches what we expect (not README)
-        if os.path.basename(filename).lower().startswith("readme"):
-            self.output_box.setPlainText("[Error: Report file was not generated. Please check your save path and try again.]")
-        else:
-            # Try to render Markdown as HTML
-            try:
-                import markdown2
-                html = markdown2.markdown(result)
-                self.output_box.setHtml(html)
-            except ImportError:
-                self.output_box.setPlainText(result)
-        self.run_btn.setEnabled(True)
-        self.progress_label.setText("Done!")
+            self.progress_log.append(log)
+    
+    def research_finished(self, result):
+        """Handle research completion."""
+        self.output_box.setPlainText(result)
+        self.progress_label.setText("Research completed successfully!")
         self.progress_substep.setText("")
         self.progress_bar.setValue(100)
-        # Optionally clear or finalize log
-        # Refresh previous reports list and select the new report
-        self.refresh_report_list()
-        # Try to select and preview the new report in the list
-        for i in range(self.report_list.count()):
-            item = self.report_list.item(i)
-            if item.text() == os.path.basename(filename):
-                self.report_list.setCurrentItem(item)
-                self.load_selected_report(item)
-                break
-        QMessageBox.information(self, "Research Complete", f"Research report saved to:\n{filename}")
-
-    def on_research_error(self, error_msg, tb):
-        self.output_box.setPlainText(f"[Error]\n{error_msg}\n{tb}")
         self.run_btn.setEnabled(True)
-        QMessageBox.critical(self, "Error", f"An error occurred:\n{error_msg}")
-
+        self.refresh_report_list()
+        
+        # Show completion message
+        QMessageBox.information(
+            self, 
+            "Research Complete", 
+            "Research has been completed successfully!\nThe report has been saved and is ready for review."
+        )
+    
+    def research_error(self, error_msg, traceback_str):
+        """Handle research errors."""
+        self.progress_label.setText("Research failed")
+        self.progress_substep.setText(error_msg)
+        self.progress_bar.setValue(0)
+        self.run_btn.setEnabled(True)
+        
+        # Show error dialog
+        error_dialog = QMessageBox(self)
+        error_dialog.setIcon(QMessageBox.Critical)
+        error_dialog.setWindowTitle("Research Error")
+        error_dialog.setText(f"An error occurred during research:\n\n{error_msg}")
+        error_dialog.setDetailedText(traceback_str)
+        error_dialog.exec_()
+    
     def export_report(self):
         content = self.output_box.toPlainText()
         if not content.strip():
@@ -520,17 +289,27 @@ class ResearchAgentGUI(QMainWindow):
 
     # --- Report Viewer Functions ---
     def refresh_report_list(self):
-        self.report_list.clear()
-        files = []
-        for ext in (".md", ".txt"):
-            files += sorted(DOCUMENTS_DIR.glob(f"*{ext}"), key=os.path.getmtime, reverse=True)
-        for file in files:
-            self.report_list.addItem(str(file.name))
+        """Refresh the list of saved reports."""
+        try:
+            self.report_list.clear()
+            files = []
+            for ext in (".md", ".txt"):
+                files += sorted(DOCUMENTS_DIR.glob(f"*{ext}"), key=os.path.getmtime, reverse=True)
+            for file in files:
+                self.report_list.addItem(str(file.name))
+        except Exception as e:
+            print(f"[WARNING] Error refreshing report list: {e}")
+            # Continue gracefully even if refresh fails
 
     def filter_report_list(self, text):
-        for i in range(self.report_list.count()):
-            item = self.report_list.item(i)
-            item.setHidden(text.lower() not in item.text().lower())
+        """Filter the report list based on search text."""
+        try:
+            for i in range(self.report_list.count()):
+                item = self.report_list.item(i)
+                if item:  # Check if item exists
+                    item.setHidden(text.lower() not in item.text().lower())
+        except Exception as e:
+            print(f"[WARNING] Error filtering report list: {e}")
 
     def load_selected_report(self, item):
         fname = DOCUMENTS_DIR / item.text()
@@ -564,6 +343,313 @@ class ResearchAgentGUI(QMainWindow):
             "Created by Christopher Bradford.<br>Inspired by Shell-GPT.<br>"
             "<a href='https://github.com/sunkencity999/shell_gpt_researchAgent'>Project Repository</a>")
 
+    def _init_ui(self):
+        """Initialize the modern user interface."""
+        # Set minimum and default window size
+        self.setMinimumSize(800, 600)
+        self.resize(1200, 800)
+        
+        # Main splitter for responsive layout
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.setChildrenCollapsible(True)  # Allow collapsing for small screens
+
+        # --- Left panel: Inputs & Controls ---
+        left_widget = self._create_left_panel()
+        left_widget.setMinimumWidth(300)  # Minimum width for usability
+        
+        # --- Right panel: Output & Reports ---
+        right_widget = self._create_right_panel()
+        right_widget.setMinimumWidth(400)  # Minimum width for readability
+
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+        splitter.setStretchFactor(0, 1)  # Left panel gets less space
+        splitter.setStretchFactor(1, 2)  # Right panel gets more space
+        
+        # Set initial sizes with better proportions
+        splitter.setSizes([400, 800])
+
+        self.setCentralWidget(splitter)
+        
+        # Setup menu bar
+        self._setup_menu_bar()
+        
+        # Ensure documents directory exists
+        ensure_documents_dir()
+
+    def _create_left_panel(self):
+        """Create the modern left panel with input controls."""
+        # Create scroll area for the left panel
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        left_widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setSpacing(SPACING['md'])  # Reduced spacing for better fit
+        layout.setContentsMargins(SPACING['lg'], SPACING['md'], SPACING['md'], SPACING['md'])
+        
+        # Logo section
+        logo_card = ModernCard()
+        logo_layout = logo_card.setup_layout()
+        
+        logo_label = QLabel("🔬")
+        logo_label.setFont(get_font('heading_xl'))
+        logo_label.setAlignment(Qt.AlignCenter)
+        
+        title_label = QLabel("Research Agent")
+        title_label.setFont(get_font('heading_lg'))
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet(f"color: {COLORS['primary']};")
+        
+        logo_layout.addWidget(logo_label)
+        logo_layout.addWidget(title_label)
+        layout.addWidget(logo_card)
+        
+        # Query input section
+        query_card = ModernCard("Research Query")
+        query_layout = query_card.setup_layout()
+        
+        self.query_input = ModernInput(
+            placeholder="Enter your research question or topic...",
+            multiline=True
+        )
+        query_layout.addWidget(self.query_input)
+        layout.addWidget(query_card)
+        
+        # Research parameters section
+        params_card = ModernCard("Research Parameters")
+        params_layout = params_card.setup_layout()
+        
+        # Audience, Tone, Improvement in a grid
+        row1_layout = QHBoxLayout()
+        self.audience_input = ModernInput(placeholder="e.g., C-suite, technical, general")
+        self.tone_input = ModernInput(placeholder="e.g., formal, technical, accessible")
+        row1_layout.addWidget(create_form_row("Audience:", self.audience_input))
+        row1_layout.addWidget(create_form_row("Tone:", self.tone_input))
+        params_layout.addLayout(row1_layout)
+        
+        self.improvement_input = ModernInput(placeholder="Anything to improve or focus on (optional)")
+        params_layout.addWidget(create_form_row("Improvement:", self.improvement_input))
+        
+        # Model and results count
+        row2_layout = QHBoxLayout()
+        self.model_combo = ModernComboBox()
+        self._populate_model_list()
+        
+        self.results_spin = ModernSpinBox(1, 20, 10)
+        row2_layout.addWidget(create_form_row("Model:", self.model_combo))
+        row2_layout.addWidget(create_form_row("Web Results:", self.results_spin))
+        params_layout.addLayout(row2_layout)
+        
+        layout.addWidget(params_card)
+        
+        # Advanced settings (collapsible)
+        self.advanced_section = CollapsibleSection("Advanced LLM Settings")
+        advanced_layout = QVBoxLayout()
+        
+        # Temperature and Max Tokens
+        adv_row1 = QHBoxLayout()
+        self.temp_spin = ModernSpinBox(0.0, 1.5, 0.7, is_double=True, step=0.01)
+        self.max_tokens_spin = ModernSpinBox(128, 4096, 2048)
+        adv_row1.addWidget(create_form_row("Temperature:", self.temp_spin))
+        adv_row1.addWidget(create_form_row("Max Tokens:", self.max_tokens_spin))
+        advanced_layout.addLayout(adv_row1)
+        
+        # System prompt and context window
+        self.system_prompt_input = ModernInput(
+            placeholder="Optional system prompt for the LLM",
+            multiline=True
+        )
+        advanced_layout.addWidget(create_form_row("System Prompt:", self.system_prompt_input))
+        
+        self.ctx_window_spin = ModernSpinBox(128, 8192, 2048)
+        advanced_layout.addWidget(create_form_row("Context Window:", self.ctx_window_spin))
+        
+        self.advanced_section.add_layout(advanced_layout)
+        layout.addWidget(self.advanced_section)
+        
+        # File output section
+        file_card = ModernCard("Output Settings")
+        file_layout = file_card.setup_layout()
+        
+        file_row_widget = QWidget()
+        file_row = QHBoxLayout()
+        file_row.setContentsMargins(0, 0, 0, 0)
+        self.file_input = ModernInput(placeholder="research_report.txt")
+        browse_btn = IconButton("folder", "Browse", "secondary")
+        browse_btn.clicked.connect(self.browse_file)
+        file_row.addWidget(self.file_input, 1)
+        file_row.addWidget(browse_btn)
+        file_row_widget.setLayout(file_row)
+        file_layout.addWidget(create_form_row("Save As:", file_row_widget))
+        
+        self.citation_combo = ModernComboBox()
+        self.citation_combo.addItems(["APA", "MLA"])
+        file_layout.addWidget(create_form_row("Citation Style:", self.citation_combo))
+        
+        layout.addWidget(file_card)
+        
+        # Progress section
+        progress_card = ModernCard("Progress")
+        progress_layout = progress_card.setup_layout()
+        
+        self.progress_label = QLabel("")
+        self.progress_label.setFont(get_font('body_lg'))
+        
+        self.progress_substep = QLabel("")
+        self.progress_substep.setFont(get_font('body_md'))
+        self.progress_substep.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        
+        self.progress_bar = ModernProgressBar()
+        
+        self.progress_log = QTextEdit()
+        self.progress_log.setFont(get_font('code'))
+        self.progress_log.setReadOnly(True)
+        self.progress_log.setMaximumHeight(80)
+        
+        progress_layout.addWidget(self.progress_label)
+        progress_layout.addWidget(self.progress_substep)
+        progress_layout.addWidget(self.progress_bar)
+        progress_layout.addWidget(self.progress_log)
+        layout.addWidget(progress_card)
+        
+        # Create action buttons
+        self.theme_btn = IconButton(
+            "dark_mode", 
+            "Dark Mode",
+            "secondary"
+        )
+        self.theme_btn.clicked.connect(self.toggle_theme)
+        
+        self.clear_btn = IconButton(
+            "clear", 
+            "Clear",
+            "secondary"
+        )
+        self.clear_btn.clicked.connect(self.clear_fields)
+        
+        self.run_btn = IconButton(
+            "research", 
+            "Start Research",
+            "primary"
+        )
+        self.run_btn.clicked.connect(self.run_research)
+        
+        # Action buttons - use responsive button row
+        action_buttons = create_button_row([self.theme_btn, self.clear_btn])
+        layout.addWidget(action_buttons)
+        
+        # Run button - full width for prominence
+        self.run_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layout.addWidget(self.run_btn)
+        
+        layout.addStretch()
+        
+        left_widget.setLayout(layout)
+        scroll_area.setWidget(left_widget)
+        return scroll_area
+    
+    def _create_right_panel(self):
+        """Create the modern right panel with output and reports."""
+        right_widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setSpacing(SPACING['lg'])
+        layout.setContentsMargins(SPACING['md'], SPACING['lg'], SPACING['xl'], SPACING['lg'])
+        
+        # Output section
+        output_card = ModernCard("Research Output")
+        output_layout = output_card.setup_layout()
+        
+        self.output_box = QTextEdit()
+        self.output_box.setFont(get_font('code'))
+        self.output_box.setReadOnly(True)
+        output_layout.addWidget(self.output_box)
+        layout.addWidget(output_card, 2)
+        
+        # Reports section
+        reports_card = ModernCard("Saved Reports")
+        reports_layout = reports_card.setup_layout()
+        
+        self.report_list = QListWidget()
+        self.report_list.setFont(get_font('body_md'))
+        reports_layout.addWidget(self.report_list)
+        
+        # Report actions
+        open_report_btn = IconButton("document", "Open Report", "secondary")
+        open_report_btn.clicked.connect(self.open_report_in_current)
+        
+        refresh_reports_btn = IconButton("refresh", "Refresh", "secondary")
+        refresh_reports_btn.clicked.connect(self.refresh_report_list)
+        
+        report_actions = create_button_row([open_report_btn, refresh_reports_btn])
+        reports_layout.addWidget(report_actions)
+        
+        layout.addWidget(reports_card, 1)
+        
+        # Report preview
+        preview_card = ModernCard("Report Preview")
+        preview_layout = preview_card.setup_layout()
+        
+        self.report_preview = QTextEdit()
+        self.report_preview.setFont(get_font('code'))
+        self.report_preview.setReadOnly(True)
+        preview_layout.addWidget(self.report_preview)
+        layout.addWidget(preview_card, 1)
+        
+        right_widget.setLayout(layout)
+        return right_widget
+    
+    def _populate_model_list(self):
+        """Populate the model combo box with available Ollama models."""
+        import subprocess
+        import re
+        
+        self.model_combo.setEditable(False)
+        try:
+            result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
+            lines = result.stdout.strip().split('\n')
+            models = []
+            for line in lines[1:]:  # skip header
+                fields = re.split(r'\s{2,}', line.strip())
+                if len(fields) >= 3:
+                    name = fields[0]
+                    size = fields[2]
+                    models.append({'name': name, 'size': size})
+            
+            if not models:
+                self.model_combo.addItem(DEFAULT_MODEL)
+            else:
+                for m in models:
+                    self.model_combo.addItem(f"{m['name']}  [size: {m['size']}]", m['name'])
+        except Exception as e:
+            self.model_combo.addItem(DEFAULT_MODEL)
+            QMessageBox.warning(
+                self, 
+                "Ollama Models Not Found", 
+                f"Could not list Ollama models. Defaulting to '{DEFAULT_MODEL}'.\nError: {e}"
+            )
+    
+    def _setup_menu_bar(self):
+        """Setup the application menu bar."""
+        menu = self.menuBar()
+        
+        # File menu
+        file_menu = menu.addMenu("File")
+        save_action = QAction("Save Report", self)
+        save_action.triggered.connect(self.save_report)
+        file_menu.addAction(save_action)
+        
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+        
+        # Help menu
+        help_menu = menu.addMenu("Help")
+        about_action = QAction("About", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
 
 def main():
     app = QApplication(sys.argv)
@@ -574,25 +660,25 @@ def main():
 
 # --- Threaded backend worker ---
 class ResearchWorker(QThread):
-    finished = pyqtSignal(str, str)  # result, filename
+    finished = pyqtSignal(str)  # result
     error = pyqtSignal(str, str)     # error_msg, traceback
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
-    def __init__(self, query, model, filename, audience, tone, improvement,
-                 num_results=10, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048, citation_style="APA"): 
+    def __init__(self, query, audience, tone, improvement, model, num_results,
+                 temperature, max_tokens, system_prompt, ctx_window, citation_style, filename): 
         super().__init__()
         self.query = query
-        self.model = model
-        self.filename = filename
         self.audience = audience
         self.tone = tone
         self.improvement = improvement
+        self.model = model
         self.num_results = num_results
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
         self.ctx_window = ctx_window
         self.citation_style = citation_style
+        self.filename = filename
 
     def run(self):
         try:
@@ -615,7 +701,7 @@ class ResearchWorker(QThread):
             )
             with open(self.filename, "r", encoding="utf-8") as f:
                 result = f.read()
-            self.finished.emit(result, self.filename)
+            self.finished.emit(result)
         except Exception as e:
             import traceback as tb
             self.error.emit(str(e), tb.format_exc())
