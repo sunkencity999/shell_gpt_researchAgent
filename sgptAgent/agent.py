@@ -47,8 +47,20 @@ class ResearchAgent:
             context += f"Preferred tone/style: {tone}. "
         if improvement:
             context += f"Special instructions: {improvement}. "
+        
         prompt = (
-            f"{context}\nYou are a research assistant. Break down the following research goal into the smallest number of sub-questions needed to answer it directly and completely. Only include sub-questions that are strictly necessary and directly related to the goal. Do not include generic, unrelated, or redundant research topics. Each sub-question must reference the main topic.\n\nIMPORTANT: Respond with ONLY a clean bullet list of questions. Do not include any explanatory text, reasoning, or commentary. Just the bullet points.\n\nResearch goal: {goal}\n\nFormat your response as:\n- Question 1\n- Question 2\n- Question 3\netc."
+            f"{context}\nYou are a research assistant. Break down the following research goal into simple, direct questions that work well for web search. Each question should be:\n\n"
+            f"- SHORT and SPECIFIC (under 10 words)\n"
+            f"- Use SIMPLE language, not academic jargon\n"
+            f"- Focus on FACTS and NAMES, not abstract concepts\n"
+            f"- Avoid complex philosophical or theoretical questions\n\n"
+            f"IMPORTANT: Respond with ONLY a clean bullet list of SHORT questions. No explanations, reasoning, or commentary.\n\n"
+            f"Research goal: {goal}\n\n"
+            f"Format your response as:\n"
+            f"- Who was [specific person]?\n"
+            f"- What happened in [specific event]?\n"
+            f"- When did [specific thing] occur?\n"
+            f"etc."
         )
         response = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         return response
@@ -257,6 +269,13 @@ Make each gap a specific search query that could find the missing information.""
 
     def add_domain_targeting(self, query: str, domain: str) -> str:
         """Add domain-specific targeting to the search query."""
+        # Don't add domain targeting for historical, biographical, or sensitive topics
+        sensitive_keywords = ['assassin', 'murder', 'kill', 'death', 'crime', 'history', 'historical', 'biography', 'war', 'politics']
+        query_lower = query.lower()
+        
+        if any(keyword in query_lower for keyword in sensitive_keywords):
+            return query  # Return original query without domain filtering
+        
         if domain == 'general':
             return query
         elif domain == 'technology':
@@ -341,23 +360,36 @@ Make each gap a specific search query that could find the missing information.""
                 if not line:
                     continue
                     
-                # Skip reasoning model thinking patterns
+                # Skip reasoning model thinking patterns (expanded list)
                 thinking_patterns = [
                     "okay,", "wait,", "let me", "i need to", "i should", "first,", "actually,", 
                     "hmm,", "so,", "now,", "then,", "next,", "also,", "however,", "but,",
                     "the user", "the exploiter", "the main", "since", "given that",
-                    "looking at", "considering", "thinking about", "based on"
+                    "looking at", "considering", "thinking about", "based on", "this means",
+                    "in other words", "essentially", "basically", "furthermore", "moreover",
+                    "therefore", "consequently", "as a result", "this suggests", "it seems",
+                    "perhaps", "maybe", "possibly", "likely", "probably", "clearly",
+                    "obviously", "certainly", "definitely", "undoubtedly", "without doubt"
                 ]
                 
                 line_lower = line.lower()
-                if any(pattern in line_lower[:20] for pattern in thinking_patterns):
+                if any(pattern in line_lower[:25] for pattern in thinking_patterns):
+                    continue
+                
+                # Skip overly complex academic-style questions
+                if len(line) > 100 or "methodology" in line_lower or "contextual factors" in line_lower:
                     continue
                     
-                # Only keep lines that look like bullet points or questions
+                # Only keep lines that look like bullet points or simple questions
                 if (line.startswith(('-', '*', '•', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.')) or 
                     line.endswith('?') or 
-                    ('what' in line_lower or 'how' in line_lower or 'which' in line_lower or 'compare' in line_lower)):
-                    filtered_lines.append(line)
+                    ('what' in line_lower or 'who' in line_lower or 'when' in line_lower or 
+                     'where' in line_lower or 'how' in line_lower or 'which' in line_lower)):
+                    
+                    # Simplify complex questions
+                    simplified = self.simplify_search_query(line)
+                    if simplified and len(simplified) > 3:
+                        filtered_lines.append(simplified)
             
             steps_list = [s.strip('-*• \t') for s in filtered_lines if s.strip('-*• \t')]
         else:
@@ -493,10 +525,13 @@ Make each gap a specific search query that could find the missing information.""
                     emit(f"Skipping invalid query: '{search_query}'", substep=f"Step {idx}", percent=int(100 * (current_step+idx-1)/total_steps), log="Skipped empty/invalid query")
                     continue
                 
+                # Create a simple fallback query from the original step
+                simple_query = self.create_simple_query(search_query, goal)
+                
                 # Use enhanced query construction
                 enhanced_result = enhance_search_query(search_query, research_goal=goal, context_steps=steps_list)
                 enhanced_queries = enhanced_result.get('enhanced_queries', [search_query])
-                fallback_queries = enhanced_result.get('fallback_queries', [search_query])
+                fallback_queries = enhanced_result.get('fallback_queries', [search_query, simple_query])
                 
                 # Progressive search strategy with multiple fallback levels
                 results = []
@@ -537,7 +572,14 @@ Make each gap a specific search query that could find the missing information.""
                             if len(results) >= 3:
                                 break
                 
-                # Strategy 3: Final fallback to original query with domain keywords
+                # Strategy 3: Try simple fallback queries if still not enough results
+                if len(results) < 3:
+                    emit(f"Trying simple fallback query: '{simple_query}'", substep=f"Step {idx}", percent=int(100 * (current_step+idx-1)/total_steps), log=f"Simple fallback: {simple_query}")
+                    query_results = self.web_search(simple_query, max_results=num_results)
+                    if query_results:
+                        results.extend(query_results)
+                
+                # Strategy 4: Final fallback to original query with domain keywords
                 if len(results) < 2:
                     domain = enhanced_result.get('domain', 'general')
                     domain_enhanced_query = f"{search_query} {domain}" if domain != 'general' else search_query
@@ -675,6 +717,39 @@ Make each gap a specific search query that could find the missing information.""
         emit("Research complete!", substep="Complete", percent=100, log=f"Report saved to {report_path}")
         
         return report_path
+
+    def simplify_search_query(self, query: str) -> str:
+        """Simplify complex search queries."""
+        # Remove unnecessary words and phrases
+        unnecessary_words = ["what is", "who is", "where is", "when is", "how is", "why is"]
+        for word in unnecessary_words:
+            query = query.replace(word, "")
+        
+        # Remove punctuation
+        query = query.replace(",", "").replace(".", "").replace("?", "").replace("!", "")
+        
+        # Remove extra whitespace
+        query = " ".join(query.split())
+        
+        return query
+
+    def create_simple_query(self, query: str, goal: str) -> str:
+        """Create a simple fallback query from the original step."""
+        # Remove unnecessary words and phrases
+        unnecessary_words = ["what is", "who is", "where is", "when is", "how is", "why is"]
+        for word in unnecessary_words:
+            query = query.replace(word, "")
+        
+        # Remove punctuation
+        query = query.replace(",", "").replace(".", "").replace("?", "").replace("!", "")
+        
+        # Remove extra whitespace
+        query = " ".join(query.split())
+        
+        # Add goal context to the query
+        query += " " + goal
+        
+        return query
 
 if __name__ == "__main__":
     print("\nShell GPT Research Agent\n========================\n")

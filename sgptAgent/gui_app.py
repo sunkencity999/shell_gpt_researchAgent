@@ -90,8 +90,22 @@ class ResearchAgentGUI(QMainWindow):
         self.progress_label.setText("")
         self.progress_substep.setText("")
         self.progress_log.clear()
+        
+        # Reset enhanced progress tracking
+        self.progress_timer.stop()
+        self.research_start_time = None
+        self.total_results_found = 0
+        self.successful_queries = 0
+        self.total_queries = 0
+        self.current_step_count = 0
+        self.estimated_total_steps = 0
+        self.time_label.setText("⏱️ Elapsed: 0:00")
+        self.eta_label.setText("🎯 ETA: --:--")
+        self.results_label.setText("📊 Results: 0")
+        self.success_label.setText("✅ Success: 0%")
+        
         self.run_btn.setEnabled(True)
-
+    
     def browse_file(self):
         fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report As", str(DOCUMENTS_DIR / "research_report.txt"), "Text/Markdown Files (*.txt *.md)")
         if fname:
@@ -130,7 +144,23 @@ class ResearchAgentGUI(QMainWindow):
         self.progress_bar.setValue(0)
         self.progress_label.setText("Initializing research...")
         self.progress_substep.setText("")
-
+        
+        # Initialize enhanced progress tracking
+        import time
+        self.research_start_time = time.time()
+        self.total_results_found = 0
+        self.successful_queries = 0
+        self.total_queries = 0
+        self.current_step_count = 0
+        self.estimated_total_steps = 5  # Initial estimate, will be updated
+        self.progress_timer.start()
+        
+        # Reset metrics display
+        self.time_label.setText("⏱️ Elapsed: 0:00")
+        self.eta_label.setText("🎯 ETA: Calculating...")
+        self.results_label.setText("📊 Results: 0")
+        self.success_label.setText("✅ Success: 0%")
+        
         # Create and start the worker thread
         self.worker = ResearchWorker(
             query, audience, tone, improvement, model, num_results,
@@ -142,9 +172,10 @@ class ResearchAgentGUI(QMainWindow):
         self.worker.start()
 
     def update_progress(self, desc, bar, substep=None, percent=None, log=None):
-        """Update progress display with modern styling."""
+        """Update progress display with enhanced metrics tracking."""
         if desc:
             self.progress_label.setText(desc)
+        
         if bar:
             # Update progress bar with stage information
             if isinstance(bar, str) and bar.endswith('%'):
@@ -155,44 +186,74 @@ class ResearchAgentGUI(QMainWindow):
                     pass
             else:
                 self.progress_bar.setFormat(str(bar))
+        
         if substep:
             self.progress_substep.setText(substep)
+            # Track step progress for ETA calculation
+            if "Step" in substep:
+                try:
+                    # Extract step numbers like "Step 3/7"
+                    if "/" in substep:
+                        parts = substep.split()
+                        for part in parts:
+                            if "/" in part:
+                                current, total = part.split("/")
+                                self.current_step_count = int(current)
+                                self.estimated_total_steps = int(total)
+                                break
+                except (ValueError, IndexError):
+                    pass
+        
         if percent is not None:
             self.progress_bar.setValue(int(percent))
+        
         if log:
             self.progress_log.append(log)
+            
+            # Track search metrics from log messages
+            log_lower = log.lower()
+            if "query:" in log_lower or "searching" in log_lower:
+                self.total_queries += 1
+            elif "found" in log_lower and "results" in log_lower:
+                try:
+                    # Extract result count from messages like "Found 5 results"
+                    words = log.split()
+                    for i, word in enumerate(words):
+                        if word.lower() == "found" and i + 1 < len(words):
+                            try:
+                                count = int(words[i + 1])
+                                self.total_results_found += count
+                                if count > 0:
+                                    self.successful_queries += 1
+                                break
+                            except ValueError:
+                                continue
+                except:
+                    pass
+            
+            # Update results counter
+            self.results_label.setText(f"📊 Results: {self.total_results_found}")
     
     def research_finished(self, result):
-        """Handle research completion."""
+        """Handle research completion with enhanced metrics."""
         self.output_box.setPlainText(result)
-        self.progress_label.setText("Research completed successfully!")
-        self.progress_substep.setText("")
+        self.progress_label.setText("✅ Research completed successfully!")
+        self.progress_substep.setText(f"Generated {len(result.split())} words from {self.total_results_found} sources")
         self.progress_bar.setValue(100)
+        self.progress_timer.stop()
+        self.eta_label.setText("🎯 Completed!")
         self.run_btn.setEnabled(True)
-        self.refresh_report_list()
-        
-        # Show completion message
-        QMessageBox.information(
-            self, 
-            "Research Complete", 
-            "Research has been completed successfully!\nThe report has been saved and is ready for review."
-        )
     
-    def research_error(self, error_msg, traceback_str):
-        """Handle research errors."""
-        self.progress_label.setText("Research failed")
+    def research_error(self, error_msg):
+        """Handle research errors with enhanced feedback."""
+        self.output_box.setPlainText(f"Research failed: {error_msg}")
+        self.progress_label.setText("❌ Research failed")
         self.progress_substep.setText(error_msg)
         self.progress_bar.setValue(0)
+        self.progress_timer.stop()
+        self.eta_label.setText("🎯 Failed")
         self.run_btn.setEnabled(True)
-        
-        # Show error dialog
-        error_dialog = QMessageBox(self)
-        error_dialog.setIcon(QMessageBox.Critical)
-        error_dialog.setWindowTitle("Research Error")
-        error_dialog.setText(f"An error occurred during research:\n\n{error_msg}")
-        error_dialog.setDetailedText(traceback_str)
-        error_dialog.exec_()
-    
+
     def export_report(self):
         content = self.output_box.toPlainText()
         if not content.strip():
@@ -485,26 +546,84 @@ class ResearchAgentGUI(QMainWindow):
         layout.addWidget(file_card)
         
         # Progress section
-        progress_card = ModernCard("Progress")
+        progress_card = ModernCard("Research Progress")
         progress_layout = progress_card.setup_layout()
         
+        # Main progress label
         self.progress_label = QLabel("")
         self.progress_label.setFont(get_font('body_lg'))
         
+        # Substep with enhanced formatting
         self.progress_substep = QLabel("")
         self.progress_substep.setFont(get_font('body_md'))
-        self.progress_substep.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        self.progress_substep.setStyleSheet(f"color: {COLORS['text_secondary']}; margin-bottom: 8px;")
         
+        # Enhanced progress bar with percentage display
         self.progress_bar = ModernProgressBar()
+        self.progress_bar.setFormat("%p% - %v/%m steps")
         
+        # Progress metrics row
+        metrics_widget = QWidget()
+        metrics_layout = QHBoxLayout(metrics_widget)
+        metrics_layout.setContentsMargins(0, 8, 0, 8)
+        
+        # Time tracking
+        self.time_label = QLabel("⏱️ Elapsed: 0:00")
+        self.time_label.setFont(get_font('body_sm'))
+        self.time_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        
+        # ETA estimation
+        self.eta_label = QLabel("🎯 ETA: --:--")
+        self.eta_label.setFont(get_font('body_sm'))
+        self.eta_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        
+        # Search results counter
+        self.results_label = QLabel("📊 Results: 0")
+        self.results_label.setFont(get_font('body_sm'))
+        self.results_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        
+        # Query success rate
+        self.success_label = QLabel("✅ Success: 0%")
+        self.success_label.setFont(get_font('body_sm'))
+        self.success_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
+        
+        metrics_layout.addWidget(self.time_label)
+        metrics_layout.addWidget(self.eta_label)
+        metrics_layout.addWidget(self.results_label)
+        metrics_layout.addWidget(self.success_label)
+        metrics_layout.addStretch()
+        
+        # Detailed progress log with better formatting
         self.progress_log = QTextEdit()
         self.progress_log.setFont(get_font('code'))
         self.progress_log.setReadOnly(True)
-        self.progress_log.setMaximumHeight(80)
+        self.progress_log.setMaximumHeight(100)
+        self.progress_log.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {COLORS['surface']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 6px;
+                padding: 8px;
+            }}
+        """)
+        
+        # Initialize progress tracking variables
+        self.research_start_time = None
+        self.total_results_found = 0
+        self.successful_queries = 0
+        self.total_queries = 0
+        self.current_step_count = 0
+        self.estimated_total_steps = 0
+        
+        # Progress timer for real-time updates
+        self.progress_timer = QTimer()
+        self.progress_timer.timeout.connect(self.update_time_display)
+        self.progress_timer.setInterval(1000)  # Update every second
         
         progress_layout.addWidget(self.progress_label)
         progress_layout.addWidget(self.progress_substep)
         progress_layout.addWidget(self.progress_bar)
+        progress_layout.addWidget(metrics_widget)
         progress_layout.addWidget(self.progress_log)
         layout.addWidget(progress_card)
         
@@ -638,6 +757,31 @@ class ResearchAgentGUI(QMainWindow):
         about_action = QAction("About", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
+
+    def update_time_display(self):
+        """Update elapsed time and ETA estimation"""
+        if self.research_start_time:
+            import time
+            elapsed = time.time() - self.research_start_time
+            elapsed_str = f"{int(elapsed//60)}:{int(elapsed%60):02d}"
+            self.time_label.setText(f"⏱️ Elapsed: {elapsed_str}")
+            
+            # Calculate ETA based on progress
+            if self.current_step_count > 0 and self.estimated_total_steps > 0:
+                progress_ratio = self.current_step_count / self.estimated_total_steps
+                if progress_ratio > 0:
+                    estimated_total_time = elapsed / progress_ratio
+                    remaining_time = estimated_total_time - elapsed
+                    if remaining_time > 0:
+                        eta_str = f"{int(remaining_time//60)}:{int(remaining_time%60):02d}"
+                        self.eta_label.setText(f"🎯 ETA: {eta_str}")
+                    else:
+                        self.eta_label.setText("🎯 ETA: Almost done!")
+            
+            # Update success rate
+            if self.total_queries > 0:
+                success_rate = (self.successful_queries / self.total_queries) * 100
+                self.success_label.setText(f"✅ Success: {success_rate:.0f}%")
 
 def main():
     app = QApplication(sys.argv)
