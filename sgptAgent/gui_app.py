@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QMessageBox, QFileDialog, QAction, QMenuBar, QScrollArea, QSizePolicy
 )
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QTimer
-from PyQt5.QtGui import QIcon, QFont, QPalette, QColor
+from PyQt5.QtGui import QIcon, QFont, QPalette, QColor, QPixmap
 
 # Import our modern styling system and components
 from sgptAgent.gui_styles import (
@@ -23,7 +23,7 @@ from sgptAgent.gui_components import (
 
 # --- Configurable paths and constants ---
 DOCUMENTS_DIR = Path(__file__).resolve().parent.parent / "documents"
-DEFAULT_MODEL = "llama3"
+DEFAULT_MODEL = "llama3:latest"
 APP_TITLE = "Shell GPT Research Agent GUI"
 
 # --- Import backend ---
@@ -38,9 +38,6 @@ def ensure_documents_dir():
 class ResearchAgentGUI(QMainWindow):
     def __init__(self):
         super().__init__()
-        
-        # Initialize theme state
-        self.theme_is_dark = False
         
         # Set window properties
         self.setWindowTitle(APP_TITLE)
@@ -70,31 +67,15 @@ class ResearchAgentGUI(QMainWindow):
         ]
     
     def _apply_modern_styling(self):
-        """Apply modern styling to the application."""
+        """Apply modern light theme styling to the application."""
         # Set application font
         app = QApplication.instance()
         app.setFont(get_font('body_md'))
         
-        # Apply stylesheet
-        stylesheet = get_modern_stylesheet(self.theme_is_dark)
+        # Apply light theme stylesheet and palette
+        stylesheet = get_modern_stylesheet(dark_mode=False)
         app.setStyleSheet(stylesheet)
-        
-        # Set palette
-        if self.theme_is_dark:
-            app.setPalette(create_dark_palette())
-        else:
-            app.setPalette(create_light_palette())
-
-    def toggle_theme(self):
-        """Toggle between dark and light themes using modern styling system."""
-        self.theme_is_dark = not self.theme_is_dark
-        self._apply_modern_styling()
-        
-        # Update theme button text and icon
-        if self.theme_is_dark:
-            self.theme_btn.setText(f"{ICONS['light_mode']} Light Mode")
-        else:
-            self.theme_btn.setText(f"{ICONS['dark_mode']} Dark Mode")
+        app.setPalette(create_light_palette())
 
     def clear_fields(self):
         """Clear all input fields and output box to prepare for a new query."""
@@ -392,19 +373,31 @@ class ResearchAgentGUI(QMainWindow):
         
         # Logo section
         logo_card = ModernCard()
+        logo_card.setStyleSheet(f"""
+            ModernCard {{
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: {RADIUS['lg']}px;
+                margin: 4px;
+            }}
+        """)
         logo_layout = logo_card.setup_layout()
         
-        logo_label = QLabel("🔬")
-        logo_label.setFont(get_font('heading_xl'))
+        logo_label = QLabel()
+        # Load and display the actual logo
+        logo_pixmap = QPixmap("sgptAgent/Assets/sgptRAicon.png")
+        if not logo_pixmap.isNull():
+            # Scale the logo to a large, prominent size while maintaining aspect ratio
+            scaled_pixmap = logo_pixmap.scaled(160, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo_label.setPixmap(scaled_pixmap)
+        else:
+            # Fallback to emoji if logo can't be loaded
+            logo_label.setText("🔬")
+            logo_label.setFont(QFont("Arial", 96))
         logo_label.setAlignment(Qt.AlignCenter)
-        
-        title_label = QLabel("Research Agent")
-        title_label.setFont(get_font('heading_lg'))
-        title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet(f"color: {COLORS['primary']};")
+        logo_label.setStyleSheet("padding: 20px;")
         
         logo_layout.addWidget(logo_label)
-        logo_layout.addWidget(title_label)
         layout.addWidget(logo_card)
         
         # Query input section
@@ -516,13 +509,6 @@ class ResearchAgentGUI(QMainWindow):
         layout.addWidget(progress_card)
         
         # Create action buttons
-        self.theme_btn = IconButton(
-            "dark_mode", 
-            "Dark Mode",
-            "secondary"
-        )
-        self.theme_btn.clicked.connect(self.toggle_theme)
-        
         self.clear_btn = IconButton(
             "clear", 
             "Clear",
@@ -538,7 +524,7 @@ class ResearchAgentGUI(QMainWindow):
         self.run_btn.clicked.connect(self.run_research)
         
         # Action buttons - use responsive button row
-        action_buttons = create_button_row([self.theme_btn, self.clear_btn])
+        action_buttons = create_button_row([self.clear_btn])
         layout.addWidget(action_buttons)
         
         # Run button - full width for prominence
@@ -616,7 +602,9 @@ class ResearchAgentGUI(QMainWindow):
                 if len(fields) >= 3:
                     name = fields[0]
                     size = fields[2]
-                    models.append({'name': name, 'size': size})
+                    # Filter out embedding models that don't support text generation
+                    if not any(embed_keyword in name.lower() for embed_keyword in ['embed', 'embedding', 'nomic-embed']):
+                        models.append({'name': name, 'size': size})
             
             if not models:
                 self.model_combo.addItem(DEFAULT_MODEL)

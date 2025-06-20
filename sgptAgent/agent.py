@@ -48,7 +48,7 @@ class ResearchAgent:
         if improvement:
             context += f"Special instructions: {improvement}. "
         prompt = (
-            f"{context}\nYou are a research assistant. Break down the following research goal into the smallest number of sub-questions needed to answer it directly and completely. Only include sub-questions that are strictly necessary and directly related to the goal. Do not include generic, unrelated, or redundant research topics. Each sub-question must reference the main topic.\n\nResearch goal: {goal}\nRespond with a bullet list."
+            f"{context}\nYou are a research assistant. Break down the following research goal into the smallest number of sub-questions needed to answer it directly and completely. Only include sub-questions that are strictly necessary and directly related to the goal. Do not include generic, unrelated, or redundant research topics. Each sub-question must reference the main topic.\n\nIMPORTANT: Respond with ONLY a clean bullet list of questions. Do not include any explanatory text, reasoning, or commentary. Just the bullet points.\n\nResearch goal: {goal}\n\nFormat your response as:\n- Question 1\n- Question 2\n- Question 3\netc."
         )
         response = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         return response
@@ -332,7 +332,34 @@ Make each gap a specific search query that could find the missing information.""
 
         # --- Multi-Step Web Reasoning ---
         if isinstance(steps, str):
-            steps_list = [s.strip('-*• \t') for s in steps.split('\n') if s.strip('-*• \t')]
+            # Filter out reasoning model thinking process and extract only bullet points
+            lines = steps.split('\n')
+            filtered_lines = []
+            
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Skip reasoning model thinking patterns
+                thinking_patterns = [
+                    "okay,", "wait,", "let me", "i need to", "i should", "first,", "actually,", 
+                    "hmm,", "so,", "now,", "then,", "next,", "also,", "however,", "but,",
+                    "the user", "the exploiter", "the main", "since", "given that",
+                    "looking at", "considering", "thinking about", "based on"
+                ]
+                
+                line_lower = line.lower()
+                if any(pattern in line_lower[:20] for pattern in thinking_patterns):
+                    continue
+                    
+                # Only keep lines that look like bullet points or questions
+                if (line.startswith(('-', '*', '•', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.')) or 
+                    line.endswith('?') or 
+                    ('what' in line_lower or 'how' in line_lower or 'which' in line_lower or 'compare' in line_lower)):
+                    filtered_lines.append(line)
+            
+            steps_list = [s.strip('-*• \t') for s in filtered_lines if s.strip('-*• \t')]
         else:
             steps_list = steps
         
@@ -460,6 +487,11 @@ Make each gap a specific search query that could find the missing information.""
                         search_query = re.sub(r'^\+[^:]*:\s*', '', step).strip()
                     else:
                         search_query = step.strip()
+                
+                # Skip empty or invalid search queries
+                if not search_query or len(search_query.strip()) < 3:
+                    emit(f"Skipping invalid query: '{search_query}'", substep=f"Step {idx}", percent=int(100 * (current_step+idx-1)/total_steps), log="Skipped empty/invalid query")
+                    continue
                 
                 # Use enhanced query construction
                 enhanced_result = enhance_search_query(search_query, research_goal=goal, context_steps=steps_list)
