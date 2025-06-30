@@ -240,7 +240,7 @@ Make each gap a specific search query that could find the missing information.""
         if 'better' in goal_lower or 'compare' in goal_lower:
             # Extract entities for comparison
             words = goal.split()
-            entities = [word.strip('.,!?()[]{}":;') for word in words if word[0].isupper() and len(word) > 2]
+            entities = [word.strip('.,!?()[]{}'":;") for word in words if word[0].isupper() and len(word) > 2]
             
             if len(entities) >= 2:
                 entity1, entity2 = entities[0], entities[1]
@@ -257,7 +257,7 @@ Make each gap a specific search query that could find the missing information.""
         
         # Fallback: break down the goal into component searches
         if not queries:
-            words = [word.strip('.,!?()[]{}":;') for word in goal.split() if len(word) > 3]
+            words = [word.strip('.,!?()[]{}'":;") for word in goal.split() if len(word) > 3]
             if len(words) >= 2:
                 queries.extend([
                     f"{' '.join(words[:3])} statistics",

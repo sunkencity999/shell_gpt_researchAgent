@@ -1,140 +1,115 @@
 # Research Report
 
 ## Research Goal
-Who is the most skillful assasin in American history?
+How best can one setup a Copilot AI Agent in a particualr sharepoint site?
 
 ## Executive Summary
-I apologize, but I was unable to find relevant information to answer your research question: "Who is the most skillful assasin in American history?"
+To setup a Copilot AI Agent in a particular SharePoint site, one needs to consider the system requirements mentioned in the summaries. Based on the available information, the minimum system requirements for Copilot are:
 
-The search results contained content that was not related to your specific question. This could be due to:
-1. Limited availability of specific data on this topic
-2. Search queries not targeting the right sources
-3. The information you're looking for may require access to specialized databases
+1. **Neural Processing Unit (NPU):** The AI PC must have an NPU to support the AI capabilities of Copilot.
+2. **Latest CPUs and GPUs:** The system should feature latest-generation CPUs and GPUs to provide sufficient processing power for demanding tasks that utilize Copilot's AI features.
+3. **Microsoft's new Copilot key:** The AI PC must have Microsoft's new Copilot key, which is currently missing from some laptops like Asus' ROG Zephyrus.
 
-**Suggestions:**
-- Try rephrasing your research question with more specific terms
-- Consider breaking down your question into smaller, more focused parts
-- Look for official sources, academic papers, or industry-specific databases
-- Try using more specific keywords related to your topic
+In addition to these minimum requirements, it is also necessary to ensure that the system has alignment with Microsoft's definition of an "AI PC" compatible with Copilot. This implies that the system should meet Intel's confirmation of the NPU and access to the Copilot key as the necessary components for AI capabilities.
 
-**Alternative approach:** You might want to search for more specific aspects of your topic or try different keyword combinations to get more targeted results.
+However, there might be scenarios where a system meets the minimum requirements without having the physical Copilot key, which could imply alternative methods for enabling Copilot's AI features in such cases. For instance, it is possible that some systems may not have the physical Copilot key but still possess an integrated NPU.
+
+To fully utilize the capabilities of Copilot AI Agent in a SharePoint site, one would need to consider the following:
+
+1. **SharePoint site setup:** The SharePoint site should be set up to accommodate the AI capabilities of Copilot. This might involve configuring the site for AI-based workflows and integrations.
+2. **Copilot training:** The Copilot AI Agent will require training on the specific tasks and interactions it is designed to perform in the SharePoint site. This could involve providing sample data, scenarios, or user inputs to help the agent learn and improve its performance.
+3. **Integration with existing tools:** Copilot AI Agent may need to be integrated with existing tools and systems within the SharePoint site, such as Office 365 applications or other AI-powered services.
+
+In conclusion, setting up a Copilot AI Agent in a particular SharePoint site requires meeting the minimum system requirements mentioned earlier, configuring the SharePoint site for AI-based workflows, training the agent on specific tasks and interactions, and integrating it with existing tools and systems. Further clarification is needed to fully understand the implications of exceptions where a system meets the minimum requirements without having the physical Copilot key.
+
+**Acknowledged Conflicts:**
+
+* The summaries do not provide specific details about the type of NPU required, any additional hardware or software components that might be necessary for optimal Copilot performance, and clarification on how systems without the physical Copilot key can still utilize Copilot's AI features.
 
 ## Sources and References
 
 ## Detailed Web Results
-#### Step 1: What criteria define “skillful” in the context of historical American assassination?
-### 1. [[Error]]()
-422 Client Error:  for url: https://api.search.brave.com/res/v1/web/search?q=What+criteria+define+%E2%80%9Cskillful%E2%80%9D+in+the+context+of+historical+American+assassination%3F+site%3Atechcrunch.com+OR+site%3Aarstechnica.com+OR+site%3Awired.com+OR+site%3Atheverge.com&count=12
-### 2. [[Error]]()
-422 Client Error:  for url: https://api.search.brave.com/res/v1/web/search?q=What+standard+define+%E2%80%9Cskillful%E2%80%9D+in+the+context+of+historical+American+assassination%3F+site%3Atechcrunch.com+OR+site%3Aarstechnica.com+OR+site%3Awired.com+OR+site%3Atheverge.com&count=12
-### 3. [[Error]]()
-422 Client Error:  for url: https://api.search.brave.com/res/v1/web/search?q=What+criterion+define+%E2%80%9Cskillful%E2%80%9D+in+the+context+of+historical+American+assassination%3F+site%3Atechcrunch.com+OR+site%3Aarstechnica.com+OR+site%3Awired.com+OR+site%3Atheverge.com&count=12
-
-#### Step 2: What American historical figures have been identified as assassins?
-### 1. ['Assassin's Creed Origins': More of the Same Can Be a Joy All Its ...](https://www.wired.com/story/assassins-creed-origin/)
-Nov 6, 2017 ... The third game in the core series (this being a successful franchise, there were spinoffs) took players to the American Revolution and the ...
-
-#### Step 3: What is the documented planning and execution methodology of each identified American assassin?
-### 1. [A Cab's-Eye View of How Peloton's Trucks 'Talk' to Each Other ...](https://www.wired.com/story/cabs-eye-view-how-pelotons-trucks-talk/)
-Mar 20, 2019 ... They will also gently tell you—always gently—that yes, truck driving, a job that nearly 3.7 million Americans perform today, is perhaps on the ...
-
-#### Step 5: What contextual factors (e.g., resources, support network, target security) impacted the success or failure of each American assassin’s attempt?
-### 1. [Edward Snowden: The Untold Story | WIRED](https://www.wired.com/2014/08/edward-snowden/)
-Aug 22, 2014 ... I stayed here 20 years ago when I interviewed Victor Cherkashin, the senior KGB officer who oversaw American spies such as Aldrich Ames and ...
-
-#### Step 6: How do the skills and outcomes of identified American assassins compare when evaluated against the established criteria for “skillfulness”?
-### 1. [[Error]]()
-422 Client Error:  for url: https://api.search.brave.com/res/v1/web/search?q=How+do+the+skills+and+outcomes+of+identified+American+assassins+compare+when+evaluated+against+the+established+criteria+for+%E2%80%9Cskillfulness%E2%80%9D%3F+site%3Atechcrunch.com+OR+site%3Aarstechnica.com+OR+site%3Awired.com+OR+site%3Atheverge.com&count=12
-### 2. [[Error]]()
-422 Client Error:  for url: https://api.search.brave.com/res/v1/web/search?q=How+bash+the+skills+and+outcomes+of+identified+American+assassins+compare+when+evaluated+against+the+established+criteria+for+%E2%80%9Cskillfulness%E2%80%9D%3F+site%3Atechcrunch.com+OR+site%3Aarstechnica.com+OR+site%3Awired.com+OR+site%3Atheverge.com&count=12
-### 3. [[Error]]()
-422 Client Error:  for url: https://api.search.brave.com/res/v1/web/search?q=How+doh+the+skills+and+outcomes+of+identified+American+assassins+compare+when+evaluated+against+the+established+criteria+for+%E2%80%9Cskillfulness%E2%80%9D%3F+site%3Atechcrunch.com+OR+site%3Aarstechnica.com+OR+site%3Awired.com+OR+site%3Atheverge.com&count=12
-
-[Refinement] most skillful assasin statistics: According to a discussion on the r/Fallout subreddit, the best starting stats for an assassin character in Fallout 4 prioritize **Agility and Perception**. Agility directly impacts stealth capabilities, while Perception enhances accuracy and awareness – crucial for an assassin. While these are key, players also suggest considering Charisma and Intelligence for dialogue options and faster leveling, though these aren’t as critical as Agility and Perception.
-
-
-
-
-
-[Refinement] most skillful assasin statistics: Determining the “best” Assassin in the *Assassin’s Creed* franchise is subjective, as different characters excel in unique areas. The Quora response highlights several top contenders, including Altaïr for stealth, Ezio for historical impact and charisma, and Connor Kenway for sheer physical strength. Ultimately, the author argues for Bayek of Siwa as the most well-rounded and effective Assassin, though acknowledges the strength of other candidates like Aveline de Grandpre for elegant fighting.
-
-[Refinement] assasin American history data analysis: This research presents the most detailed evolutionary tree of assassin bugs (Reduviidae) to date, constructed using molecular data from 178 species. The study reveals that key groups within assassin bugs, like the disease-vectoring Triatominae, are more complex in their evolutionary relationships than previously thought, and that blood-feeding likely evolved independently on a few occasions. By combining genetic data with fossil records and behavioral observations, researchers traced the origins of predatory specializations and habitat preferences within this diverse group of insects, pinpointing a major diversification event beginning around 97 million years ago.
-
-
-
-
-
-[Refinement] assasin American history data analysis: This research presents the most detailed evolutionary tree of assassin bugs (Reduviidae) to date, constructed using molecular data from 178 species. The study reveals that key subgroups, like the disease-vectoring Triatominae, are more complex in their relationships than previously thought, and identifies multiple independent origins for specialized diets and lifestyles within the group. By combining genetic analysis with fossil data, researchers pinpoint the origins of assassin bugs to the Jurassic period, with major diversification occurring in the Late Cretaceous, offering valuable insights into the evolution of predatory strategies and ecological adaptation.
-
-
-
-
-
-[Refinement] Who is the most skillful assasin in American history? official statistics: This analysis focuses on assessing the historical accuracy of *Assassin’s Creed II* by applying Ubisoft’s established design principle: adhering to easily verifiable facts (within a 30-second Wikipedia search) while allowing creative license beyond that. The author intends to evaluate how well the game portrays the Renaissance period, exceeding common pop-culture depictions, and will prioritize the “casual experience” of the main game, rather than delving into extensive DLC or minor titles. *Assassin’s Creed II* significantly expands upon the historical scope of its predecessor, featuring a wider cast of real historical figures and a far greater number of recognizable landmarks.
-
-
-
-
-
-[Refinement] Who is the most skillful assasin in American history? official statistics: This content from the United States Secret Service commemorates the 40th anniversary of the 1981 assassination attempt on President Ronald Reagan. On March 30th, while leaving the Washington Hilton Hotel, President Reagan and three others – including Secret Service agent Tim McCarthy and a police officer – were wounded by a gunman. The Secret Service highlights the swift actions of agents Ray Shaddick and Jerry Parr in protecting the President during the attack.
-
-[Refinement] most skillful assasin statistics: According to a discussion on the Fallout subreddit, the best starting stats for an assassin character in *Fallout 4* prioritize **Agility and Perception**. Agility directly impacts stealth, crucial for an assassin playstyle, while Perception enhances accuracy and awareness. While these are core, players also suggest considering Charisma and Intelligence for dialogue options and leveling benefits, but emphasize that starting stats are flexible due to the game’s leveling system.
-
-
-
-
-
-[Refinement] most skillful assasin statistics: Determining the “best” Assassin in the *Assassin’s Creed* franchise is subjective, as different characters excel in unique areas. The Quora response highlights several contenders, including Aveline de Grandpre for elegant combat, Connor Kenway for physical strength, Edward Kenway for charisma, and Altair for stealth. Ultimately, the author argues for Bayek of Siwa as the most well-rounded and impactful Assassin, though Ezio Auditore is also a strong candidate due to his popularity and historical influence.
-
-
-
-
-
-[Refinement] assasin American history data analysis: This research presents the most detailed evolutionary tree of assassin bugs (Reduviidae) to date, constructed using molecular data from 178 species. The study reveals that key groups within assassin bugs, like the blood-feeding Triatominae, are more complex in their evolutionary relationships than previously thought, and highlights multiple independent origins of specialized diets and lifestyles. By combining genetic analysis with fossil data, researchers pinpoint the origins of this diverse group to the Jurassic period, with major diversification occurring in the Late Cretaceous.
-
-
-
-
-
-[Refinement] assasin American history data analysis: This research presents the most detailed evolutionary tree of assassin bugs (Reduviidae) to date, constructed using molecular data from 178 species. The study reveals that key groups within assassin bugs, like blood-feeding Triatominae, are more complex in their evolutionary relationships than previously thought, and highlights multiple independent origins of specialized diets and lifestyles. By combining genetic analysis with fossil data, researchers determined that assassin bugs originated in the Jurassic period, with major diversification occurring in the Cretaceous, providing valuable insights into the evolution of predation and ecological adaptation within this diverse group.
-
-
-
-
-
-[Refinement] Who is the most skillful assasin in American history? official statistics: This analysis focuses on assessing the historical accuracy of *Assassin’s Creed II* compared to popular perceptions of the Renaissance period, utilizing Ubisoft’s self-defined “30-second Wikipedia rule” for verification. Unlike its predecessor, *ACII* significantly expands its historical scope, featuring a wider cast of real historical figures and monuments over a forty-year timeframe, aiming for a more immersive, novel-like experience. The evaluation prioritizes the "casual experience" and judges accuracy against commonly held cultural representations, rather than strict, exhaustive historical detail.
-
-
-
-
-
-[Refinement] Who is the most skillful assasin in American history? official statistics: This content from the United States Secret Service commemorates the 40th anniversary of the 1981 assassination attempt on President Ronald Reagan. On March 30th, while leaving an event at the Washington Hilton Hotel, President Reagan and three others – including Secret Service Agent Tim McCarthy and a police officer – were wounded by a gunman. The Secret Service highlights the quick reaction of agents Ray Shaddick and Jerry Parr in protecting the President during the attack.
-
-[Refinement] most skillful assasin statistics: According to a discussion on the Fallout subreddit, the optimal starting stats for an assassin character in Fallout 4 prioritize **Agility and Perception**. Agility directly impacts stealth, crucial for an assassin playstyle, while Perception aids in accuracy and awareness. Players can further customize based on preferred assassin type – focusing on Luck for a “ninja” build or Charisma & Intelligence for speech checks and faster leveling.
-
-
-
-
-
-[Refinement] most skillful assasin statistics: Determining the “best” assassin in the *Assassin’s Creed* franchise is subjective, with different characters excelling in various skills. The post highlights several strong contenders, including Aveline de Grandpre for elegant fighting, Connor Kenway for physical strength, Edward Kenway for charisma, Altaïr for stealth, and Ezio de Auditore for historical impact and likability. Ultimately, the author argues for Bayek of Siwa as the most well-rounded and therefore, best, assassin within the series.
-
-[Refinement] assasin American history data analysis: This research presents the most detailed evolutionary tree of assassin bugs (Reduviidae) to date, constructed using molecular data from 178 species. The study reveals that key subgroups, like the disease-vectoring Triatominae, are more complex in their evolutionary relationships than previously thought, and highlights multiple independent origins of specialized diets and lifestyles within the group. By combining genetic analysis with fossil data, researchers determined assassin bugs originated in the Middle Jurassic period, with major diversification occurring in the Late Cretaceous.
-
-
-
-
-
-[Refinement] assasin American history data analysis: This research presents the most detailed evolutionary tree of assassin bugs (Reduviidae) to date, constructed using molecular data from 178 species. The study reveals that specialized predatory behaviors, like targeting specific insects or feeding on blood, evolved multiple times independently within the group, originating from generalist ancestors. Analysis indicates assassin bugs originated in the Jurassic period, but experienced major diversification during the Late Cretaceous, with a bark-dwelling lifestyle representing the ancestral habitat for most lineages.
-
-
-
-
-
-[Refinement] Who is the most skillful assasin in American history? official statistics: This analysis will examine the historical accuracy of *Assassin’s Creed II* by comparing its portrayal of the Renaissance to established historical understanding and popular culture. The author will evaluate the game based on Ubisoft’s stated design principle – adhering to easily verifiable facts while allowing creative license beyond that – and focusing on the core game experience, not supplemental content. *ACII* distinguishes itself through a sweeping, forty-year narrative and a significantly larger inclusion of real historical figures and landmarks compared to its predecessor, *Assassin's Creed I*.
-
-
-
-
-
-[Refinement] Who is the most skillful assasin in American history? official statistics: This content from the United States Secret Service commemorates the 40th anniversary of the 1981 assassination attempt on President Ronald Reagan. On March 30th, while leaving an event at the Washington Hilton Hotel, President Reagan and three others – including Secret Service Agent Tim McCarthy and a police officer – were wounded by a gunman. The Secret Service highlights the quick reaction of Agents Ray Shaddick and Jerry Parr in protecting the President during the attack.
+#### Step 1: What is Copilot AI Agent
+### 1. [Microsoft's new Copilot AI agents arrive next month. | The Verge](https://www.theverge.com/2024/10/21/24275778/microsofts-new-copilot-ai-agents-arrive-next-month)
+Oct 21, 2024 ... A public preview of Microsoft's new autonomous AI agents will be available in Copilot Studio next month. Microsoft is also adding 10 new autonomous agents in ...
+### 2. [Microsoft's AI Boss Wants Copilot to Bring 'Emotional Support' to ...](https://www.wired.com/story/mustafa-suleyman-interview-microsoft-ai-ceo-copilot/)
+Oct 1, 2024 ... As CEO of Microsoft AI, Suleyman oversees efforts to integrate the same AI that powers ChatGPT into software—including the Windows operating ...
+
+#### Step 2: How do I set up Copilot in SharePoint
+### 1. [Copilot Pages is Microsoft's new collaborative AI playground for ...](https://www.theverge.com/2024/9/16/24246010/microsoft-copilot-pages-multiplayer-ai-business)
+Sep 16, 2024 ... ... Copilot Studio. “Now anyone can quickly create a Copilot agent right in BizChat or SharePoint, unlocking the value of the vast knowledge ...
+### 2. [Windows on Arm and Copilot Plus could be big for PC gaming | The ...](https://www.theverge.com/2024/5/31/24168566/windows-arm-copilot-plus-gaming-pcs-handhelds)
+May 31, 2024 ... ... up crucial CPU and GPU resources for things like gaming. I ... create a custom Copilot at the click of a button inside a SharePoint folder.
+### 3. [Microsoft Copilot: Everything you need to know about Microsoft's AI ...](https://techcrunch.com/2025/02/07/microsoft-copilot-everything-you-need-to-know-about-microsofts-ai/)
+Feb 7, 2025 ... Copilot in PowerPoint will soon pull in company-approved images from a SharePoint library, while Outlook will get a “Prioritize my inbox” ...
+### 4. [Microsoft Ignite 2024: all the news from Microsoft's IT pro event | The ...](https://www.theverge.com/2024/11/19/24300001/microsoft-ignite-2024-news-ai-announcements-copilot-windows-azure-office)
+Nov 19, 2024 ... Microsoft is also adding AI agents to SharePoint, allowing ... Copilot Actions is designed to be something you set and forget, much ...
+### 5. [GitHub Copilot moves beyond OpenAI models to support Claude 3.5 ...](https://arstechnica.com/civis/threads/github-copilot-moves-beyond-openai-models-to-support-claude-3-5-gemini.1503802/)
+... sharepoint/AAD in a way that you could perhaps emulate by providing a 3rd ... my existing projct first try within 15 minutes of minor settings-fiddling.
+### 6. [Microsoft's new Copilot Actions use AI to automate repetitive tasks ...](https://www.theverge.com/2024/11/19/24299961/microsoft-copilot-actions-powerpoint-outlook-ai-improvements)
+Nov 19, 2024 ... ... create a better first draft of a presentation. Copilot will also be able to use images from SharePoint to integrate into PowerPoint ...
+### 7. [Microsoft relaunches Copilot for business with free AI chat and pay ...](https://www.theverge.com/2025/1/15/24344214/microsoft-365-copilot-chat-agents-pricing-availability)
+Jan 15, 2025 ... You'll be able to create and use agents using Copilot Studio, use ... SharePoint) will cost 30 messages. “A message is equivalent to 1 ...
+### 8. [Microsoft's new Copilot AI agents act like virtual employees to ...](https://www.theverge.com/2024/5/21/24158030/microsoft-copilot-ai-automation-agents)
+May 21, 2024 ... Businesses will be able to create a Copilot agent that could ... sets up your first week of meetings. Now, HR and the employees can ...
+
+#### Step 3: Is Copilot available on SharePoint 2019
+### 1. [Microsoft's Office apps are getting more useful Copilot AI features ...](https://www.theverge.com/2024/9/16/24246014/microsoft-office-copilot-ai-features-excel-python-outlook-word-powerpoint)
+Sep 16, 2024 ... ... Copilot in Excel generally available to its Microsoft 365 Copilot subscribers. ... SharePoint libraries. Copilot in Microsoft Teams will ...
+
+#### Step 4: Can I integrate Copilot with my SharePoint site
+### 1. [Microsoft Build 2024: news and announcements from the developer ...](https://www.theverge.com/2024/5/21/24161221/microsoft-build-2024-news-ai-copilot-plus)
+May 23, 2024 ... ... add data from public websites, SharePoint, OneDrive, and more. Photo ... Microsoft's new Team Copilot feature will allow the assistant ...
+### 2. [Microsoft's new Copilot Actions use AI to automate repetitive tasks ...](https://www.theverge.com/2024/11/19/24299961/microsoft-copilot-actions-powerpoint-outlook-ai-improvements)
+Nov 19, 2024 ... Copilot will also be able to use images from SharePoint to integrate into PowerPoint presentations. Copilot in Excel will soon include a new ...
+### 3. [Microsoft Copilot: Everything you need to know about Microsoft's AI ...](https://techcrunch.com/2025/02/07/microsoft-copilot-everything-you-need-to-know-about-microsofts-ai/)
+Feb 7, 2025 ... Copilot in PowerPoint will soon pull in company-approved images from a SharePoint library, while Outlook will get a “Prioritize my inbox” ...
+
+#### Step 5: Who developed Copilot AI Agent
+### 1. [Windows 11 is getting a new Start menu this month | The Verge](https://www.theverge.com/news/661587/microsoft-windows-11-start-menu-copilot-ai-agent-settings-menu)
+May 6, 2025 ... Microsoft's new Windows 11 update for Copilot Plus PCs will feature a new, larger Start menu, an AI agent built into settings, and other AI ...
+
+#### Step 6: What are the system requirements for Copilot
+### 1. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/civis/threads/microsoft%E2%80%99s-%E2%80%9Ccopilot-%E2%80%9D-ai-pc-requirements-are-embarrassing-for-intel-and-amd.1500804/page-3)
+May 20, 2024 ... ... Windows-only software (none of which is processor-intensive). Copilot is the straw that broke the camel's back. I never, ever want to think ...
+### 2. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/gadgets/2024/05/microsofts-copilot-ai-pc-requirements-are-embarrassing-for-intel-and-amd/)
+May 20, 2024 ... At a minimum, systems will need 16GB of RAM and 256GB of storage, to accommodate both the memory requirements and the on-disk storage ...
+### 3. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/civis/threads/microsoft%E2%80%99s-%E2%80%9Ccopilot-%E2%80%9D-ai-pc-requirements-are-embarrassing-for-intel-and-amd.1500804/)
+May 20, 2024 ... Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel and AMD ... Don't buy any devices branded as "Copilot+"? Personally, I know I ...
+### 4. [Microsoft's Copilot AI features are coming to new Intel and AMD ...](https://www.theverge.com/2024/9/3/24234687/microsoft-co-pilot-plus-pcs-intel-features-release-date)
+Sep 3, 2024 ... AMD has already launched laptops that are capable of meeting Microsoft's Copilot Plus PC hardware requirements for Windows AI features, but ...
+### 5. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/civis/threads/microsoft%E2%80%99s-%E2%80%9Ccopilot-%E2%80%9D-ai-pc-requirements-are-embarrassing-for-intel-and-amd.1500804/page-2)
+May 20, 2024 ... 3D face recognition (for biometric security) more or less requires an NPU at this point. So if Windows was going to implement/require something like FaceID, it ...
+### 6. [Microsoft's new era of AI PCs will need a Copilot key, says Intel | The ...](https://www.theverge.com/2024/3/26/24112500/microsoft-ai-pc-intel-windows-copilot-key-requirements)
+Mar 26, 2024 ... Microsoft wants its OEM partners to provide a combination of hardware and software for its idea of an AI PC. That includes a system that comes ...
+### 7. [Microsoft announces Copilot Plus PCs with built-in AI hardware ...](https://www.theverge.com/2024/5/20/24160486/microsoft-copilot-plus-ai-arm-chips-pc-surface-event)
+May 20, 2024 ... Copilot Plus PCs will have certain spec requirements to make sure they can deliver the performance Microsoft is promising. They'll need to ...
+
+#### Step 7: How do I configure Copilot settings
+### 1. [How to use the new Copilot AI in Windows 11 | The Verge](https://www.theverge.com/23899626/copilot-windows-11-how-to)
+Oct 3, 2023 ... When you start a fresh Copilot conversation, you can pick from the same options already available in Bing Chat. There's only one setting in ...
+### 2. [Windows 11 is getting a new Start menu this month | The Verge](https://www.theverge.com/news/661587/microsoft-windows-11-start-menu-copilot-ai-agent-settings-menu)
+May 6, 2025 ... Copilot Plus PC users will get an AI agent built right into Windows settings. ... adjust Windows settings for them, or seek help ...
+### 3. [Microsoft Copilot can now read your screen, think deeply, and speak ...](https://techcrunch.com/2024/10/01/microsoft-copilot-can-now-read-your-screen-think-deeper-and-speak-aloud-to-you/)
+Oct 1, 2024 ... Copilot will soon become more tailored to your likes and preferences, Microsoft said, thanks to a new personalization setting. When the setting ...
+
+#### Step 8: Are there tutorials for setting up Copilot
+### 1. [How to use the new Copilot AI in Windows 11 | The Verge](https://www.theverge.com/23899626/copilot-windows-11-how-to)
+Oct 3, 2023 ... To launch Copilot, which shows up in a panel on the right of your screen, click the Copilot button on the taskbar, or press Win + C on the keyboard.
+### 2. [GitHub's Copilot goes beyond code completion, adds a chat mode ...](https://techcrunch.com/2023/03/22/githubs-copilot-goes-beyond-code-completion-adds-a-chat-mode-and-more/)
+Mar 22, 2023 ... GitHub is launching a code-centric chat mode for Copilot that helps developers write and debug their code, as well as Copilot for pull ...
+### 3. [Adventures coding with AI | Ars OpenForum](https://arstechnica.com/civis/threads/adventures-coding-with-ai.1501554/)
+Jun 30, 2024 ... I've recently been using ChatGPT's "Code Copilot" to produce Swift scripts, and it's worked rather well. I started off by just asking for a simple function.
+### 4. [Microsoft's next big AI push is here after a year of Bing | The Verge](https://www.theverge.com/2024/2/7/24064440/microsofts-next-big-ai-push-is-here-after-a-year-of-bing)
+Feb 7, 2024 ... ... Copilot shows up in various products and services. It has been a confusing year for the Copilot brand, which started off inside GitHub and ...
+### 5. [How to Stop Your Data From Being Used to Train AI | WIRED](https://www.wired.com/story/how-to-stop-your-data-from-being-used-to-train-ai/)
+Oct 12, 2024 ... “A portion of the total number of user prompts in Copilot and Copilot ... Open up Gemini in your browser, click on Activity, and select the ...
+
+#### Step 9: What are the benefits of using Copilot in SharePoint
+### 1. [Copilot for OneDrive will fetch your files and summarize them | The ...](https://www.theverge.com/2024/3/1/24088026/copilot-for-onedrive-file-find-summary-prompts-natural-language)
+Mar 1, 2024 ... You can also ask Copilot questions about your files using natural language prompts. ... SharePoint. It'll be available for work and school ...
+### 2. [Microsoft's Office apps are getting more useful Copilot AI features ...](https://www.theverge.com/2024/9/16/24246014/microsoft-office-copilot-ai-features-excel-python-outlook-word-powerpoint)
+Sep 16, 2024 ... The AI assistant will even soon use a company's branded template to create drafts or company-approved images from SharePoint libraries. Copilot ...
+### 3. [Microsoft Copilot: Everything you need to know about Microsoft's AI ...](https://techcrunch.com/2025/02/07/microsoft-copilot-everything-you-need-to-know-about-microsofts-ai/)
+Feb 7, 2025 ... Copilot is Microsoft's take on productivity-boosting generative AI, and it continues to grow and expand with Microsoft's AI ambitions.
 

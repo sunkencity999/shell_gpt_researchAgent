@@ -27,4 +27,5 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
 fi
 
 echo "[DEBUG] Using python: $PYTHON"
-$PYTHON -m sgptAgent.__main__
+echo "[INFO] Starting Research Agent GUI..."
+$PYTHON -m sgptAgent.gui_app
