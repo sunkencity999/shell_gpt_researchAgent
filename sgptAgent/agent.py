@@ -296,11 +296,15 @@ Make each gap a specific search query that could find the missing information.""
             return query
     
     def write_report(self, synthesis: str, web_results_md: list, goal: str, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None) -> str:
-        """Write a formatted research report."""
+        """Write a formatted research report to the documents directory."""
         if not filename:
             import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"research_report_{timestamp}.md"
+        
+        # Ensure documents directory exists and save there
+        documents_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'documents')
+        os.makedirs(documents_dir, exist_ok=True)
         
         report_content = f"""# Research Report
 
@@ -320,9 +324,13 @@ Make each gap a specific search query that could find the missing information.""
         for result in web_results_md:
             report_content += f"{result}\n\n"
         
-        report_path = os.path.join(os.getcwd(), filename)
+        report_path = os.path.join(documents_dir, filename)
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report_content)
+        
+        # Emit progress message about file creation
+        if hasattr(self, 'progress_callback') and self.progress_callback:
+            self.progress_callback(f"📁 Report saved to: {report_path}")
         
         return report_path
 
@@ -710,13 +718,76 @@ Make each gap a specific search query that could find the missing information.""
             current_step += 1
             emit("Synthesis complete!", substep="Synthesizing", percent=int(100 * current_step/total_steps), log="Synthesis complete.")
         
-        # Write report
-        emit("Writing research report...", substep="Writing Report", percent=int(100 * (current_step+1)/total_steps), log="Writing final report.")
-        report_path = self.write_report(synthesis, web_results_md, goal, audience=audience, tone=tone, improvement=improvement, citation_style=citation_style, filename=filename)
-        current_step += 1
-        emit("Research complete!", substep="Complete", percent=100, log=f"Report saved to {report_path}")
-        
-        return report_path
+        # Write report - ensure this always happens even if searches failed
+        try:
+            emit("Writing research report...", substep="Writing Report", percent=int(100 * (current_step+1)/total_steps), log="Writing final report.")
+            
+            # If we have no synthesis due to failed searches, create a basic one
+            if not synthesis or synthesis.strip() == "":
+                synthesis = f"""Research was conducted on the topic: {goal}
+
+Unfortunately, the web search components encountered connectivity issues that prevented gathering comprehensive information. This may be due to:
+
+1. Network connectivity problems
+2. Search API configuration issues
+3. Rate limiting from search providers
+
+To improve results, please:
+- Check your internet connection
+- Verify Google Custom Search API credentials
+- Try the research again after a few minutes
+
+The research framework is functional, but external data sources were temporarily unavailable."""
+                emit("Created fallback synthesis", substep="Writing Report", log="Generated fallback content due to search issues.")
+            
+            # Ensure we have some web results for the report
+            if not web_results_md:
+                web_results_md = ["## Search Results\n\nNo web results were successfully retrieved due to connectivity issues with search providers."]
+            
+            report_path = self.write_report(synthesis, web_results_md, goal, audience=audience, tone=tone, improvement=improvement, citation_style=citation_style, filename=filename)
+            current_step += 1
+            emit("Research complete!", substep="Complete", percent=100, log=f"Report saved to {report_path}")
+            
+            return report_path
+            
+        except Exception as write_error:
+            # If report writing fails, create a minimal report manually
+            emit("Report writing failed, creating minimal report...", substep="Error Recovery", log=f"Write error: {write_error}")
+            
+            try:
+                import datetime
+                if not filename:
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"research_report_{timestamp}.md"
+                
+                minimal_content = f"""# Research Report - {goal}
+
+## Status
+Research encountered technical difficulties but completed with limited results.
+
+## Goal
+{goal}
+
+## Summary
+{synthesis if synthesis else 'Research could not be completed due to technical issues.'}
+
+## Generated
+{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Note
+This report was generated with limited data due to connectivity issues.
+"""
+                
+                fallback_path = os.path.join(os.getcwd(), filename)
+                with open(fallback_path, 'w', encoding='utf-8') as f:
+                    f.write(minimal_content)
+                
+                emit("Minimal report created!", substep="Complete", percent=100, log=f"Fallback report saved to {fallback_path}")
+                return fallback_path
+                
+            except Exception as fallback_error:
+                emit("All report creation failed", substep="Error", percent=100, log=f"Could not create any report: {fallback_error}")
+                return None
 
     def simplify_search_query(self, query: str) -> str:
         """Simplify complex search queries."""

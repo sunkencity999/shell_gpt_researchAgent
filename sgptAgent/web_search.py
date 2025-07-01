@@ -5,8 +5,11 @@ load_dotenv()
 
 def search_web_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     """DuckDuckGo search using the official Instant Answer API (no API key required)."""
+    # Clean the query of markdown formatting
+    clean_query = query.replace('**', '').replace('*', '').replace('""', '"').strip()
+    
     url = "https://api.duckduckgo.com/"
-    params = {"q": query, "format": "json", "no_redirect": 1, "no_html": 1}
+    params = {"q": clean_query, "format": "json", "no_redirect": 1, "no_html": 1}
     try:
         resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
@@ -15,47 +18,58 @@ def search_web_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, st
         # Parse 'RelatedTopics' from the API format
         for topic in data.get("RelatedTopics", []):
             if isinstance(topic, dict) and "Text" in topic and "FirstURL" in topic:
-                results.append({
-                    "title": topic.get("Text"),
-                    "href": topic.get("FirstURL"),
-                    "snippet": topic.get("Text")
-                })
+                first_url = topic.get("FirstURL", "")
+                if first_url and first_url.startswith(("http://", "https://")):
+                    results.append({
+                        "title": topic.get("Text", "Untitled"),
+                        "href": first_url,
+                        "snippet": topic.get("Text", "")
+                    })
                 if len(results) >= max_results:
                     break
             # Sometimes there are nested topics
             if isinstance(topic, dict) and "Topics" in topic:
                 for subtopic in topic["Topics"]:
                     if "Text" in subtopic and "FirstURL" in subtopic:
-                        results.append({
-                            "title": subtopic.get("Text"),
-                            "href": subtopic.get("FirstURL"),
-                            "snippet": subtopic.get("Text")
-                        })
+                        first_url = subtopic.get("FirstURL", "")
+                        if first_url and first_url.startswith(("http://", "https://")):
+                            results.append({
+                                "title": subtopic.get("Text", "Untitled"),
+                                "href": first_url,
+                                "snippet": subtopic.get("Text", "")
+                            })
                         if len(results) >= max_results:
                             break
         return results
     except Exception as e:
-        return [{"title": "[Error]", "href": "", "snippet": str(e)}]
+        print(f"[DuckDuckGo search error: {e}]")
+        return []
 
 def search_web_brave(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     """Brave Search public API fallback (no API key required, limited results)."""
+    # Clean the query of markdown formatting
+    clean_query = query.replace('**', '').replace('*', '').replace('""', '"').strip()
+    
     url = "https://api.search.brave.com/res/v1/web/search"
     headers = {"Accept": "application/json"}
-    params = {"q": query, "count": max_results}
+    params = {"q": clean_query, "count": max_results}
     try:
         resp = requests.get(url, params=params, headers=headers, timeout=10)
         resp.raise_for_status()
         data = resp.json()
         results = []
         for r in data.get("web", {}).get("results", [])[:max_results]:
-            results.append({
-                "title": r.get("title"),
-                "href": r.get("url"),
-                "snippet": r.get("description", r.get("title"))
-            })
+            result_url = r.get("url", "")
+            if result_url and result_url.startswith(("http://", "https://")):
+                results.append({
+                    "title": r.get("title", "Untitled"),
+                    "href": result_url,
+                    "snippet": r.get("description", r.get("title", ""))
+                })
         return results
     except Exception as e:
-        return [{"title": "[Error]", "href": "", "snippet": str(e)}]
+        print(f"[Brave search error: {e}]")
+        return []
 
 import os
 
@@ -66,7 +80,13 @@ def search_web_google_cse(query: str, max_results: int = 10) -> List[Dict[str, s
     """Google Custom Search API (requires API key and CSE ID). Attempts pagination to get up to max_results."""
     if not GOOGLE_CSE_ID:
         print("[WARNING] Google CSE ID not set in config or env.")
-        return [{"title": "[Error]", "href": "", "snippet": "Google CSE ID not set in config or env."}]
+        return []
+    
+    # Clean the query of markdown formatting and excessive quotes
+    clean_query = query.replace('**', '').replace('*', '')
+    # Remove nested quotes that can confuse search APIs
+    clean_query = clean_query.replace('""', '"').strip()
+    
     url = "https://www.googleapis.com/customsearch/v1"
     results = []
     start = 1
@@ -75,23 +95,26 @@ def search_web_google_cse(query: str, max_results: int = 10) -> List[Dict[str, s
         params = {
             "key": GOOGLE_API_KEY,
             "cx": GOOGLE_CSE_ID,
-            "q": query,
+            "q": clean_query,
             "num": num,
             "start": start
         }
-        print(f"[Google CSE] Query: {query} | Params: {params}")
+        print(f"[Google CSE] Query: {clean_query} | Params: {params}")
         try:
             resp = requests.get(url, params=params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             items = data.get("items", [])
-            print(f"[Google CSE] Returned {len(items)} items for query: '{query}' (start={start}, num={num})")
+            print(f"[Google CSE] Returned {len(items)} items for query: '{clean_query}' (start={start}, num={num})")
             for item in items:
-                results.append({
-                    "title": item.get("title"),
-                    "href": item.get("link"),
-                    "snippet": item.get("snippet")
-                })
+                # Only add results with valid URLs
+                link = item.get("link", "")
+                if link and link.startswith(("http://", "https://")):
+                    results.append({
+                        "title": item.get("title", "Untitled"),
+                        "href": link,
+                        "snippet": item.get("snippet", "")
+                    })
             if not items or len(results) >= max_results:
                 break
             start += len(items)
@@ -100,7 +123,6 @@ def search_web_google_cse(query: str, max_results: int = 10) -> List[Dict[str, s
             break
     if not results:
         print("[WARNING] Google CSE returned no results.")
-        return [{"title": "[No results]", "href": "", "snippet": "No relevant results found."}]
     if len(results) < max_results:
         print(f"[WARNING] Google CSE returned only {len(results)} results (requested {max_results}).")
     return results[:max_results]
@@ -135,6 +157,15 @@ def fetch_url_text(url: str, snippet: str = "") -> str:
     If extracted text is <500 chars, try to follow the first likely article/content link and extract from there.
     Print a preview and length of extracted text for debugging.
     """
+    # Validate URL before processing
+    if not url or not url.strip():
+        print(f"[URL validation failed: empty URL, using snippet]")
+        return snippet or "No content available."
+    
+    if not url.startswith(("http://", "https://")):
+        print(f"[URL validation failed: invalid scheme for '{url}', using snippet]")
+        return snippet or "No content available."
+    
     def debug_preview(text, stage, target_url):
         print(f"[{stage} extraction for {target_url}: length={len(text)} | preview='{text[:300].replace(chr(10),' ')}']")
 

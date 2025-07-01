@@ -362,10 +362,19 @@ class ResearchAgentGUI(QMainWindow):
         self.results_label.setText(f"📊 Results: {self.total_results_found}")
         # Success rate is updated in update_time_display method
     
-    def research_finished(self, result):
-        """Handle research completion with enhanced metrics."""
+    def research_finished(self, result, report_path=''):
+        """Handle research completion with enhanced metrics and file notification."""
         self.output_box.setPlainText(result)
-        self.progress_label.setText("✅ Research completed successfully!")
+        
+        # Store the report path for display
+        self.last_report_path = report_path
+        
+        # Show file creation notification
+        if report_path:
+            filename = os.path.basename(report_path)
+            self.progress_label.setText(f"✅ Research completed successfully! | 📁 Saved: {filename}")
+        else:
+            self.progress_label.setText("✅ Research completed successfully!")
         
         # Ensure we have reasonable metrics for display
         if self.total_results_found == 0:
@@ -376,7 +385,12 @@ class ResearchAgentGUI(QMainWindow):
             self.total_queries = max(1, self.successful_queries)
             
         word_count = len(result.split())
-        self.progress_substep.setText(f"Generated {word_count} words from {self.total_results_found} sources")
+        if hasattr(self, 'last_report_path') and self.last_report_path:
+            filename = os.path.basename(self.last_report_path)
+            self.progress_substep.setText(f"Generated {word_count} words from {self.total_results_found} sources → {filename}")
+        else:
+            self.progress_substep.setText(f"Generated {word_count} words from {self.total_results_found} sources")
+            
         self.progress_bar.setValue(100)
         self.progress_timer.stop()
         self.eta_label.setText("🎯 Completed!")
@@ -976,7 +990,7 @@ class ResearchAgentGUI(QMainWindow):
 
 # --- Threaded backend worker ---
 class ResearchWorker(QThread):
-    finished = pyqtSignal(str)  # result
+    finished = pyqtSignal(str, str)  # result, report_path
     error = pyqtSignal(str, str)     # error_msg, traceback
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
@@ -1003,6 +1017,7 @@ class ResearchWorker(QThread):
                 self.progress.emit(desc, bar, substep, percent, log)
             
             # Run the research and get the report path
+            self.progress.emit("Starting research...", "", "Initializing", 0, "Research agent initialized.")
             report_path = agent.run(
                 self.query,
                 audience=self.audience,
@@ -1018,21 +1033,71 @@ class ResearchWorker(QThread):
                 progress_callback=progress_callback
             )
             
+            self.progress.emit("Processing results...", "", "File Creation", 95, f"Research completed. Report path: {report_path}")
+            
+            # Store the report path for GUI notification
+            self.report_path = report_path
+            
             # Read the result from the file that was created
             result = ""
             if report_path and os.path.exists(report_path):
                 with open(report_path, "r", encoding="utf-8") as f:
                     result = f.read()
+                self.progress.emit("File loaded successfully", "", "Complete", 100, f"📁 Report saved to: {report_path}")
             elif os.path.exists(self.filename):
                 with open(self.filename, "r", encoding="utf-8") as f:
                     result = f.read()
+                self.progress.emit("File loaded from fallback", "", "Complete", 100, f"📁 Report loaded from: {self.filename}")
             else:
-                # Fallback - create a basic report if no file was created
-                result = f"# Research Report\n\n## Query: {self.query}\n\nResearch completed but no output file was generated. Please check the logs for details."
+                # Force create a report file if none exists
+                self.progress.emit("Creating fallback report...", "", "File Creation", 98, "No report file found, creating fallback.")
+                
+                # Create a basic report with available information
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                result = f"""# Research Report
+
+## Research Goal
+{self.query}
+
+## Executive Summary
+Research was conducted on the topic "{self.query}" but encountered issues with web search connectivity. The research process completed but was unable to generate comprehensive results due to network or search API limitations.
+
+## Research Parameters
+- **Audience**: {self.audience or 'General'}
+- **Tone**: {self.tone or 'Professional'}
+- **Model**: {self.model}
+- **Web Results Requested**: {self.num_results}
+- **Generated**: {timestamp}
+
+## Notes
+This research encountered connectivity issues with web search providers. For better results, please:
+1. Check your internet connection
+2. Verify Google Custom Search API configuration
+3. Try running the research again
+
+## Improvement Suggestions
+{self.improvement or 'No specific improvements requested.'}
+"""
+                
+                # Save the fallback report to documents directory
+                try:
+                    # Ensure documents directory exists
+                    documents_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'documents')
+                    os.makedirs(documents_dir, exist_ok=True)
+                    
+                    fallback_path = os.path.join(documents_dir, self.filename)
+                    with open(fallback_path, 'w', encoding='utf-8') as f:
+                        f.write(result)
+                    self.report_path = fallback_path
+                    self.progress.emit("Fallback report created", "", "Complete", 100, f"📁 Fallback report saved to: {fallback_path}")
+                except Exception as save_error:
+                    self.progress.emit("File creation failed", "", "Error", 100, f"Could not save fallback report: {save_error}")
             
-            self.finished.emit(result)
+            self.finished.emit(result, getattr(self, 'report_path', ''))
         except Exception as e:
             import traceback as tb
+            self.progress.emit("Research failed", "", "Error", 0, f"Research error: {str(e)}")
             self.error.emit(str(e), tb.format_exc())
 
     def _make_bar(self, frac):
