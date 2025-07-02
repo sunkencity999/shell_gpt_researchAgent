@@ -20,3 +20,8 @@ nltk
 scikit-learn
 fuzzywuzzy
 python-levenshtein
+PyQt5
+playwright
+markdown2
+python-docx
+reportlab

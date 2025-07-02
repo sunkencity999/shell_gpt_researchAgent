@@ -122,7 +122,7 @@ echo -e "${green}✔ NLP setup completed. Enhanced query construction and entity
 
 # Step 4: Playwright browser dependencies
 echo -e "${yellow}Installing Playwright browsers (for robust extraction)...${reset}"
-python -m playwright install || fail "Failed to install Playwright browsers."
+./venv/bin/python -m playwright install || fail "Failed to install Playwright browsers."
 
 # Step 5: Ollama install and model selection
 if ! command -v ollama &>/dev/null; then

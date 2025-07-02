@@ -139,7 +139,7 @@ REM ===============================================
 REM 6. Optional: Install Playwright browsers
 REM ===============================================
 echo [6/8] Installing Playwright browsers (for web scraping)...
-python -m playwright install || (
+call venv\Scripts\python -m playwright install || (
     echo [WARNING] Failed to install Playwright browsers.
     echo The web search functionality might not work correctly. You can try running 'python -m playwright install' manually later.
     pause

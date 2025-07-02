@@ -171,6 +171,7 @@ class ResearchAgentGUI(QMainWindow):
         
         # Initialize UI
         self._init_ui()
+        self._populate_project_list()
         
         # Set up research stages for progress tracking
         self.research_stages = [
@@ -221,6 +222,17 @@ class ResearchAgentGUI(QMainWindow):
         self.success_label.setText("✅ Success: 0%")
         
         self.run_btn.setEnabled(True)
+
+    def _populate_project_list(self):
+        """Populate the project list combobox with existing projects."""
+        try:
+            self.project_name_combo.clear()
+            projects_dir = os.path.join(os.path.expanduser("~"), ".sgpt_research", "projects")
+            if os.path.exists(projects_dir):
+                projects = [d for d in os.listdir(projects_dir) if os.path.isdir(os.path.join(projects_dir, d))]
+                self.project_name_combo.addItems(projects)
+        except Exception as e:
+            print(f"[WARNING] Error populating project list: {e}")
     
     def browse_file(self):
         fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report As", str(DOCUMENTS_DIR / "research_report.txt"), "Text/Markdown Files (*.txt *.md)")
@@ -234,6 +246,7 @@ class ResearchAgentGUI(QMainWindow):
         audience = self.audience_input.text().strip()
         tone = self.tone_input.text().strip()
         improvement = self.improvement_input.text().strip()
+        project_name = self.project_name_combo.currentText().strip() or None
         
         # Get model name from combo box
         model_text = self.model_combo.currentText()
@@ -280,7 +293,7 @@ class ResearchAgentGUI(QMainWindow):
         
         # Create and start the worker thread
         self.worker = ResearchWorker(
-            query, audience, tone, improvement, model, num_results,
+            query, audience, tone, improvement, project_name, model, num_results,
             temperature, max_tokens, system_prompt, ctx_window, citation_style, filename
         )
         self.worker.progress.connect(self.update_progress)
@@ -371,8 +384,12 @@ class ResearchAgentGUI(QMainWindow):
         
         # Show file creation notification
         if report_path:
-            filename = os.path.basename(report_path)
-            self.progress_label.setText(f"✅ Research completed successfully! | 📁 Saved: {filename}")
+            if self.project_name_combo.currentText().strip():
+                project_dir = os.path.dirname(report_path)
+                self.progress_label.setText(f"✅ Research completed! | 📁 Project saved to: {project_dir}")
+            else:
+                filename = os.path.basename(report_path)
+                self.progress_label.setText(f"✅ Research completed successfully! | 📁 Saved: {filename}")
         else:
             self.progress_label.setText("✅ Research completed successfully!")
         
@@ -405,7 +422,8 @@ class ResearchAgentGUI(QMainWindow):
             
         self.run_btn.setEnabled(True)
         
-        # Refresh the saved reports list
+        # Refresh the project and report lists
+        self._populate_project_list()
         self.refresh_report_list()
     
     def research_error(self, error_msg):
@@ -650,6 +668,11 @@ class ResearchAgentGUI(QMainWindow):
         
         self.improvement_input = ModernInput(placeholder="Anything to improve or focus on (optional)")
         params_layout.addWidget(create_form_row("Improvement:", self.improvement_input))
+
+        self.project_name_combo = ModernComboBox()
+        self.project_name_combo.setEditable(True)
+        self._populate_project_list()
+        params_layout.addWidget(create_form_row("Project Name:", self.project_name_combo))
         
         # Model and results count
         row2_layout = QHBoxLayout()
@@ -994,13 +1017,14 @@ class ResearchWorker(QThread):
     error = pyqtSignal(str, str)     # error_msg, traceback
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
-    def __init__(self, query, audience, tone, improvement, model, num_results,
+    def __init__(self, query, audience, tone, improvement, project_name, model, num_results,
                  temperature, max_tokens, system_prompt, ctx_window, citation_style, filename): 
         super().__init__()
         self.query = query
         self.audience = audience
         self.tone = tone
         self.improvement = improvement
+        self.project_name = project_name
         self.model = model
         self.num_results = num_results
         self.temperature = temperature
@@ -1023,6 +1047,7 @@ class ResearchWorker(QThread):
                 audience=self.audience,
                 tone=self.tone,
                 improvement=self.improvement,
+                project_name=self.project_name,
                 num_results=self.num_results,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -1030,6 +1055,7 @@ class ResearchWorker(QThread):
                 ctx_window=self.ctx_window,
                 citation_style=self.citation_style,
                 filename=self.filename,
+                documents_base_dir=DOCUMENTS_DIR,
                 progress_callback=progress_callback
             )
             

@@ -78,6 +78,11 @@
 - **Evidence Linking**: Connects claims to specific sources and data
 - **Confidence Scoring**: Indicates reliability of synthesized conclusions
 
+### **🗂️ Project-Based Workflow**
+- **Stateful Research**: All research artifacts (plan, sources, summaries, reports) are saved to a dedicated project directory.
+- **Continuous Research**: Easily resume and build upon previous research by selecting an existing project.
+- **Knowledge Base**: Over time, your projects become a valuable, queryable knowledge base.
+
 ---
 
 ## 📋 **Use Cases & Examples**
@@ -135,6 +140,7 @@
 - **NLP Processing**: spaCy (entity recognition) + NLTK (query expansion)
 - **Relevance Scoring**: scikit-learn TF-IDF + custom algorithms
 - **Content Extraction**: newspaper3k + Playwright + BeautifulSoup
+- **GUI**: PyQt5 for a modern, cross-platform user interface.
 - **Fuzzy Matching**: fuzzywuzzy for deduplication
 
 ### **🔍 Search Infrastructure**
@@ -175,7 +181,8 @@ install_windows.bat
 **Command Line:**
 ```bash
 ./launch_sgpt_research.sh
-# Enter: "Compare the environmental impact of nuclear vs solar energy"
+# Enter a research goal, then a project name (e.g., "My_EV_Market_Analysis")
+# To continue a project, enter its name when prompted.
 ```
 
 **GUI Application:**
@@ -188,10 +195,7 @@ install_windows.bat
 source venv/bin/activate
 python sgptAgent/gui_app.py
 
-# Option 3: Platform-specific launchers
-# Linux: ./sgpt-research-gui
-# macOS: Double-click sgpt-research-gui.command
-# Windows: Double-click sgpt-research-gui.bat
+# In the GUI, you can type a new project name or select an existing one from the dropdown.
 ```
 
 **Direct Python:**
@@ -201,6 +205,7 @@ from sgptAgent.agent import ResearchAgent
 agent = ResearchAgent()
 report = agent.run(
     goal="Analyze the future of autonomous vehicles",
+    project_name="Autonomous_Vehicles_2025",
     audience="investors",
     tone="professional",
     num_results=15

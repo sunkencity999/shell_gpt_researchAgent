@@ -66,8 +66,11 @@ class ResearchAgent:
         return response
 
     def web_search(self, query: str, max_results: int = 10) -> list:
-        """Search the web and return results."""
-        return search_web_with_fallback(query, max_results=max_results)
+        """Sanitize the query and search the web."""
+        # Sanitize the query to remove invalid characters and instructions
+        import re
+        sanitized_query = re.sub(r'\s*\(.*?\)\s*', '', query).strip()
+        return search_web_with_fallback(sanitized_query, max_results=max_results)
 
     def fetch_and_summarize_url(self, url: str, snippet: str = "", audience: str = "", tone: str = "", improvement: str = "") -> str:
         """Fetch content from URL and summarize it."""
@@ -295,17 +298,18 @@ Make each gap a specific search query that could find the missing information.""
         else:
             return query
     
-    def write_report(self, synthesis: str, web_results_md: list, goal: str, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None) -> str:
-        """Write a formatted research report to the documents directory."""
+    def write_report(self, synthesis: str, web_results_md: list, goal: str, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None, project_name: str = None, documents_base_dir: str = None) -> str:
+        """Write a formatted research report to the project directory."""
         if not filename:
             import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"research_report_{timestamp}.md"
-        
-        # Ensure documents directory exists and save there
-        documents_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'documents')
-        os.makedirs(documents_dir, exist_ok=True)
-        
+
+        project_dir = None
+        if project_name and documents_base_dir:
+            project_dir = os.path.join(documents_base_dir, project_name)
+            os.makedirs(project_dir, exist_ok=True)
+
         report_content = f"""# Research Report
 
 ## Research Goal
@@ -316,26 +320,26 @@ Make each gap a specific search query that could find the missing information.""
 
 ## Sources and References
 """
-        
+
         for i, source in enumerate(getattr(self, 'sources', []), 1):
             report_content += f"{i}. [{source.get('title', f'Source {i}')}]({source.get('href', '')})\n"
-        
+
         report_content += f"\n## Detailed Web Results\n"
         for result in web_results_md:
             report_content += f"{result}\n\n"
-        
-        report_path = os.path.join(documents_dir, filename)
+
+        if project_dir:
+            report_path = os.path.join(project_dir, filename)
+        else:
+            report_path = os.path.join(os.getcwd(), filename)
+
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report_content)
-        
-        # Emit progress message about file creation
-        if hasattr(self, 'progress_callback') and self.progress_callback:
-            self.progress_callback(f"📁 Report saved to: {report_path}")
-        
+
         return report_path
 
     def run(self, goal: str, audience: str = "", tone: str = "", improvement: str = "",
-            num_results=10, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048, citation_style="APA", filename=None, progress_callback=None):
+            num_results=10, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048, citation_style="APA", filename=None, project_name=None, documents_base_dir: str = None, progress_callback=None):
         """Main research orchestration with enhanced query construction."""
         
         # Update instance parameters
@@ -343,6 +347,12 @@ Make each gap a specific search query that could find the missing information.""
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
         self.ctx_window = ctx_window
+        self.sources = []
+
+        project_dir = None
+        if project_name and documents_base_dir:
+            project_dir = os.path.join(documents_base_dir, project_name)
+            os.makedirs(project_dir, exist_ok=True)
         
         total_steps = 4 + num_results  # Plan, Search, N x Summarize, Synthesize, Write
         current_step = 0
@@ -356,6 +366,11 @@ Make each gap a specific search query that could find the missing information.""
         steps = self.plan(goal, audience=audience, tone=tone, improvement=improvement)
         current_step += 1
         emit("Planning complete!", substep="Planning", percent=int(100 * current_step/total_steps), log="Planning complete.")
+
+        if project_dir:
+            import json
+            with open(os.path.join(project_dir, "_plan.json"), 'w', encoding='utf-8') as f:
+                json.dump(steps, f, indent=4)
 
         # --- Multi-Step Web Reasoning ---
         if isinstance(steps, str):
@@ -674,6 +689,13 @@ Make each gap a specific search query that could find the missing information.""
             web_results_md = step_summaries_md
             summaries_md = step_summaries_md
             summaries = step_summaries
+
+            if project_dir:
+                import json
+                with open(os.path.join(project_dir, "_sources.json"), 'w', encoding='utf-8') as f:
+                    json.dump(self.sources, f, indent=4)
+                with open(os.path.join(project_dir, "_summaries.json"), 'w', encoding='utf-8') as f:
+                    json.dump(summaries, f, indent=4)
         else:
             # Fallback to original single-step logic if no steps detected
             emit("Searching the web...", substep="Web Search", percent=int(100 * current_step/total_steps), log="Starting web search...")
@@ -744,7 +766,7 @@ The research framework is functional, but external data sources were temporarily
             if not web_results_md:
                 web_results_md = ["## Search Results\n\nNo web results were successfully retrieved due to connectivity issues with search providers."]
             
-            report_path = self.write_report(synthesis, web_results_md, goal, audience=audience, tone=tone, improvement=improvement, citation_style=citation_style, filename=filename)
+            report_path = self.write_report(synthesis, web_results_md, goal, audience=audience, tone=tone, improvement=improvement, citation_style=citation_style, filename=filename, project_name=project_name, documents_base_dir=documents_base_dir)
             current_step += 1
             emit("Research complete!", substep="Complete", percent=100, log=f"Report saved to {report_path}")
             
@@ -778,7 +800,10 @@ Research encountered technical difficulties but completed with limited results.
 This report was generated with limited data due to connectivity issues.
 """
                 
-                fallback_path = os.path.join(os.getcwd(), filename)
+                if project_dir:
+                    fallback_path = os.path.join(project_dir, filename)
+                else:
+                    fallback_path = os.path.join(documents_base_dir, filename) if documents_base_dir else os.path.join(os.getcwd(), filename)
                 with open(fallback_path, 'w', encoding='utf-8') as f:
                     f.write(minimal_content)
                 
@@ -829,7 +854,10 @@ if __name__ == "__main__":
         if not goal:
             print("No research goal entered. Exiting.")
         else:
+            project_name = input("Enter a project name (optional, leave blank for none): ").strip()
+            if not project_name:
+                project_name = None
             agent = ResearchAgent()
-            agent.run(goal)
+            agent.run(goal, project_name=project_name)
     except (KeyboardInterrupt, EOFError):
         print("\nExiting.")
