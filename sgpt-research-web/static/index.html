@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shell GPT Research Agent Web</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="panel left-panel">
+            <div class="card logo-card">
+                <img src="/static/sgptRAicon.png" alt="Research Agent Icon" class="logo-icon">
+                <h1>Research Agent</h1>
+                <p>AI-Powered Research Assistant</p>
+            </div>
+
+            <div class="card">
+                <h2>Research Query</h2>
+                <textarea id="query-input" placeholder="Enter your research question or topic..."></textarea>
+            </div>
+
+            <div class="card">
+                <h2>Research Parameters</h2>
+                <div class="form-row">
+                    <label for="audience-input">Audience:</label>
+                    <input type="text" id="audience-input" placeholder="e.g., C-suite, technical, general">
+                </div>
+                <div class="form-row">
+                    <label for="tone-input">Tone:</label>
+                    <input type="text" id="tone-input" placeholder="e.g., formal, technical, accessible">
+                </div>
+                <div class="form-row">
+                    <label for="improvement-input">Improvement:</label>
+                    <input type="text" id="improvement-input" placeholder="Anything to improve or focus on (optional)">
+                </div>
+                <div class="form-row">
+                    <label for="project-name-select">Project Name:</label>
+                    <select id="project-name-select">
+                        <option value="">None</option>
+                        <option value="__new__">Add New Project...</option>
+                    </select>
+                </div>
+                <div class="form-row" id="new-project-row" style="display: none;">
+                    <label for="new-project-name-input">New Project Name:</label>
+                    <input type="text" id="new-project-name-input" placeholder="Enter new project name">
+                </div>
+                <div class="form-row">
+                    <label for="model-select">Model:</label>
+                    <select id="model-select"></select>
+                </div>
+                <div class="form-row">
+                    <label for="results-spin">Web Results:</label>
+                    <input type="number" id="results-spin" value="10" min="1" max="20">
+                </div>
+            </div>
+
+            <div class="card collapsible-card">
+                <h2 class="collapsible-header">Advanced LLM Settings <span class="arrow">&#9660;</span></h2>
+                <div class="collapsible-content">
+                    <div class="form-row">
+                        <label for="temp-spin">Temperature:</label>
+                        <input type="number" id="temp-spin" value="0.7" step="0.01" min="0" max="1.5">
+                    </div>
+                    <div class="form-row">
+                        <label for="max-tokens-spin">Max Tokens:</label>
+                        <input type="number" id="max-tokens-spin" value="2048" min="128" max="4096">
+                    </div>
+                    <div class="form-row">
+                        <label for="system-prompt-input">System Prompt:</label>
+                        <textarea id="system-prompt-input" placeholder="Optional system prompt for the LLM"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <label for="ctx-window-spin">Context Window:</label>
+                        <input type="number" id="ctx-window-spin" value="2048" min="128" max="8192">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Output Settings</h2>
+                <div class="form-row">
+                    <label for="file-input">Save As:</label>
+                    <input type="text" id="file-input" placeholder="research_report.txt">
+                </div>
+                <div class="form-row">
+                    <label for="citation-select">Citation Style:</label>
+                    <select id="citation-select">
+                        <option value="APA">APA</option>
+                        <option value="MLA">MLA</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Research Progress</h2>
+                <p id="progress-label"></p>
+                <p id="progress-substep"></p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                    <span class="progress-bar-text" id="progress-bar-text">0%</span>
+                </div>
+                <div class="metrics">
+                    <span id="time-label">⏱️ Elapsed: 0:00</span>
+                    <span id="eta-label">🎯 ETA: --:--</span>
+                    <span id="results-label">📊 Results: 0</span>
+                    <span id="success-label">✅ Success: 0%</span>
+                </div>
+                <div class="progress-log" id="progress-log"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="clear-btn" class="secondary">Clear</button>
+                <button id="run-btn" class="primary">Start Research</button>
+            </div>
+        </div>
+
+        <div class="panel right-panel">
+            <div class="card output-card">
+                <h2>Research Output</h2>
+                <textarea id="output-box" readonly></textarea>
+            </div>
+
+            <div class="card reports-card">
+                <h2>Saved Reports</h2>
+                <input type="text" id="report-filter" placeholder="Filter reports...">
+                <ul id="report-list"></ul>
+                <div class="button-group">
+                    <button id="open-report-btn" class="secondary">Open Report</button>
+                    <button id="refresh-reports-btn" class="secondary">Refresh</button>
+                </div>
+            </div>
+
+            <div class="card preview-card">
+                <h2>Report Preview</h2>
+                <textarea id="report-preview" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,115 +1,173 @@
 # Research Report
 
 ## Research Goal
-How best can one setup a Copilot AI Agent in a particualr sharepoint site?
+What are the best methods for selling 3D printed parts?
 
 ## Executive Summary
-To setup a Copilot AI Agent in a particular SharePoint site, one needs to consider the system requirements mentioned in the summaries. Based on the available information, the minimum system requirements for Copilot are:
+## Selling 3D Printed Parts: An Analysis of Etsy's Fee Structure and Sales Methods
 
-1. **Neural Processing Unit (NPU):** The AI PC must have an NPU to support the AI capabilities of Copilot.
-2. **Latest CPUs and GPUs:** The system should feature latest-generation CPUs and GPUs to provide sufficient processing power for demanding tasks that utilize Copilot's AI features.
-3. **Microsoft's new Copilot key:** The AI PC must have Microsoft's new Copilot key, which is currently missing from some laptops like Asus' ROG Zephyrus.
+This document assesses the best methods for selling 3D printed parts on Etsy, based on the provided summaries. While a definitive "best" method remains elusive due to data limitations, we can outline potential approaches and associated costs, highlighting areas needing further investigation.
 
-In addition to these minimum requirements, it is also necessary to ensure that the system has alignment with Microsoft's definition of an "AI PC" compatible with Copilot. This implies that the system should meet Intel's confirmation of the NPU and access to the Copilot key as the necessary components for AI capabilities.
+**I. Understanding Etsy's Fee Structure for 3D Printed Parts**
 
-However, there might be scenarios where a system meets the minimum requirements without having the physical Copilot key, which could imply alternative methods for enabling Copilot's AI features in such cases. For instance, it is possible that some systems may not have the physical Copilot key but still possess an integrated NPU.
+The provided summaries allow us to outline a *potential* fee structure for 3D print sellers on Etsy. Due to the nature of 3D printing—often involving outsourced production and AI-assisted design—understanding these fees is crucial for profitability.
 
-To fully utilize the capabilities of Copilot AI Agent in a SharePoint site, one would need to consider the following:
+**A. Core Fees (Currently Identified):**
 
-1. **SharePoint site setup:** The SharePoint site should be set up to accommodate the AI capabilities of Copilot. This might involve configuring the site for AI-based workflows and integrations.
-2. **Copilot training:** The Copilot AI Agent will require training on the specific tasks and interactions it is designed to perform in the SharePoint site. This could involve providing sample data, scenarios, or user inputs to help the agent learn and improve its performance.
-3. **Integration with existing tools:** Copilot AI Agent may need to be integrated with existing tools and systems within the SharePoint site, such as Office 365 applications or other AI-powered services.
+*   **Listing Fee:** $0.20 USD per item listing (as of late 2023). This applies uniformly to all Etsy listings, including 3D prints.
+*   **Transaction Fee:** 6.5% of the total sale price (including shipping).
+*   **Payment Processing Fee:** Approximately 3% + $0.25 USD per transaction. This is passed on from third-party processors like PayPal or Stripe.
 
-In conclusion, setting up a Copilot AI Agent in a particular SharePoint site requires meeting the minimum system requirements mentioned earlier, configuring the SharePoint site for AI-based workflows, training the agent on specific tasks and interactions, and integrating it with existing tools and systems. Further clarification is needed to fully understand the implications of exceptions where a system meets the minimum requirements without having the physical Copilot key.
+**B. Potential & Emerging Fees (Based on Policy Changes):**
 
-**Acknowledged Conflicts:**
+*   **"Designed" Label Fees:** While currently no direct fee is associated with the "Designed" label (used for AI-assisted designs), this is subject to change. The introduction of this label signals Etsy’s recognition of AI and opens the possibility for future monetization. Further data is required to determine if this label will introduce direct fees or impact pricing tiers.
+*   **Outsourcing Scrutiny & Potential Fees:** The shift in Etsy’s definition of "handmade," as exemplified by Virginie Dyvorne's jewelry business, raises concerns for 3D print sellers who outsource parts of their production. While currently not prohibited, excessive outsourcing could lead to stricter "handmade" verification processes, possibly resulting in fees for non-compliance.
+*   **Subscription Services (Etsy Plus):** Etsy offers subscription services which might reduce fees or offer other benefits.  However, the value of these subscriptions for 3D print sellers is currently unclear and depends on sales volume and service offerings.
 
-* The summaries do not provide specific details about the type of NPU required, any additional hardware or software components that might be necessary for optimal Copilot performance, and clarification on how systems without the physical Copilot key can still utilize Copilot's AI features.
+**C. Crucial Missing Data:**
+
+To provide a more accurate assessment, we require:
+
+*   **Official Etsy Fee Schedule:** A complete and up-to-date listing of all fees.
+*   **"Designed" Label Policy Documentation:** Clarification on potential costs or impacts of using the "Designed" label.
+*   **Etsy Outsourcing Guidelines:** Specific guidance on acceptable levels of outsourcing for “handmade” sellers and any associated fees.
+*   **Etsy Plus/Subscription Service Details:** Comprehensive information on subscription costs, benefits, and applicability to 3D print sellers.
+
+**II. Methods for Selling 3D Printed Parts on Etsy: Balancing Costs & Value**
+
+Given the fee structure and emerging policy changes, the "best" method for selling 3D printed parts requires a strategic approach that minimizes costs while maximizing perceived value.
+
+**A. Cost-Minimizing Strategies:**
+
+*   **Pricing Optimization:**  Carefully calculate production costs (material, labor - including outsourced processes), Etsy fees, and shipping to determine competitive yet profitable pricing.  Experiment with different pricing tiers based on complexity and material.
+*   **Efficient Listings:** Optimize listings with high-quality photos and detailed descriptions to reduce customer inquiries (and potentially negative reviews, which can impact search rankings).
+*   **Shipping Strategies:** Offer competitive shipping options. Consider calculated shipping to avoid overcharging customers and affecting conversion rates.
+*   **Limiting Outsourcing (Potentially):** While outsourcing can be efficient, excessive reliance could trigger scrutiny.  Consider performing as much production in-house as possible. *However, further clarification on Etsy's outsourcing policy is needed to confirm the potential for negative consequences.*
+
+**B. Value-Adding Strategies:**
+
+*   **Niche Products:** Focus on unique, in-demand 3D printed parts that are not readily available elsewhere. Niche products justify higher prices and create customer loyalty.
+*   **Customization & Personalization:** Offer personalized or custom-designed parts to increase perceived value and command premium pricing.
+*   **Bundling & Kits:**  Offer bundled parts or kits to increase the average order value and potentially justify higher shipping costs.
+*   **Excellent Customer Service:**  Provide prompt and helpful customer service to build trust and encourage repeat business.
+
+
+
+**III. Conclusion and Recommendations**
+
+Selling 3D printed parts on Etsy requires a nuanced understanding of Etsy's evolving fee structure and policies. Currently, the platform provides a potential outlet for reaching a broad audience, but cost management is paramount. The introduction of the "Designed" label and increased scrutiny on outsourcing introduce uncertainty.
+
+**Recommendations:**
+
+*   **Continuous Monitoring:** Stay informed about changes to Etsy’s fee schedule and policies, particularly those related to AI and outsourcing.
+*   **Data Collection:** Proactively gather missing data (outlined above) to refine cost calculations and pricing strategies.
+*   **Strategic Experimentation:** Test different listing formats, pricing tiers, and shipping options to identify the most profitable approaches.
+*   **Diversification:** Consider diversifying sales channels beyond Etsy to mitigate reliance on a single platform. Platforms with different fee structures could offer better profitability.
 
 ## Sources and References
 
 ## Detailed Web Results
-#### Step 1: What is Copilot AI Agent
-### 1. [Microsoft's new Copilot AI agents arrive next month. | The Verge](https://www.theverge.com/2024/10/21/24275778/microsofts-new-copilot-ai-agents-arrive-next-month)
-Oct 21, 2024 ... A public preview of Microsoft's new autonomous AI agents will be available in Copilot Studio next month. Microsoft is also adding 10 new autonomous agents in ...
-### 2. [Microsoft's AI Boss Wants Copilot to Bring 'Emotional Support' to ...](https://www.wired.com/story/mustafa-suleyman-interview-microsoft-ai-ceo-copilot/)
-Oct 1, 2024 ... As CEO of Microsoft AI, Suleyman oversees efforts to integrate the same AI that powers ChatGPT into software—including the Windows operating ...
+#### Step 1: What platforms sell 3D printed parts
+### 1. [Defense Distributed gets license to make and sell 3D printed guns ...](https://www.theverge.com/2013/3/17/4115652/defense-distributed-gets-federal-firearms-license)
+Mar 17, 2013 ... "The work begins!" While a number of enthusiasts have designed and created gun parts with 3D printers, Defense Distributed has been at the ...
+### 2. [We Made Luigi Mangione's 3D-Printed Gun—and Fired It | WIRED](https://www.wired.com/story/luigi-mangione-ghost-gun-built-tested/)
+May 19, 2025 ... Collage with a hand holding a printed ghost gun Luigi Mangione and printed parts of a. PHOTO-ILLUSTRATION: ANJALI NAIR; GETTY IMAGES; ANDY ...
+### 3. [Hugging Face releases a 3D-printed robotic arm starting at $100 ...](https://techcrunch.com/2025/04/28/hugging-face-releases-a-3d-printed-robotic-arm-starting-at-100/)
+Apr 28, 2025 ... Hugging Face, the startup best known for the AI developer platform of the same name, is selling a programmable, 3D-printable robotic arm.
+### 4. [The FBI Says 'Boogaloo' Extremists Bought 3D-Printed Machine Gun ...](https://www.wired.com/story/boogaloo-boys-3d-printed-machine-gun-parts/)
+Nov 4, 2020 ... A criminal complaint alleges that a West Virginia man disguised the plastic components as wall hangers and sold hundreds of them online.
 
-#### Step 2: How do I set up Copilot in SharePoint
-### 1. [Copilot Pages is Microsoft's new collaborative AI playground for ...](https://www.theverge.com/2024/9/16/24246010/microsoft-copilot-pages-multiplayer-ai-business)
-Sep 16, 2024 ... ... Copilot Studio. “Now anyone can quickly create a Copilot agent right in BizChat or SharePoint, unlocking the value of the vast knowledge ...
-### 2. [Windows on Arm and Copilot Plus could be big for PC gaming | The ...](https://www.theverge.com/2024/5/31/24168566/windows-arm-copilot-plus-gaming-pcs-handhelds)
-May 31, 2024 ... ... up crucial CPU and GPU resources for things like gaming. I ... create a custom Copilot at the click of a button inside a SharePoint folder.
-### 3. [Microsoft Copilot: Everything you need to know about Microsoft's AI ...](https://techcrunch.com/2025/02/07/microsoft-copilot-everything-you-need-to-know-about-microsofts-ai/)
-Feb 7, 2025 ... Copilot in PowerPoint will soon pull in company-approved images from a SharePoint library, while Outlook will get a “Prioritize my inbox” ...
-### 4. [Microsoft Ignite 2024: all the news from Microsoft's IT pro event | The ...](https://www.theverge.com/2024/11/19/24300001/microsoft-ignite-2024-news-ai-announcements-copilot-windows-azure-office)
-Nov 19, 2024 ... Microsoft is also adding AI agents to SharePoint, allowing ... Copilot Actions is designed to be something you set and forget, much ...
-### 5. [GitHub Copilot moves beyond OpenAI models to support Claude 3.5 ...](https://arstechnica.com/civis/threads/github-copilot-moves-beyond-openai-models-to-support-claude-3-5-gemini.1503802/)
-... sharepoint/AAD in a way that you could perhaps emulate by providing a 3rd ... my existing projct first try within 15 minutes of minor settings-fiddling.
-### 6. [Microsoft's new Copilot Actions use AI to automate repetitive tasks ...](https://www.theverge.com/2024/11/19/24299961/microsoft-copilot-actions-powerpoint-outlook-ai-improvements)
-Nov 19, 2024 ... ... create a better first draft of a presentation. Copilot will also be able to use images from SharePoint to integrate into PowerPoint ...
-### 7. [Microsoft relaunches Copilot for business with free AI chat and pay ...](https://www.theverge.com/2025/1/15/24344214/microsoft-365-copilot-chat-agents-pricing-availability)
-Jan 15, 2025 ... You'll be able to create and use agents using Copilot Studio, use ... SharePoint) will cost 30 messages. “A message is equivalent to 1 ...
-### 8. [Microsoft's new Copilot AI agents act like virtual employees to ...](https://www.theverge.com/2024/5/21/24158030/microsoft-copilot-ai-automation-agents)
-May 21, 2024 ... Businesses will be able to create a Copilot agent that could ... sets up your first week of meetings. Now, HR and the employees can ...
+#### Step 2: Which marketplaces list 3D printed items
+### 1. [Etsy adds AI-generated item guidelines in new seller policy ...](https://techcrunch.com/2024/07/09/etsy-new-seller-policy-2024-generative-ai/)
+Jul 9, 2024 ... ... 3D printer or Cricut machine. The new “Designed” label is likely a ... items that have taken over the once handmade marketplace. Etsy ...
+### 2. [Local marketplace OfferUp takes on eBay with launch of nationwide ...](https://techcrunch.com/2018/05/01/local-marketplace-offerup-takes-on-ebay-with-launch-of-nationwide-shipping/)
+May 1, 2018 ... The company is announcing an expansion of its service that will now allow sellers to ship their items nationwide to interested buyers.
 
-#### Step 3: Is Copilot available on SharePoint 2019
-### 1. [Microsoft's Office apps are getting more useful Copilot AI features ...](https://www.theverge.com/2024/9/16/24246014/microsoft-office-copilot-ai-features-excel-python-outlook-word-powerpoint)
-Sep 16, 2024 ... ... Copilot in Excel generally available to its Microsoft 365 Copilot subscribers. ... SharePoint libraries. Copilot in Microsoft Teams will ...
+#### Step 3: What are Etsy seller fees for 3D prints
+### 1. [Whatever happened to 3D printing? | TechCrunch](https://techcrunch.com/2016/07/10/whatever-happened-to-3d-printing/)
+Jul 10, 2016 ... Corporations and Etsy shop owners alike love 3D printing because it ... Shapeways prints its products on machines that cost hundreds of thousands ...
+### 2. [Etsy adds AI-generated item guidelines in new seller policy ...](https://techcrunch.com/2024/07/09/etsy-new-seller-policy-2024-generative-ai/)
+Jul 9, 2024 ... ... seller themselves or with tools like a 3D printer or Cricut machine. The new “Designed” label is likely a response to the increasing ...
+### 3. [Etsy launches Pattern, a website builder for its sellers | TechCrunch](https://techcrunch.com/2016/04/05/etsy-launches-pattern/)
+Apr 5, 2016 ... ... Etsy will cost $15 a month. Etsy is also announcing a redesigned landing page for each Etsy seller, called the Shop Home. The new page is ...
+### 4. [Etsy Must Grow to Survive. But Can It Stay True to Itself? | WIRED](https://www.wired.com/2016/06/etsys-fight-stay-true-even-though-must-grow/)
+Jun 6, 2016 ... Etsy needs to evolve without alienating its loyal sellers, meeting the demands of shareholders while remaining true to its ideals.
 
-#### Step 4: Can I integrate Copilot with my SharePoint site
-### 1. [Microsoft Build 2024: news and announcements from the developer ...](https://www.theverge.com/2024/5/21/24161221/microsoft-build-2024-news-ai-copilot-plus)
-May 23, 2024 ... ... add data from public websites, SharePoint, OneDrive, and more. Photo ... Microsoft's new Team Copilot feature will allow the assistant ...
-### 2. [Microsoft's new Copilot Actions use AI to automate repetitive tasks ...](https://www.theverge.com/2024/11/19/24299961/microsoft-copilot-actions-powerpoint-outlook-ai-improvements)
-Nov 19, 2024 ... Copilot will also be able to use images from SharePoint to integrate into PowerPoint presentations. Copilot in Excel will soon include a new ...
-### 3. [Microsoft Copilot: Everything you need to know about Microsoft's AI ...](https://techcrunch.com/2025/02/07/microsoft-copilot-everything-you-need-to-know-about-microsofts-ai/)
-Feb 7, 2025 ... Copilot in PowerPoint will soon pull in company-approved images from a SharePoint library, while Outlook will get a “Prioritize my inbox” ...
+#### Step 4: What is MyMiniFactory’s commission rate
+### 1. [Do you know some good 3D printing service for anime figures ...](https://myfigurecollection.net/thread/16537)
+I second this. Your best option may be to get a figure made that's all ... commission your own, in that case you should be having a variety of options ...
 
-#### Step 5: Who developed Copilot AI Agent
-### 1. [Windows 11 is getting a new Start menu this month | The Verge](https://www.theverge.com/news/661587/microsoft-windows-11-start-menu-copilot-ai-agent-settings-menu)
-May 6, 2025 ... Microsoft's new Windows 11 update for Copilot Plus PCs will feature a new, larger Start menu, an AI agent built into settings, and other AI ...
+#### Step 5: What are eBay’s fees for 3D prints
+### 1. [3D Printing Company Scrapes Thingiverse And Begins Selling "Free ...](https://techcrunch.com/2016/02/23/3d-printing-company-scrapes-thingiverse-and-begins-selling-free-designs/)
+Feb 23, 2016 ... ... 3D models. The company then posted these models for sale on eBay in direct violation of many of the terms the creators offered online. The ...
+### 2. [eBay's New iPad App Design Hints At Its E-Commerce Future ...](https://techcrunch.com/2014/12/09/ebays-new-ipad-app-design-hints-at-its-e-commerce-future/)
+Dec 9, 2014 ... eBay will encourage on-boarding in this department to help sellers add cleaner, more buyer friendly pictures of items. It also incorporates a ...
 
-#### Step 6: What are the system requirements for Copilot
-### 1. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/civis/threads/microsoft%E2%80%99s-%E2%80%9Ccopilot-%E2%80%9D-ai-pc-requirements-are-embarrassing-for-intel-and-amd.1500804/page-3)
-May 20, 2024 ... ... Windows-only software (none of which is processor-intensive). Copilot is the straw that broke the camel's back. I never, ever want to think ...
-### 2. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/gadgets/2024/05/microsofts-copilot-ai-pc-requirements-are-embarrassing-for-intel-and-amd/)
-May 20, 2024 ... At a minimum, systems will need 16GB of RAM and 256GB of storage, to accommodate both the memory requirements and the on-disk storage ...
-### 3. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/civis/threads/microsoft%E2%80%99s-%E2%80%9Ccopilot-%E2%80%9D-ai-pc-requirements-are-embarrassing-for-intel-and-amd.1500804/)
-May 20, 2024 ... Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel and AMD ... Don't buy any devices branded as "Copilot+"? Personally, I know I ...
-### 4. [Microsoft's Copilot AI features are coming to new Intel and AMD ...](https://www.theverge.com/2024/9/3/24234687/microsoft-co-pilot-plus-pcs-intel-features-release-date)
-Sep 3, 2024 ... AMD has already launched laptops that are capable of meeting Microsoft's Copilot Plus PC hardware requirements for Windows AI features, but ...
-### 5. [Microsoft's “Copilot+” AI PC requirements are embarrassing for Intel ...](https://arstechnica.com/civis/threads/microsoft%E2%80%99s-%E2%80%9Ccopilot-%E2%80%9D-ai-pc-requirements-are-embarrassing-for-intel-and-amd.1500804/page-2)
-May 20, 2024 ... 3D face recognition (for biometric security) more or less requires an NPU at this point. So if Windows was going to implement/require something like FaceID, it ...
-### 6. [Microsoft's new era of AI PCs will need a Copilot key, says Intel | The ...](https://www.theverge.com/2024/3/26/24112500/microsoft-ai-pc-intel-windows-copilot-key-requirements)
-Mar 26, 2024 ... Microsoft wants its OEM partners to provide a combination of hardware and software for its idea of an AI PC. That includes a system that comes ...
-### 7. [Microsoft announces Copilot Plus PCs with built-in AI hardware ...](https://www.theverge.com/2024/5/20/24160486/microsoft-copilot-plus-ai-arm-chips-pc-surface-event)
-May 20, 2024 ... Copilot Plus PCs will have certain spec requirements to make sure they can deliver the performance Microsoft is promising. They'll need to ...
+#### Step 6: What shipping costs for 3D printed parts
+### 1. [Relativity Space has gone from printing money and rockets to doing ...](https://arstechnica.com/space/2024/09/relativity-space-has-gone-from-printing-money-and-rockets-to-doing-what-exactly/)
+Sep 4, 2024 ... The company planned to lean heavily into 3D printing for engines and other parts of the Terran R rocket. ... shipping costs across many launches.
+### 2. [Whatever happened to 3D printing? | TechCrunch](https://techcrunch.com/2016/07/10/whatever-happened-to-3d-printing/)
+Jul 10, 2016 ... Whereas 3D printers lay down melted plastic in a process called additive manufacturing, CNC machines use a drill bit to carve away at a material ...
+### 3. [Pantheon Design alleviates supply chain uncertainty with factory ...](https://techcrunch.com/2022/10/22/pantheondesign-manufacturers-china-supply-chain-uncertainties-3d-printing/)
+Oct 22, 2022 ... ... 3D printers let hardware makers skip manufacturing woes by printing parts on demand ... parts manufactured in Canada — since starting shipping ...
 
-#### Step 7: How do I configure Copilot settings
-### 1. [How to use the new Copilot AI in Windows 11 | The Verge](https://www.theverge.com/23899626/copilot-windows-11-how-to)
-Oct 3, 2023 ... When you start a fresh Copilot conversation, you can pick from the same options already available in Bing Chat. There's only one setting in ...
-### 2. [Windows 11 is getting a new Start menu this month | The Verge](https://www.theverge.com/news/661587/microsoft-windows-11-start-menu-copilot-ai-agent-settings-menu)
-May 6, 2025 ... Copilot Plus PC users will get an AI agent built right into Windows settings. ... adjust Windows settings for them, or seek help ...
-### 3. [Microsoft Copilot can now read your screen, think deeply, and speak ...](https://techcrunch.com/2024/10/01/microsoft-copilot-can-now-read-your-screen-think-deeper-and-speak-aloud-to-you/)
-Oct 1, 2024 ... Copilot will soon become more tailored to your likes and preferences, Microsoft said, thanks to a new personalization setting. When the setting ...
+#### Step 8: What is Thingiverse’s sales policy
+### 1. [That time a bot invaded Thingiverse and created weird new 3D ...](https://arstechnica.com/gadgets/2016/05/that-time-a-bot-invaded-thingiverse-and-created-weird-new-3d-objects/)
+May 2, 2016 ... ... Thingiverse, creating inadvertent ... Ars Technica may earn compensation on sales from links on this site. Read our affiliate link policy.
+### 2. [Watch Your Back, Hasbro, 3D-Printed Games Have Arrived | WIRED](https://www.wired.com/2012/08/watch-your-back-hasbro-3d-printed-games-have-arrived/)
+Aug 30, 2012 ... ... Thingiverse translate our rules into French, which is beyond awesome. ... Mattress sales aren't just a Presidents' Day thing anymore. Here ...
+### 3. [3D Printing Company Scrapes Thingiverse And Begins Selling "Free ...](https://techcrunch.com/2016/02/23/3d-printing-company-scrapes-thingiverse-and-begins-selling-free-designs/)
+Feb 23, 2016 ... The problem has led to a rethinking of many of the rules around CC and 3D printing. While Thingiverse is run by a private company, many of the ...
+### 4. [Pyramid and human “beehives” designed for Mars dwellers - Ars ...](https://arstechnica.com/science/2014/08/pyramid-and-human-beehives-designed-for-mars-dwellers/)
+Aug 20, 2014 ... The Thingiverse community appears ... Ars Technica may earn compensation on sales from links on this site. Read our affiliate link policy.
+### 5. [3-D Printing Branches Out With New Wood-Based Filament | WIRED](https://www.wired.com/2012/11/3d-printer-wood-filament/)
+Nov 21, 2012 ... A Thingiverse member going by the nom de printer "Kaipa" recently uploaded pictures of 3D-printed parts that weren't made of extruded plastic, ...
+### 6. [Secure your 3D printing files with this scrambling software | WIRED](https://www.wired.com/story/obliterate-the-mouse/)
+Mar 30, 2014 ... materialise stopped printing my objects and Makerbot issued a censorship of objects on Thingiverse." Plummer-Fernandez, 31, insists his software ...
+### 7. [Plastic piracy: DRM won't cripple 3D printing | The Verge](https://www.theverge.com/2013/9/17/4741264/plastic-piracy-drm-wont-cripple-3d-printing)
+Sep 17, 2013 ... Adi Robertson is a senior tech and policy editor focused on VR, online platforms, and free expression. ... selling his own printed version of the ...
+### 8. [Paramount: No 3D printing of our alien Super 8 cubes! - Ars Technica](https://arstechnica.com/tech-policy/2011/06/paramount-no-3d-printing-of-our-alien-super-8-cubes/)
+Jun 29, 2011 ... Paramount has learned that you are selling, distributing, and/or reproducing unauthorized Super 8 replicas on the websites located at http://www.shapeways.com ...
 
-#### Step 8: Are there tutorials for setting up Copilot
-### 1. [How to use the new Copilot AI in Windows 11 | The Verge](https://www.theverge.com/23899626/copilot-windows-11-how-to)
-Oct 3, 2023 ... To launch Copilot, which shows up in a panel on the right of your screen, click the Copilot button on the taskbar, or press Win + C on the keyboard.
-### 2. [GitHub's Copilot goes beyond code completion, adds a chat mode ...](https://techcrunch.com/2023/03/22/githubs-copilot-goes-beyond-code-completion-adds-a-chat-mode-and-more/)
-Mar 22, 2023 ... GitHub is launching a code-centric chat mode for Copilot that helps developers write and debug their code, as well as Copilot for pull ...
-### 3. [Adventures coding with AI | Ars OpenForum](https://arstechnica.com/civis/threads/adventures-coding-with-ai.1501554/)
-Jun 30, 2024 ... I've recently been using ChatGPT's "Code Copilot" to produce Swift scripts, and it's worked rather well. I started off by just asking for a simple function.
-### 4. [Microsoft's next big AI push is here after a year of Bing | The Verge](https://www.theverge.com/2024/2/7/24064440/microsofts-next-big-ai-push-is-here-after-a-year-of-bing)
-Feb 7, 2024 ... ... Copilot shows up in various products and services. It has been a confusing year for the Copilot brand, which started off inside GitHub and ...
-### 5. [How to Stop Your Data From Being Used to Train AI | WIRED](https://www.wired.com/story/how-to-stop-your-data-from-being-used-to-train-ai/)
-Oct 12, 2024 ... “A portion of the total number of user prompts in Copilot and Copilot ... Open up Gemini in your browser, click on Activity, and select the ...
+#### Step 9: What are legal considerations for 3D print sales
+### 1. [3D Printing Company Scrapes Thingiverse And Begins Selling "Free ...](https://techcrunch.com/2016/02/23/3d-printing-company-scrapes-thingiverse-and-begins-selling-free-designs/)
+Feb 23, 2016 ... “Sharing work is one of the most exciting aspects of the 3D printing world and contributes hugely to further development and innovation in ...
+### 2. [We Made Luigi Mangione's 3D-Printed Gun—and Fired It | WIRED](https://www.wired.com/story/luigi-mangione-ghost-gun-built-tested/)
+May 19, 2025 ... And it was entirely legal. Collage with a hand holding a printed ghost gun Luigi Mangione and printed parts of a.
 
-#### Step 9: What are the benefits of using Copilot in SharePoint
-### 1. [Copilot for OneDrive will fetch your files and summarize them | The ...](https://www.theverge.com/2024/3/1/24088026/copilot-for-onedrive-file-find-summary-prompts-natural-language)
-Mar 1, 2024 ... You can also ask Copilot questions about your files using natural language prompts. ... SharePoint. It'll be available for work and school ...
-### 2. [Microsoft's Office apps are getting more useful Copilot AI features ...](https://www.theverge.com/2024/9/16/24246014/microsoft-office-copilot-ai-features-excel-python-outlook-word-powerpoint)
-Sep 16, 2024 ... The AI assistant will even soon use a company's branded template to create drafts or company-approved images from SharePoint libraries. Copilot ...
-### 3. [Microsoft Copilot: Everything you need to know about Microsoft's AI ...](https://techcrunch.com/2025/02/07/microsoft-copilot-everything-you-need-to-know-about-microsofts-ai/)
-Feb 7, 2025 ... Copilot is Microsoft's take on productivity-boosting generative AI, and it continues to grow and expand with Microsoft's AI ambitions.
+#### Step 10: How do designers protect 3D print designs
+### 1. [Classic Design Firm Goes Ultra-Modern With 3D-Printable ...](https://www.wired.com/2012/10/teague-printable-headphones/)
+Oct 3, 2012 ... The headphones are made up of nine 3D-printed parts (downloadable at Thingiverse) and a handful of electronic components.
+### 2. [Plastic piracy: DRM won't cripple 3D printing | The Verge](https://www.theverge.com/2013/9/17/4741264/plastic-piracy-drm-wont-cripple-3d-printing)
+Sep 17, 2013 ... ... designs or trying to get printers to recognize Sephiroth. Copy protection for 3D printing, though, is very much a reality — it's just one ...
+### 3. [Napster For Pirated 3D Printing Templates? | TechCrunch](https://techcrunch.com/2013/05/04/3d-printing-piracy-physibles/)
+May 4, 2013 ... As of now, physible designs could be interpreted as falling into a gray area between art and media protected by the DMCA, and what can be ...
+
+#### Step 11: What is Cults3D’s revenue model
+### 1. [Rubber Band Gun remix² 5 shots・Free STL File for ・Cults](https://cults3d.com/en/3d-model/game/rubber-band-gun-remix-5-shots)
+Sep 23, 2022 ... Cults3D is an independent, self-financed site that is not accountable to any investor or brand. Almost all of the site's revenues are paid back ...
+### 2. [Where to get good terrain files? : r/PrintedMinis](https://www.reddit.com/r/PrintedMinis/comments/156nr1j/where_to_get_good_terrain_files/)
+Jul 22, 2023 ... I second Culst3D & MMF as others have said, definitely the best ... What are your favorite kitbashing/model resource sites? 6 upvotes ...
+### 3. [What's some cool things I could print and possibly sell? | Facebook](https://www.facebook.com/groups/3dprintingforbeginnersandpros/posts/965992348664291/)
+Mar 3, 2025 ... People buy 3D printers just as quick form of income oftean stealing models and offering them for cheap. That destroys the market and if you sell ...
+
+#### Step 12: What is Pinshape's seller options
+### 1. [3D Design Guide to a Successful Shop with Pinshape's Lauren ...](https://3dstartpoint.com/3d-design-guide-to-a-successful-shop-with-lauren-watkins-of-pinshape/)
+... 3D Model.” Here you are at Pinshape, which is a great place to sell your models. You gave people their options, and I really appreciate that openness. There ...
+### 2. [Starting a 3d printing business - 3D Printing Forum - Pinshape](https://forums.pinshape.com/t/starting-a-3d-printing-business/612)
+Jan 1, 2016 ... Selling Prints from your printer. A good method if you want to join craft shows or etsy.com. Calculating energy costs into pricing like ...
+### 3. [3D Printing Design Guide - From Idea To Profit | Pinshape](https://pinshape.com/3d-printing-design-guide)
+Learn how to make money selling your 3D Models with Pinshape's 3D Printing Design Guide. Helping designers with ideation to creation & sales techniques!
+### 4. [What is the Shapeways seller experience like? : r/3Dprinting](https://www.reddit.com/r/3Dprinting/comments/50bfl0/what_is_the_shapeways_seller_experience_like/)
+Aug 30, 2016 ... Basically I'm after a place to sell my 3d printed items. Or would you say Shapeways is a better option?
+### 5. [What product can I make and sell using a 3D printer? - Quora](https://www.quora.com/What-product-can-I-make-and-sell-using-a-3D-printer)
+Apr 28, 2015 ... You won't make enough money selling 3D printed parts and pieces. ... At the time, the best options looked like resin STL printing (which ...
+### 6. [Printing material for Objet30 Pro - 3D Printing - Talk Manufacturing ...](https://www.hubs.com/talk/t/printing-material-for-objet30-pro/2050/20/)
+What's the best way after removing the support, to manipulate the surface? ... The 3D plastic, on the other hand, is exactly what I am selling. By jacking ...
+
+#### Step 13: Which social media promotes 3D print sales
+### 1. [Pam is an expensive, sophisticated multi-material 3D printer from ...](https://techcrunch.com/2016/06/30/pam-is-an-expensive-sophisticated-multi-material-3d-printer-from-pollen/)
+Jun 30, 2016 ... He has a deep background in startups, AI, fintech, privacy, security, blockchain, mobile, social and media. With thirteen years of ...
+### 2. [Hugging Face Acquires Pollen Robotics to Unleash Open Source AI ...](https://www.wired.com/story/hugging-face-acquires-open-source-robot-startup/)
+Apr 14, 2025 ... Robot developers “can [3D] print ... Some of the companies racing to build humanoid robots have posted demo videos on social media that seem to ...
 

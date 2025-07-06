@@ -81,6 +81,34 @@ class OllamaClient:
         """
         return self.generate(prompt, model=model, **kwargs)
 
+    def list_models(self) -> list:
+        """
+        Lists available Ollama models.
+        """
+        try:
+            result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, check=True)
+            output = result.stdout.strip()
+            
+            if not output:
+                return []
+            
+            lines = output.split('\n')[1:]  # Skip "NAME ID MODIFIED SIZE" header
+            models = []
+            for line in lines:
+                if line.strip():
+                    model_name = line.split()[0]
+                    if model_name and not model_name.startswith('NAME'):
+                        # Filter out embedding models that don't support text generation
+                        if not any(embed_keyword in model_name.lower() for embed_keyword in ['embed', 'embedding', 'nomic-embed']):
+                            models.append(model_name)
+            return models
+        except subprocess.CalledProcessError as e:
+            print(f"[OLLAMA ERROR] Could not list Ollama models: {e}")
+            return []
+        except Exception as e:
+            print(f"[OLLAMA ERROR] Unexpected error listing models: {e}")
+            return []
+
 # Example usage:
 client = OllamaClient()
 print(client.generate("What is the capital of France?", model="qwen3:8b"))

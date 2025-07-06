@@ -348,6 +348,9 @@ Make each gap a specific search query that could find the missing information.""
         self.system_prompt = system_prompt
         self.ctx_window = ctx_window
         self.sources = []
+        self.total_results_found = 0
+        self.successful_queries = 0
+        self.total_queries = 0
 
         project_dir = None
         if project_name and documents_base_dir:
@@ -634,7 +637,11 @@ Make each gap a specific search query that could find the missing information.""
                 
                 if not filtered_results:
                     emit(f"No relevant web results found for step '{step}'. Skipping.", substep=f"Step {idx}", percent=int(100 * (current_step+idx-1)/total_steps), log="No relevant results after all filtering.")
+                    self.total_queries += 1 # Count as a query even if no results
                     continue
+                
+                self.total_results_found += len(filtered_results)
+                self.total_queries += 1 # Count as a successful query if results are found
                 
                 step_md = []
                 for ridx, r in enumerate(filtered_results, 1):
@@ -770,7 +777,7 @@ The research framework is functional, but external data sources were temporarily
             current_step += 1
             emit("Research complete!", substep="Complete", percent=100, log=f"Report saved to {report_path}")
             
-            return report_path
+            return report_path, self.total_results_found, self.successful_queries, self.total_queries
             
         except Exception as write_error:
             # If report writing fails, create a minimal report manually
@@ -808,7 +815,7 @@ This report was generated with limited data due to connectivity issues.
                     f.write(minimal_content)
                 
                 emit("Minimal report created!", substep="Complete", percent=100, log=f"Fallback report saved to {fallback_path}")
-                return fallback_path
+                return fallback_path, 0, 0, 0
                 
             except Exception as fallback_error:
                 emit("All report creation failed", substep="Error", percent=100, log=f"Could not create any report: {fallback_error}")
