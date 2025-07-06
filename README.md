@@ -141,6 +141,7 @@
 - **Relevance Scoring**: scikit-learn TF-IDF + custom algorithms
 - **Content Extraction**: newspaper3k + Playwright + BeautifulSoup
 - **GUI**: PyQt5 for a modern, cross-platform user interface.
+- **Web Solution**: FastAPI for the backend API, HTML/CSS/JavaScript for the frontend.
 - **Fuzzy Matching**: fuzzywuzzy for deduplication
 
 ### **🔍 Search Infrastructure**
