@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportFilter = document.getElementById('report-filter');
     const reportList = document.getElementById('report-list');
     const openReportBtn = document.getElementById('open-report-btn');
+    const downloadReportBtn = document.getElementById('download-report-btn');
     const refreshReportsBtn = document.getElementById('refresh-reports-btn');
     const reportPreview = document.getElementById('report-preview');
     const collapsibleHeader = document.querySelector('.collapsible-header');
@@ -277,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Array.from(reportList.children).forEach(item => item.classList.remove('selected'));
                     // Add 'selected' class to the clicked item
                     li.classList.add('selected');
-                    loadReportPreview(report.name);
+                    loadReportPreview(report.path);
                 });
                 reportList.appendChild(li);
             });
@@ -286,18 +287,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const loadReportPreview = async (reportName) => {
+    const loadReportPreview = async (reportPath) => {
         try {
-            const response = await fetch(`/api/reports/${reportName}`);
+            const encodedPath = encodeURIComponent(reportPath);
+            const response = await fetch(`/api/reports/${encodedPath}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const htmlContent = await response.text();
-            reportPreview.value = htmlContent; // Display raw HTML/Markdown for now
-            // For proper rendering, you'd typically use a markdown renderer library on the frontend
+            reportPreview.srcdoc = htmlContent;
         } catch (error) {
             console.error('Error loading report preview:', error);
-            reportPreview.value = `[Error loading report: ${error.message}]`;
+            reportPreview.srcdoc = `[Error loading report: ${error.message}]`;
         }
     };
 
@@ -314,9 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
     openReportBtn.addEventListener('click', async () => {
         const selectedItem = reportList.querySelector('li.selected');
         if (selectedItem) {
-            const reportName = selectedItem.textContent;
+            const reportPath = selectedItem.dataset.path;
             try {
-                const response = await fetch(`/api/reports/${reportName}`);
+                const encodedPath = encodeURIComponent(reportPath);
+                const response = await fetch(`/api/reports/${encodedPath}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -330,6 +332,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             alert('Please select a report to open.');
+        }
+    });
+
+    downloadReportBtn.addEventListener('click', () => {
+        const selectedItem = reportList.querySelector('li.selected');
+        if (selectedItem) {
+            const reportPath = selectedItem.dataset.path;
+            const encodedPath = encodeURIComponent(reportPath);
+            window.location.href = `/api/download/${encodedPath}`;
+        } else {
+            alert('Please select a report to download.');
         }
     });
 

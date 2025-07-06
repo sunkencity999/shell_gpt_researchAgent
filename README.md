@@ -198,6 +198,18 @@ python sgptAgent/gui_app.py
 # In the GUI, you can type a new project name or select an existing one from the dropdown.
 ```
 
+**Web Application:**
+```bash
+# Launch the web service (Linux/macOS)
+./launch_web.sh
+# or (Windows)
+launch_web.bat
+
+# Access the web UI in your browser at http://localhost:8000
+# In the web UI, you can select an existing project from the dropdown or choose "Add New Project..." to create a new one.
+# Reports can be previewed directly in the browser and downloaded.
+```
+
 **Direct Python:**
 ```python
 from sgptAgent.agent import ResearchAgent

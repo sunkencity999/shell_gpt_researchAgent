@@ -7,6 +7,7 @@ import uuid
 import json
 import datetime
 import asyncio
+from urllib.parse import unquote
 
 from sgptAgent.agent import ResearchAgent
 from sgptAgent.config import cfg
@@ -147,29 +148,36 @@ async def run_research_task(task_id: str, data: dict):
 @app.get("/api/reports")
 async def get_reports():
     reports = []
-    for f in DOCUMENTS_DIR.iterdir():
-        if f.is_file() and f.suffix in [".md", ".txt"]:
-            reports.append({"name": f.name, "path": str(f)})
+    for root, _, files in os.walk(DOCUMENTS_DIR):
+        for f in files:
+            if f.endswith(('.md', '.txt')):
+                full_path = Path(root) / f
+                relative_path = full_path.relative_to(DOCUMENTS_DIR)
+                reports.append({"name": str(relative_path), "path": str(relative_path)})
     return {"reports": sorted(reports, key=lambda x: x["name"], reverse=True)}
 
-@app.get("/api/reports/{report_name}", response_class=HTMLResponse)
-async def get_report_content(report_name: str):
-    report_path = DOCUMENTS_DIR / report_name
-    if not report_path.is_file():
-        raise HTTPException(status_code=404, detail="Report not found.")
-    
-    with open(report_path, "r", encoding="utf-8") as f:
+
+@app.get("/api/reports/{report_path:path}", response_class=HTMLResponse)
+async def get_report_content(report_path: str):
+    # Decode the URL-encoded path
+    decoded_path = unquote(report_path)
+    # Securely join the path and check it's within the documents dir
+    full_path = (DOCUMENTS_DIR / decoded_path).resolve()
+    if not full_path.is_file() or not full_path.is_relative_to(DOCUMENTS_DIR.resolve()):
+        raise HTTPException(status_code=404, detail="Report not found or access denied.")
+
+    with open(full_path, "r", encoding="utf-8") as f:
         content = f.read()
-    
+
     # Basic markdown to HTML conversion for display
     import markdown2
     html_content = markdown2.markdown(content, extras=["fenced-code-blocks", "tables"])
-    
+
     return f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>{report_name}</title>
+        <title>{decoded_path}</title>
         <link rel="stylesheet" href="/static/style.css">
         <style>
             body {{ font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 20px auto; padding: 0 20px; }}
@@ -187,6 +195,15 @@ async def get_report_content(report_name: str):
     </body>
     </html>
     """
+
+
+@app.get("/api/download/{report_path:path}")
+async def download_report(report_path: str):
+    decoded_path = unquote(report_path)
+    full_path = (DOCUMENTS_DIR / decoded_path).resolve()
+    if not full_path.is_file() or not full_path.is_relative_to(DOCUMENTS_DIR.resolve()):
+        raise HTTPException(status_code=404, detail="Report not found or access denied.")
+    return FileResponse(full_path, media_type='application/octet-stream', filename=full_path.name)
 
 if __name__ == "__main__":
     import uvicorn
