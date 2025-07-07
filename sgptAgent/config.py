@@ -22,6 +22,7 @@ DEFAULT_CONFIG = {
     "CHAT_CACHE_LENGTH": int(os.getenv("CHAT_CACHE_LENGTH", "100")),
     "CACHE_LENGTH": int(os.getenv("CHAT_CACHE_LENGTH", "100")),
     "REQUEST_TIMEOUT": int(os.getenv("REQUEST_TIMEOUT", "60")),
+    "EMBEDDING_MODEL": os.getenv("EMBEDDING_MODEL", "nomic-embed-text"),
     "DEFAULT_MODEL": os.getenv("DEFAULT_MODEL", "qwen3:8b"),
     "LLM_PROVIDER": os.getenv("LLM_PROVIDER", "ollama"),  # 'ollama', 'openai', or 'litellm'
     "DEFAULT_COLOR": os.getenv("DEFAULT_COLOR", "magenta"),

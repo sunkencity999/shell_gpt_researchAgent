@@ -3,6 +3,9 @@ import os
 import importlib.util
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 from rich.console import Console
+from pathlib import Path
+import glob
+import PyPDF2
 
 class _SuppressStdoutStderr:
     def __enter__(self):
@@ -28,6 +31,7 @@ load_dotenv()
 class ResearchAgent:
     def __init__(self, model=None, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048):
         self.model = model or cfg.get("DEFAULT_MODEL")
+        self.embedding_model = cfg.get("EMBEDDING_MODEL")
         # Remove 'ollama/' prefix if present
         if self.model.startswith('ollama/'):
             self.model = self.model.split('/', 1)[1]
@@ -37,6 +41,84 @@ class ResearchAgent:
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt
         self.ctx_window = ctx_window
+        self.local_document_index = [] # Stores chunks of local documents
+
+    def _chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> list:
+        """Splits text into overlapping chunks."""
+        chunks = []
+        if not text:
+            return chunks
+        words = text.split()
+        if len(words) <= chunk_size:
+            return [" ".join(words)]
+        
+        for i in range(0, len(words), chunk_size - overlap):
+            chunk = " ".join(words[i:i + chunk_size])
+            chunks.append(chunk)
+        return chunks
+
+    def _get_embedding(self, text: str) -> list:
+        """Helper to get embeddings for a text chunk using Ollama."""
+        try:
+            return self.llm.get_embedding(self.embedding_model, text)
+        except Exception as e:
+            # Check if the model is available, if not, prompt the user to pull it.
+            if "not found" in str(e):
+                print(f"Embedding model '{self.embedding_model}' not found.")
+                print(f"Please pull the model using: ollama pull {self.embedding_model}")
+                # Ask user if they want to pull the model now.
+                if input("Would you like to pull the model now? (y/n): ").lower() == "y":
+                    import subprocess
+                    subprocess.run(["ollama", "pull", self.embedding_model])
+                    return self.llm.get_embedding(self.embedding_model, text)
+            return []
+
+    def index_local_documents(self, local_docs_path: str, progress_callback=None):
+        """Indexes local documents for RAG, now with embeddings."""
+        def emit(desc, bar='', substep=None, percent=None, log=None):
+            if progress_callback:
+                progress_callback(desc, bar, substep=substep, percent=percent, log=log)
+
+        if not local_docs_path or not os.path.exists(local_docs_path):
+            emit("Local documents path not found.", log=f"Path not found: {local_docs_path}")
+            return
+
+        emit("Indexing local documents...", substep="Indexing", log=f"Indexing documents from {local_docs_path}")
+        
+        supported_extensions = ['.txt', '.md', '.pdf'] # Add more as needed
+        
+        for ext in supported_extensions:
+            for file_path in glob.glob(os.path.join(local_docs_path, '**', f'*{ext}'), recursive=True):
+                try:
+                    content = ""
+                    if ext == '.txt' or ext == '.md':
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                    elif ext == '.pdf':
+                        try:
+                            with open(file_path, 'rb') as f:
+                                reader = PyPDF2.PdfReader(f)
+                                for page in reader.pages:
+                                    content += page.extract_text() or ""
+                        except Exception as e:
+                            emit(f"Error reading PDF {file_path}: {e}", log=f"PDF read error: {e}")
+                            continue
+
+                    if content:
+                        chunks = self._chunk_text(content)
+                        for i, chunk in enumerate(chunks):
+                            embedding = self._get_embedding(chunk)
+                            self.local_document_index.append({
+                                "source": file_path,
+                                "chunk_id": i,
+                                "content": chunk,
+                                "embedding": embedding
+                            })
+                        emit(f"Indexed {len(chunks)} chunks from {file_path}", log=f"Indexed {file_path}")
+                except Exception as e:
+                    emit(f"Error indexing {file_path}: {e}", log=f"Error indexing {file_path}: {e}")
+        
+        emit(f"Finished indexing. Total chunks: {len(self.local_document_index)}", bar='', substep="Indexing", log="Local document indexing complete.")
 
     def plan(self, goal: str, audience: str = "", tone: str = "", improvement: str = "") -> list:
         """Use the LLM to break down the research goal into steps, with context."""
@@ -93,44 +175,73 @@ class ResearchAgent:
         except Exception as e:
             return f"Error processing {url}: {str(e)}. Snippet: {snippet}"
 
-    def validate_content_relevance(self, summaries: list, goal: str, min_relevance_threshold: float = 0.3) -> tuple:
-        """Validate that summaries are relevant to the research goal before synthesis."""
+    def _is_semantically_similar(self, text: str, goal: str, threshold: float = 0.5) -> bool:
+        """Helper to check for semantic similarity."""
+        sim_path = os.path.join(os.path.dirname(__file__), 'semantic_similarity.py')
+        spec = importlib.util.spec_from_file_location('semantic_similarity', sim_path)
+        if spec and spec.loader:
+            try:
+                semantic_mod = importlib.util.module_from_spec(spec)
+                sys.modules['semantic_similarity'] = semantic_mod
+                spec.loader.exec_module(semantic_mod)
+                return semantic_mod.is_semantically_similar(text, goal, threshold)
+            except Exception:
+                return False # If similarity check fails, assume not similar
+        return False # Default to false if module can't be loaded
+
+    def validate_content_relevance(self, summaries: list, goal: str, min_relevance_threshold: float = 0.1) -> tuple:
+        """Validate that summaries are relevant to the research goal before synthesis, using a hybrid approach."""
         if not summaries:
             return [], "No summaries provided for validation."
-        
+
         relevant_summaries = []
         irrelevant_count = 0
-        
+
         # Extract key terms from the research goal
         goal_lower = goal.lower()
-        goal_keywords = set(word.strip('.,!?()[]{}":;') for word in goal_lower.split() 
-                           if len(word) > 2 and word not in ['the', 'and', 'or', 'but', 'for', 'with', 'this', 'that'])
-        
+        # Be more inclusive with keywords
+        goal_keywords = set(word.strip('.,!?()[]{}":;') for word in goal_lower.split()
+                           if len(word) > 2 and word not in ['the', 'and', 'or', 'but', 'for', 'with', 'this', 'that', 'what', 'how', 'who', 'is', 'a', 'in', 'to', 'of'])
+
         for summary in summaries:
             summary_lower = summary.lower()
-            
-            # Check for error indicators
+
+            # 1. Check for explicit error indicators or irrelevant topics
             error_indicators = [
-                "error message", "page not found", "copyright", "terms and conditions", 
+                "error message", "page not found", "copyright", "terms and conditions",
                 "login to access", "cannot be provided", "generic webpage", "corrupted pdf",
                 "unable to fetch", "access denied", "404", "403", "500", "client error",
-                "i apologize", "i'm unable", "i cannot", "not related to", "appears to be"
+                "i apologize", "i'm unable", "i cannot", "not related to", "appears to be",
+                "stardew valley", "daily harvest", "u.s. bureau of labor statistics"
             ]
-            
             if any(indicator in summary_lower for indicator in error_indicators):
                 irrelevant_count += 1
                 continue
-            
-            # Calculate keyword overlap
+
+            # 2. Calculate keyword overlap score
             summary_words = set(word.strip('.,!?()[]{}":;') for word in summary_lower.split())
             overlap = len(goal_keywords.intersection(summary_words))
             relevance_score = overlap / len(goal_keywords) if goal_keywords else 0
-            
-            if relevance_score >= min_relevance_threshold:
+
+            # 3. Check for semantic similarity
+            is_similar = self._is_semantically_similar(summary_lower, goal_lower, threshold=0.45)
+
+            # 4. Determine relevance
+            if relevance_score >= min_relevance_threshold or is_similar:
                 relevant_summaries.append(summary)
             else:
                 irrelevant_count += 1
-        
+
+        # If no summaries are relevant, be less strict and try again
+        if not relevant_summaries and summaries:
+            for summary in summaries:
+                 # Check again with a lower semantic threshold
+                 if self._is_semantically_similar(summary.lower(), goal.lower(), threshold=0.35):
+                     relevant_summaries.append(summary)
+            if relevant_summaries:
+                irrelevant_count = len(summaries) - len(relevant_summaries)
+
+
         validation_msg = f"Content validation: {len(relevant_summaries)} relevant, {irrelevant_count} irrelevant summaries"
         return relevant_summaries, validation_msg
 
@@ -189,6 +300,38 @@ Provide a well-structured, evidence-based response that directly addresses the r
         
         synthesis = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         return synthesis
+
+    def retrieve_local_documents(self, query: str, top_k: int = 3) -> list:
+        """Retrieves top_k most relevant local document chunks based on semantic similarity."""
+        if not self.local_document_index:
+            return []
+
+        query_embedding = self._get_embedding(query)
+
+        # Cosine similarity calculation
+        def cosine_similarity(v1, v2):
+            import numpy as np
+            dot_product = np.dot(v1, v2)
+            norm_v1 = np.linalg.norm(v1)
+            norm_v2 = np.linalg.norm(v2)
+            if norm_v1 == 0 or norm_v2 == 0:
+                return 0.0
+            return dot_product / (norm_v1 * norm_v2)
+
+        scored_chunks = []
+        for chunk_info in self.local_document_index:
+            if "embedding" in chunk_info:
+                score = cosine_similarity(query_embedding, chunk_info["embedding"])
+                scored_chunks.append((score, chunk_info))
+
+        # Sort by score in descending order and get top_k
+        scored_chunks.sort(key=lambda x: x[0], reverse=True)
+
+        relevant_chunks = []
+        for score, chunk_info in scored_chunks[:top_k]:
+            relevant_chunks.append(chunk_info["content"])
+
+        return relevant_chunks
 
     def critique_and_find_gaps(self, synthesis: str, goal: str) -> tuple:
         """Critique the synthesis and identify specific data gaps for targeted searches."""
@@ -339,7 +482,7 @@ Make each gap a specific search query that could find the missing information.""
         return report_path
 
     def run(self, goal: str, audience: str = "", tone: str = "", improvement: str = "",
-            num_results=10, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048, citation_style="APA", filename=None, project_name=None, documents_base_dir: str = None, progress_callback=None):
+            num_results=10, temperature=0.7, max_tokens=2048, system_prompt="", ctx_window=2048, citation_style="APA", filename=None, project_name=None, documents_base_dir: str = None, local_docs_path: str = None, progress_callback=None):
         """Main research orchestration with enhanced query construction."""
         
         # Update instance parameters
@@ -356,6 +499,10 @@ Make each gap a specific search query that could find the missing information.""
         if project_name and documents_base_dir:
             project_dir = os.path.join(documents_base_dir, project_name)
             os.makedirs(project_dir, exist_ok=True)
+
+        # Index local documents if path is provided
+        if local_docs_path:
+            self.index_local_documents(local_docs_path, progress_callback=progress_callback)
         
         total_steps = 4 + num_results  # Plan, Search, N x Summarize, Synthesize, Write
         current_step = 0
@@ -672,6 +819,13 @@ Make each gap a specific search query that could find the missing information.""
                 step_summary = self.synthesize(filtered_summaries, step, audience=audience, tone=tone, improvement=improvement)
                 step_summaries.append(step_summary)
             
+            # Retrieve relevant local document chunks for the current step
+            local_chunks = self.retrieve_local_documents(step)
+            if local_chunks:
+                emit(f"Retrieved {len(local_chunks)} relevant local document chunks for step '{step}'", substep=f"Step {idx}", log="Retrieved local documents.")
+                # Add local chunks to summaries for synthesis
+                step_summaries.extend(local_chunks)
+
             # Synthesize all step summaries into a final answer
             emit("Synthesizing multi-step research summary...", substep="Synthesizing", percent=int(100 * (current_step+len(steps_list))/total_steps), log="Synthesizing final answer from all steps.")
             synthesis = self.synthesize(step_summaries, goal, audience=audience, tone=tone, improvement=improvement)

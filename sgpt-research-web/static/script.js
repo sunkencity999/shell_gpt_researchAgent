@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const newProjectNameInput = document.getElementById('new-project-name-input');
     const modelSelect = document.getElementById('model-select');
     const resultsSpin = document.getElementById('results-spin');
+    const localDocsPathInput = document.getElementById('local-docs-path-input');
+    const useLocalDocsCheckbox = document.getElementById('use-local-docs-checkbox');
+    const localDocsPathContainer = document.getElementById('local-docs-path-container');
     const tempSpin = document.getElementById('temp-spin');
     const maxTokensSpin = document.getElementById('max-tokens-spin');
     const systemPromptInput = document.getElementById('system-prompt-input');
@@ -98,8 +101,13 @@ document.addEventListener('DOMContentLoaded', () => {
         audienceInput.value = '';
         toneInput.value = '';
         improvementInput.value = '';
-        projectNameInput.value = '';
+        projectNameSelect.value = '';
+        newProjectRow.style.display = 'none';
+        newProjectNameInput.value = '';
         resultsSpin.value = 10;
+        useLocalDocsCheckbox.checked = false;
+        localDocsPathContainer.style.display = 'none';
+        localDocsPathInput.disabled = true;
         tempSpin.value = 0.7;
         maxTokensSpin.value = 2048;
         systemPromptInput.value = '';
@@ -122,6 +130,16 @@ document.addEventListener('DOMContentLoaded', () => {
             progressInterval = null;
         }
         startTime = null;
+    });
+
+    useLocalDocsCheckbox.addEventListener('change', () => {
+        if (useLocalDocsCheckbox.checked) {
+            localDocsPathContainer.style.display = 'flex';
+            localDocsPathInput.disabled = false;
+        } else {
+            localDocsPathContainer.style.display = 'none';
+            localDocsPathInput.disabled = true;
+        }
     });
 
     // Start research
@@ -167,7 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
             system_prompt: systemPromptInput.value.trim(),
             ctx_window: parseInt(ctxWindowSpin.value),
             citation_style: citationSelect.value,
-            filename: fileInput.value.trim() || 'research_report.txt'
+            filename: fileInput.value.trim() || 'research_report.txt',
+            local_docs_path: useLocalDocsCheckbox.checked ? localDocsPathInput.value.trim() : null
         };
 
         try {

@@ -64,7 +64,7 @@ echo   - spacy + nltk (Advanced NLP for entity recognition and query enhancement
 echo   - scikit-learn (Relevance scoring and text similarity)
 echo   - fuzzywuzzy (Fuzzy text matching)
 echo   - sentence-transformers (Semantic similarity)
-echo   - Export features (markdown2, reportlab, python-docx)
+echo   - Export features (markdown2, reportlab, python-docx, PyPDF2)
 venv\Scripts\pip install -r requirements.txt || (
     echo [ERROR] Failed to install Python requirements.
     pause
@@ -96,15 +96,14 @@ venv\Scripts\python -c "import nltk; import ssl; ssl._create_default_https_conte
 echo [5.5/8] NLP setup completed. Enhanced query construction and entity recognition are now available.
 
 REM ===============================================
-REM 6. Ensure Ollama embedding model is present
+REM 6. Pull Ollama embedding model
 REM ===============================================
-echo [6/8] Pulling Ollama embedding model 'nomic-embed-text:latest'...
-ollama pull nomic-embed-text:latest || (
-    echo [ERROR] Failed to pull embedding model from Ollama.
+echo [6/8] Pulling Ollama embedding model 'nomic-embed-text'...
+ollama pull nomic-embed-text || (
+    echo [WARNING] Failed to pull embedding model from Ollama.
+    echo Please ensure Ollama is running and try again manually: ollama pull nomic-embed-text
     pause
-    exit /b 1
 )
-echo [6/8] Embedding model installed.
 
 REM ===============================================
 REM 7. Re-run requirements.txt to ensure sentence-transformers is installed
@@ -203,8 +202,10 @@ echo   • Domain-specific query enhancement
 echo   • Progressive fallback strategies
 echo   • Fuzzy text matching
 echo.
+echo.
 echo To run the application:
-echo   venv\Scripts\python sgptAgent\gui_app.py
+echo   GUI: venv\Scripts\python sgptAgent\gui_app.py
+echo   Web UI: launch_web.bat
 echo.
 echo To verify setup anytime:
 echo   venv\Scripts\python verify_setup.py

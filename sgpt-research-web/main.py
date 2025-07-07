@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pathlib import Path
 import os
 import uuid
@@ -17,6 +18,8 @@ app = FastAPI()
 # Mount static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="/home/administrator/shell_gpt_researchAgent/sgpt-research-web/static"), name="static")
 
+templates = Jinja2Templates(directory="/home/administrator/shell_gpt_researchAgent/sgpt-research-web/static")
+
 # Directory for storing research reports and project data
 DOCUMENTS_DIR = Path(__file__).resolve().parent.parent / "documents"
 DOCUMENTS_DIR.mkdir(exist_ok=True)
@@ -31,21 +34,41 @@ async def startup_event():
     DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root():
-    return FileResponse("/home/administrator/shell_gpt_researchAgent/sgpt-research-web/static/index.html")
+async def read_root(request: Request):
+    relative_docs_dir = os.path.relpath(DOCUMENTS_DIR, Path(__file__).resolve().parent.parent)
+    return templates.TemplateResponse("index.html", {"request": request, "documents_dir": str(relative_docs_dir)})
 
 @app.get("/api/models")
+@app.get("/v1/models")
 async def get_models():
-    # This is a placeholder. In a real app, you'd query Ollama for available models.
-    # For now, we'll return a hardcoded list or try to get from OllamaClient if it's easily accessible.
+    """
+    Retrieves the list of available models from the Ollama service.
+    """
     try:
         from sgptAgent.llm_functions.ollama import OllamaClient
+        from sgptAgent.config import cfg
+        
         ollama_client = OllamaClient()
-        models = ollama_client.list_models()
-        return {"models": models}
+        # The list_models() function returns a list of model name strings.
+        model_names = ollama_client.list_models()
+        
+        # Ensure default and embedding models are in the list, as a fallback
+        default_model = cfg.get("DEFAULT_MODEL")
+        embedding_model = cfg.get("EMBEDDING_MODEL")
+        
+        if default_model not in model_names:
+            model_names.append(default_model)
+        if embedding_model not in model_names:
+            model_names.append(embedding_model)
+            
+        # Return a unique, sorted list of model names
+        return {"models": sorted(list(set(model_names)))}
+        
     except Exception as e:
         print(f"Error fetching Ollama models: {e}")
-        return {"models": [cfg.get("DEFAULT_MODEL")]}
+        # Fallback to default models if Ollama is not reachable
+        from sgptAgent.config import cfg
+        return {"models": [cfg.get("DEFAULT_MODEL"), cfg.get("EMBEDDING_MODEL")]}
 
 @app.get("/api/projects")
 async def get_projects():
@@ -122,6 +145,7 @@ async def run_research_task(task_id: str, data: dict):
             citation_style=data.get("citation_style"),
             filename=data.get("filename"),
             documents_base_dir=str(DOCUMENTS_DIR), # Pass the base documents directory
+            local_docs_path=data.get("local_docs_path"),
             progress_callback=progress_callback
         )
         

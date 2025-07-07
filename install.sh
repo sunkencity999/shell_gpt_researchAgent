@@ -65,6 +65,8 @@ echo -e "  - sentence-transformers (Semantic similarity)"
 echo -e "  - markdown2 (HTML export)"
 echo -e "  - reportlab (PDF export)"
 echo -e "  - python-docx (Word DOCX export)"
+echo -e "  - PyPDF2 (PDF parsing)"
+echo -e "  - PyPDF2 (PDF parsing)"
 ./venv/bin/pip install --upgrade pip
 
 PIP_FLAGS=""
@@ -174,6 +176,10 @@ else
     echo -e "${green}✔ Ollama model '$MODEL' is present${reset}"
 fi
 
+# Step 6.5: Pull embedding model
+echo -e "${yellow}Pulling embedding model 'nomic-embed-text' for Ollama...${reset}"
+ollama pull nomic-embed-text || echo -e "${red}Failed to pull embedding model. You may need to do this manually: 'ollama pull nomic-embed-text'${reset}"
+
 # Step 7: Google CSE API setup
 cat <<APITIP
 
@@ -257,9 +263,11 @@ echo -e "${green}
 To run the application:
   CLI: ./launch_sgpt_research.sh
   GUI: ./sgpt-research-gui or double-click sgpt-research-gui.desktop
-  
+  Web UI: ./launch_web.sh (Linux/macOS) or launch_web.bat (Windows)
+
 Or directly:
   source venv/bin/activate && python sgptAgent/gui_app.py
+  source venv/bin/activate && uvicorn sgpt-research-web.main:app --host 0.0.0.0 --port 8000
 
 To verify setup anytime:
   source venv/bin/activate && python verify_setup.py

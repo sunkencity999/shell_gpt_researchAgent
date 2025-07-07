@@ -53,6 +53,14 @@
                     <label for="results-spin">Web Results:</label>
                     <input type="number" id="results-spin" value="10" min="1" max="20">
                 </div>
+                <div class="form-row" id="local-docs-toggle-row">
+                    <label for="use-local-docs-checkbox">Use Local Documents For Research?</label>
+                    <input type="checkbox" id="use-local-docs-checkbox">
+                </div>
+                <div class="form-row" id="local-docs-path-container" style="display: none;">
+                    <label for="local-docs-path-input">Local Docs Path:</label>
+                    <input type="text" id="local-docs-path-input" placeholder="Optional path to local documents" value="{{ documents_dir }}" disabled>
+                </div>
             </div>
 
             <div class="card collapsible-card">
