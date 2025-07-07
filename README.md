@@ -136,6 +136,7 @@
 ## 🛠 **Technical Architecture**
 
 ### **🧠 Enhanced AI Stack**
+- **Multi-Agent System**: A team of specialized AI agents (Planner, Data Collector, Report Generator) work together to produce comprehensive research reports. This modular architecture improves the quality of the research and makes the system more scalable and extensible.
 - **Local LLM**: Ollama integration with model selection
 - **NLP Processing**: spaCy (entity recognition) + NLTK (query expansion)
 - **Relevance Scoring**: scikit-learn TF-IDF + custom algorithms
