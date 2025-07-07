@@ -186,13 +186,20 @@ def fetch_url_text(url: str, snippet: str = "") -> str:
     # 2. Try Playwright
     html = None
     try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, timeout=15000)
-            html = page.content()
-            browser.close()
+        from playwright.async_api import async_playwright
+        import asyncio
+
+        async def run_playwright():
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+                await page.goto(url, timeout=15000)
+                content = await page.content()
+                await browser.close()
+                return content
+
+        html = asyncio.run(run_playwright())
+
         if BeautifulSoup is None:
             print('[ERROR] BeautifulSoup (bs4) is not installed. Skipping HTML parsing.')
         else:
