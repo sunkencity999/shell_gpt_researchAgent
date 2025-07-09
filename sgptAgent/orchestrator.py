@@ -76,6 +76,7 @@ class VisionAgent(ResearchAgent):
             response = requests.get(url)
             soup = BeautifulSoup(response.content, "html.parser")
             images = soup.find_all("img")
+            page_domain = urlparse(url).netloc
 
             if not images:
                 return image_analyses
@@ -107,6 +108,9 @@ class VisionAgent(ResearchAgent):
                         return None
                 else:
                     img_url = urljoin(url, img_url)
+                    # Check if the image is from the same domain
+                    if urlparse(img_url).netloc != page_domain:
+                        return None
                     try:
                         img_response = requests.get(img_url, stream=True)
                         img_response.raise_for_status()

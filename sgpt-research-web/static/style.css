@@ -244,6 +244,11 @@ button.secondary:hover {
     font-weight: bold;
 }
 
+#report-list li.folder {
+    color: #28a745; /* Green for folders */
+    font-weight: bold;
+}
+
 /* Collapsible Section */
 .collapsible-card .collapsible-header {
     cursor: pointer;
