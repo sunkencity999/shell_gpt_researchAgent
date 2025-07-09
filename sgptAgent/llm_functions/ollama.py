@@ -3,6 +3,7 @@ import subprocess
 import time
 import json
 from typing import Optional, Dict, Any
+import ollama
 
 class OllamaClient:
     def __init__(self, base_url: str = "http://localhost:11434"):
@@ -80,6 +81,21 @@ class OllamaClient:
         Maps the expected chat parameters to generate parameters.
         """
         return self.generate(prompt, model=model, **kwargs)
+
+    def embeddings(self, model: str, prompt: str) -> list:
+        """
+        Gets embeddings for a given prompt using the specified model.
+        """
+        try:
+            return ollama.embeddings(model=model, prompt=prompt)['embedding']
+        except Exception as e:
+            # Check if the model is available, if not, prompt the user to pull it.
+            if "not found" in str(e):
+                print(f"Embedding model '{model}' not found.")
+                print(f"Please pull the model using: ollama pull {model}")
+            else:
+                print(f"[OLLAMA ERROR] Could not get embeddings: {e}")
+            return []
 
     def chat_with_image(self, model: str, prompt: str, image_path: str, **kwargs) -> str:
         """

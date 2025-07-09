@@ -21,7 +21,7 @@ def get_sentence_embedding(text: str):
     if client is None or model_name is None:
         return None
     try:
-        return client.get_embedding(model_name, text)
+        return client.embeddings(model_name, text)
     except Exception as e:
         print(f"Error getting embedding from Ollama: {e}")
         return None

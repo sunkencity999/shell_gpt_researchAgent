@@ -60,7 +60,7 @@ class ResearchAgent:
     def _get_embedding(self, text: str) -> list:
         """Helper to get embeddings for a text chunk using Ollama."""
         try:
-            return self.llm.get_embedding(self.embedding_model, text)
+            return self.llm.embeddings(self.embedding_model, text)
         except Exception as e:
             # Check if the model is available, if not, prompt the user to pull it.
             if "not found" in str(e):

@@ -30,3 +30,4 @@ fastapi
 uvicorn
 python-multipart
 Jinja2
+ollama

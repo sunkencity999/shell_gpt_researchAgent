@@ -67,7 +67,7 @@ class ReportGeneratorAgent(ResearchAgent):
     def extract_structured_data(self, summaries: list, structured_data_prompt: str, **kwargs) -> str:
         combined_summaries = "\n\n".join(summaries)
         prompt = f"Based on the following text, {structured_data_prompt}:\n\n{combined_summaries}"
-        return self.llm.chat(prompt, **kwargs)
+        return self.llm.chat(self.model, prompt, **kwargs)
 
 class VisionAgent(ResearchAgent):
     def __init__(self, **kwargs):
