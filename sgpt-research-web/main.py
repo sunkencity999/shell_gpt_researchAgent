@@ -136,6 +136,7 @@ async def run_research_task(task_id: str, data: dict):
             audience=data.get("audience"),
             tone=data.get("tone"),
             improvement=data.get("improvement"),
+            structured_data_prompt=data.get("structured_data_prompt"),
             project_name=data.get("project_name"),
             num_results=data.get("num_results"),
             temperature=data.get("temperature"),

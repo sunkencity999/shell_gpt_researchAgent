@@ -180,6 +180,10 @@ fi
 echo -e "${yellow}Pulling embedding model 'nomic-embed-text' for Ollama...${reset}"
 ollama pull nomic-embed-text || echo -e "${red}Failed to pull embedding model. You may need to do this manually: 'ollama pull nomic-embed-text'${reset}"
 
+# Step 6.5: Pull embedding model
+echo -e "${yellow}Pulling embedding model 'nomic-embed-text' for Ollama...${reset}"
+ollama pull nomic-embed-text || echo -e "${red}Failed to pull embedding model. You may need to do this manually: 'ollama pull nomic-embed-text'${reset}"
+
 echo -e "${yellow}Pulling multimodal model 'llava' for Ollama...${reset}"
 ollama pull llava || echo -e "${red}Failed to pull multimodal model. You may need to do this manually: 'ollama pull llava'${reset}"
 

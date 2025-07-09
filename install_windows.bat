@@ -95,9 +95,6 @@ venv\Scripts\python -c "import nltk; import ssl; ssl._create_default_https_conte
 
 echo [5.5/8] NLP setup completed. Enhanced query construction and entity recognition are now available.
 
-REM ===============================================
-REM 6. Pull Ollama embedding model
-REM ===============================================
 echo [6/8] Pulling Ollama embedding model 'nomic-embed-text'...
 ollama pull nomic-embed-text || (
     echo [WARNING] Failed to pull embedding model from Ollama.

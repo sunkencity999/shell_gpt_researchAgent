@@ -270,7 +270,6 @@ The search results contained content that was not related to your specific quest
 
 **Alternative approach:** You might want to search for more specific aspects of your topic or try different keyword combinations to get more targeted results."""
         
-        # Enhanced synthesis with data quality awareness
         context = ""
         if audience:
             context += f"Intended audience: {audience}. "
@@ -281,22 +280,22 @@ The search results contained content that was not related to your specific quest
         
         combined_summaries = "\n\n".join(relevant_summaries)
         
-        # Enhanced prompt with data quality instructions
-        prompt = f"""{context}Based on the following research summaries, provide a comprehensive answer to the research goal: '{goal}'
+        prompt = f"""{context}Your task is to write a comprehensive answer to the following research goal, using ONLY the provided research summaries.
 
-IMPORTANT INSTRUCTIONS:
-1. Only use information that is directly relevant to the research question
-2. If the summaries contain conflicting information, acknowledge the conflicts
-3. If specific data (like statistics, dates, numbers) is missing, explicitly state what information is needed
-4. Provide concrete evidence and data to support your conclusions
-5. If you cannot provide a definitive answer due to insufficient data, clearly explain what additional information would be needed
+**Research Goal:** "{goal}"
 
-Research Goal: {goal}
+**IMPORTANT INSTRUCTIONS:**
+1. **Stick to the Goal:** Your entire response must directly answer the research goal above. Do NOT deviate, introduce new topics, or answer a different question.
+2. **Use Only Provided Summaries:** Base your answer exclusively on the information in the "Summaries" section below. Do not use any outside knowledge.
+3. **Acknowledge Gaps:** If the summaries do not contain enough information to answer the goal, explicitly state that and describe what information is missing.
+4. **Structure:** Structure your response as a direct answer. Do not create your own "Research Question" or "Introduction" sections. Start directly with the answer.
+5. **Evidence:** Provide concrete evidence and data from the summaries to support your conclusions.
 
-Summaries:
+**Summaries:**
 {combined_summaries}
 
-Provide a well-structured, evidence-based response that directly addresses the research question."""
+**Final Answer:**
+"""
         
         synthesis = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         return synthesis
@@ -441,40 +440,21 @@ Make each gap a specific search query that could find the missing information.""
         else:
             return query
     
-    def write_report(self, synthesis: str, web_results_md: list, goal: str, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None, project_name: str = None, documents_base_dir: str = None, **kwargs) -> str:
+    def write_report(self, synthesis: str, web_results_md: list, goal: str, structured_data: str = None, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None, project_name: str = None, documents_base_dir: str = None, **kwargs) -> str:
         """Write a formatted research report to the project directory."""
         if not filename:
             import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"research_report_{timestamp}.md"
 
-        project_dir = None
+        save_dir = documents_base_dir
         if project_name and documents_base_dir:
-            project_dir = os.path.join(documents_base_dir, project_name)
-            os.makedirs(project_dir, exist_ok=True)
+            save_dir = os.path.join(documents_base_dir, project_name)
+        elif not documents_base_dir:
+            save_dir = os.getcwd() # Fallback if no base dir is provided
 
-        report_content = f"""# Research Report
-
-## Research Goal
-{goal}
-
-## Executive Summary
-{synthesis}
-
-## Sources and References
-"""
-
-        for i, source in enumerate(getattr(self, 'sources', []), 1):
-            report_content += f"{i}. [{source.get('title', f'Source {i}')}]({source.get('href', '')})\n"
-
-        report_content += f"\n## Detailed Web Results\n"
-        for result in web_results_md:
-            report_content += f"{result}\n\n"
-
-        if project_dir:
-            report_path = os.path.join(project_dir, filename)
-        else:
-            report_path = os.path.join(os.getcwd(), filename)
+        os.makedirs(save_dir, exist_ok=True)
+        report_path = os.path.join(save_dir, filename)
 
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report_content)

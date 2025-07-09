@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const audienceInput = document.getElementById('audience-input');
     const toneInput = document.getElementById('tone-input');
     const improvementInput = document.getElementById('improvement-input');
+        const structuredDataPromptInput = document.getElementById('structured-data-prompt-input');
     const projectNameSelect = document.getElementById('project-name-select');
     const newProjectRow = document.getElementById('new-project-row');
     const newProjectNameInput = document.getElementById('new-project-name-input');
@@ -226,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             audience: audienceInput.value.trim(),
             tone: toneInput.value.trim(),
             improvement: improvementInput.value.trim(),
+            structured_data_prompt: structuredDataPromptInput.value.trim(),
             project_name: projectName || null,
             model: modelSelect.value,
             num_results: parseInt(resultsSpin.value),

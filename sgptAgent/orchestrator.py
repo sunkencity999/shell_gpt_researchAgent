@@ -54,7 +54,20 @@ class ReportGeneratorAgent(ResearchAgent):
 
         synthesis = self.synthesize(summaries, goal, **kwargs)
         self.sources = results # Set the sources for the report
-        return self.write_report(synthesis, web_results_md, goal, **kwargs)
+
+        structured_data = None
+        if kwargs.get("structured_data_prompt"):
+            # Copy kwargs to avoid modifying the original dict, which might be used elsewhere.
+            llm_kwargs = kwargs.copy()
+            prompt_text = llm_kwargs.pop("structured_data_prompt", None)
+            structured_data = self.extract_structured_data(summaries, prompt_text, **llm_kwargs)
+
+        return self.write_report(synthesis, web_results_md, goal, structured_data=structured_data, **kwargs)
+
+    def extract_structured_data(self, summaries: list, structured_data_prompt: str, **kwargs) -> str:
+        combined_summaries = "\n\n".join(summaries)
+        prompt = f"Based on the following text, {structured_data_prompt}:\n\n{combined_summaries}"
+        return self.llm.chat(prompt, **kwargs)
 
 class VisionAgent(ResearchAgent):
     def __init__(self, **kwargs):
