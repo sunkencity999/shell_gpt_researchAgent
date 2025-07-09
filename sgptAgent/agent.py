@@ -154,10 +154,10 @@ class ResearchAgent:
         sanitized_query = re.sub(r'\s*\(.*?\)\s*', '', query).strip()
         return search_web_with_fallback(sanitized_query, max_results=max_results)
 
-    def fetch_and_summarize_url(self, url: str, snippet: str = "", audience: str = "", tone: str = "", improvement: str = "") -> str:
+    async def fetch_and_summarize_url(self, url: str, snippet: str = "", audience: str = "", tone: str = "", improvement: str = "") -> str:
         """Fetch content from URL and summarize it."""
         try:
-            content = fetch_url_text(url)
+            content = await fetch_url_text(url)
             if not content or len(content.strip()) < 100:
                 return f"Unable to fetch meaningful content from {url}. Snippet: {snippet}"
             
@@ -481,10 +481,10 @@ Make each gap a specific search query that could find the missing information.""
 
         return report_path
 
-    def run(self, goal: str, **kwargs):
+    async def run(self, goal: str, **kwargs):
         from sgptAgent.orchestrator import Orchestrator
         orchestrator = Orchestrator(**self.__dict__)
-        return orchestrator.run(goal, **kwargs)
+        return await orchestrator.run(goal, **kwargs)
 
     def simplify_search_query(self, query: str) -> str:
         """Simplify complex search queries."""

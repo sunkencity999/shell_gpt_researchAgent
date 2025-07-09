@@ -131,7 +131,7 @@ async def run_research_task(task_id: str, data: dict):
             
             # Updates to task dictionary are immediately visible to polling endpoint
 
-        report_path, total_results_found, successful_queries, total_queries = agent.run(
+        report_path, total_results_found, successful_queries, total_queries = await agent.run(
             goal=data.get("query"),
             audience=data.get("audience"),
             tone=data.get("tone"),
@@ -170,15 +170,22 @@ async def run_research_task(task_id: str, data: dict):
         task["log"].append({"timestamp": datetime.datetime.now().isoformat(), "log": traceback.format_exc()})
 
 @app.get("/api/reports")
-async def get_reports():
-    reports = []
-    for root, _, files in os.walk(DOCUMENTS_DIR):
-        for f in files:
-            if f.endswith(('.md', '.txt')):
-                full_path = Path(root) / f
-                relative_path = full_path.relative_to(DOCUMENTS_DIR)
-                reports.append({"name": str(relative_path), "path": str(relative_path)})
-    return {"reports": sorted(reports, key=lambda x: x["name"], reverse=True)}
+async def get_reports(path: str = '.'):
+    # Prevent directory traversal attacks
+    safe_base_path = DOCUMENTS_DIR.resolve()
+    requested_path = (DOCUMENTS_DIR / path).resolve()
+    if not requested_path.is_dir() or safe_base_path not in requested_path.parents and requested_path != safe_base_path:
+        raise HTTPException(status_code=400, detail="Invalid path specified.")
+
+    items = []
+    for item in sorted(requested_path.iterdir()):
+        if item.name.startswith('.'):
+            continue # Skip hidden files/folders
+        relative_path = item.relative_to(DOCUMENTS_DIR)
+        item_type = 'folder' if item.is_dir() else 'file'
+        items.append({"name": item.name, "path": str(relative_path), "type": item_type})
+    
+    return {"reports": items}
 
 
 @app.get("/api/reports/{report_path:path}", response_class=HTMLResponse)
@@ -221,12 +228,12 @@ async def get_report_content(report_path: str):
     """
 
 
-@app.get("/api/download/{report_path:path}")
-async def download_report(report_path: str):
-    decoded_path = unquote(report_path)
+@app.get("/api/download/{file_path:path}")
+async def download_file(file_path: str):
+    decoded_path = unquote(file_path)
     full_path = (DOCUMENTS_DIR / decoded_path).resolve()
     if not full_path.is_file() or not full_path.is_relative_to(DOCUMENTS_DIR.resolve()):
-        raise HTTPException(status_code=404, detail="Report not found or access denied.")
+        raise HTTPException(status_code=404, detail="File not found or access denied.")
     return FileResponse(full_path, media_type='application/octet-stream', filename=full_path.name)
 
 if __name__ == "__main__":

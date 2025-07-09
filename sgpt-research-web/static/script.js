@@ -142,6 +142,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const analyzeImagesBtn = document.getElementById('analyze-images-btn');
+
+    analyzeImagesBtn.addEventListener('click', async () => {
+        const url = prompt("Enter the URL of the page to analyze for images:");
+        if (!url) return;
+
+        runBtn.disabled = true;
+        outputBox.value = '';
+        progressLog.innerHTML = '';
+        progressLabel.textContent = 'Analyzing images...';
+        progressSubstep.textContent = '';
+        progressBarFill.style.width = '0%';
+        progressBarText.textContent = '0%';
+        timeLabel.textContent = '⏱️ Elapsed: 0:00';
+        etaLabel.textContent = '🎯 ETA: Calculating...';
+        resultsLabel.textContent = '📊 Results: 0';
+        successLabel.textContent = '✅ Success: 0%';
+
+        const researchData = {
+            query: url, // Using query to pass the URL
+            mode: 'vision',
+            project_name: projectNameSelect.value || 'vision_analysis',
+            documents_base_dir: '{{ documents_dir }}'
+        };
+
+        try {
+            const response = await fetch('/api/research', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(researchData)
+            });
+            const data = await response.json();
+            if (data.task_id) {
+                researchTaskId = data.task_id;
+                startTime = new Date();
+                progressInterval = setInterval(pollResearchStatus, 1000);
+            } else {
+                alert('Failed to start image analysis.');
+                runBtn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error starting image analysis:', error);
+            alert('An error occurred while starting image analysis.');
+            runBtn.disabled = false;
+        }
+    });
+
     // Start research
     runBtn.addEventListener('click', async () => {
         const query = queryInput.value.trim();
@@ -283,22 +332,41 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Fetch and display reports
-    const fetchReports = async () => {
+    const fetchReports = async (path = '.') => {
         try {
-            const response = await fetch('/api/reports');
+            const response = await fetch(`/api/reports?path=${encodeURIComponent(path)}`);
             const data = await response.json();
             reportList.innerHTML = '';
+
+            // Add a ".." (go back) item if not in the root directory
+            if (path !== '.') {
+                const parentPath = path.substring(0, path.lastIndexOf('/') || '.');
+                const li = document.createElement('li');
+                li.textContent = '../';
+                li.dataset.path = parentPath;
+                li.dataset.type = 'folder';
+                li.classList.add('folder');
+                li.addEventListener('click', () => fetchReports(parentPath));
+                reportList.appendChild(li);
+            }
+
             data.reports.forEach(report => {
                 const li = document.createElement('li');
                 li.textContent = report.name;
                 li.dataset.path = report.path;
-                li.addEventListener('click', () => {
-                    // Remove 'selected' class from all items
-                    Array.from(reportList.children).forEach(item => item.classList.remove('selected'));
-                    // Add 'selected' class to the clicked item
-                    li.classList.add('selected');
-                    loadReportPreview(report.path);
-                });
+                li.dataset.type = report.type;
+
+                if (report.type === 'folder') {
+                    li.classList.add('folder');
+                    li.addEventListener('click', () => fetchReports(report.path));
+                } else {
+                    li.classList.add('file');
+                    li.addEventListener('click', () => {
+                        Array.from(reportList.children).forEach(item => item.classList.remove('selected'));
+                        li.classList.add('selected');
+                        loadReportPreview(report.path);
+                    });
+                }
                 reportList.appendChild(li);
             });
         } catch (error) {

@@ -151,7 +151,7 @@ except ImportError:
     BeautifulSoup = None
     print('[ERROR] BeautifulSoup (bs4) is not installed. Install with `pip install beautifulsoup4`.')
 
-def fetch_url_text(url: str, snippet: str = "") -> str:
+async def fetch_url_text(url: str, snippet: str = "") -> str:
     """
     Extract article text using newspaper3k, fallback to Playwright, then BeautifulSoup, then snippet.
     If extracted text is <500 chars, try to follow the first likely article/content link and extract from there.
@@ -187,7 +187,6 @@ def fetch_url_text(url: str, snippet: str = "") -> str:
     html = None
     try:
         from playwright.async_api import async_playwright
-        import asyncio
 
         async def run_playwright():
             async with async_playwright() as p:
@@ -198,7 +197,7 @@ def fetch_url_text(url: str, snippet: str = "") -> str:
                 await browser.close()
                 return content
 
-        html = asyncio.run(run_playwright())
+        html = await run_playwright()
 
         if BeautifulSoup is None:
             print('[ERROR] BeautifulSoup (bs4) is not installed. Skipping HTML parsing.')

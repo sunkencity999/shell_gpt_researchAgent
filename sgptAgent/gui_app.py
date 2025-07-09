@@ -239,7 +239,7 @@ class ResearchAgentGUI(QMainWindow):
         if fname:
             self.file_input.setText(fname)
 
-    def run_research(self):
+    def run_research(self, mode="research", url=None):
         """Start the research process in a separate thread."""
         # Get values from modern input components
         query = self.query_input.toPlainText().strip()
@@ -262,6 +262,7 @@ class ResearchAgentGUI(QMainWindow):
         ctx_window = self.ctx_window_spin.value()
         citation_style = self.citation_combo.currentText()
         filename = self.file_input.text().strip() or "research_report.txt"
+        analyze_images = self.analyze_images_checkbox.isChecked()
 
         if not query:
             QMessageBox.warning(self, "Input Required", "Please enter a research query.")
@@ -567,6 +568,11 @@ class ResearchAgentGUI(QMainWindow):
             "Created by Christopher Bradford.<br>Inspired by Shell-GPT.<br>"
             "<a href='https://github.com/sunkencity999/shell_gpt_researchAgent'>Project Repository</a>")
 
+    def analyze_images_from_url(self):
+        url, ok = QInputDialog.getText(self, 'Analyze Images', 'Enter URL to analyze for images:')
+        if ok and url:
+            self.run_research(mode="vision", url=url)
+
     def _init_ui(self):
         """Initialize the modern user interface."""
         # Set minimum and default window size
@@ -684,6 +690,10 @@ class ResearchAgentGUI(QMainWindow):
         row2_layout.addWidget(create_form_row("Web Results:", self.results_spin))
         params_layout.addLayout(row2_layout)
         
+        self.analyze_images_button = IconButton("image", "Analyze Images", "secondary")
+        self.analyze_images_button.clicked.connect(self.analyze_images_from_url)
+        params_layout.addWidget(self.analyze_images_button)
+
         layout.addWidget(params_card)
         
         # Advanced settings (collapsible)
@@ -707,6 +717,9 @@ class ResearchAgentGUI(QMainWindow):
         
         self.ctx_window_spin = ModernSpinBox(128, 8192, 2048)
         advanced_layout.addWidget(create_form_row("Context Window:", self.ctx_window_spin))
+
+        self.analyze_images_checkbox = QCheckBox("Analyze images in search results")
+        advanced_layout.addWidget(self.analyze_images_checkbox)
         
         self.advanced_section.add_layout(advanced_layout)
         layout.addWidget(self.advanced_section)
@@ -832,6 +845,10 @@ class ResearchAgentGUI(QMainWindow):
         
         # Action buttons - use responsive button row
         action_buttons = create_button_row([self.clear_btn])
+        self.analyze_images_button = IconButton("image", "Analyze Images", "secondary")
+        self.analyze_images_button.clicked.connect(self.analyze_images_from_url)
+        action_buttons.layout().addWidget(self.analyze_images_button)
+
         layout.addWidget(action_buttons)
         
         # Run button - full width for prominence
@@ -1018,7 +1035,7 @@ class ResearchWorker(QThread):
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
     def __init__(self, query, audience, tone, improvement, project_name, model, num_results,
-                 temperature, max_tokens, system_prompt, ctx_window, citation_style, filename): 
+                 temperature, max_tokens, system_prompt, ctx_window, citation_style, filename, analyze_images, mode, url): 
         super().__init__()
         self.query = query
         self.audience = audience
@@ -1033,6 +1050,9 @@ class ResearchWorker(QThread):
         self.ctx_window = ctx_window
         self.citation_style = citation_style
         self.filename = filename
+        self.analyze_images = analyze_images
+        self.mode = mode
+        self.url = url
 
     def run(self):
         try:
@@ -1042,7 +1062,7 @@ class ResearchWorker(QThread):
             
             # Run the research and get the report path
             self.progress.emit("Starting research...", "", "Initializing", 0, "Research agent initialized.")
-            report_path = agent.run(
+            report_path, total_results_found, successful_queries, total_queries = await agent.run(
                 self.query,
                 audience=self.audience,
                 tone=self.tone,
@@ -1055,7 +1075,11 @@ class ResearchWorker(QThread):
                 ctx_window=self.ctx_window,
                 citation_style=self.citation_style,
                 filename=self.filename,
-                documents_base_dir=DOCUMENTS_DIR,
+                documents_base_dir=str(DOCUMENTS_DIR), # Pass the base documents directory
+                local_docs_path=self.project_name, # Use project name as local docs path
+                analyze_images=self.analyze_images,
+                mode=self.mode,
+                url=self.url,
                 progress_callback=progress_callback
             )
             

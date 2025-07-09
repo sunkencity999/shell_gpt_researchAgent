@@ -105,6 +105,13 @@ ollama pull nomic-embed-text || (
     pause
 )
 
+echo [6.5/8] Pulling Ollama multimodal model 'llava'...
+ollama pull llava || (
+    echo [WARNING] Failed to pull multimodal model from Ollama.
+    echo Please ensure Ollama is running and try again manually: ollama pull llava
+    pause
+)
+
 REM ===============================================
 REM 7. Re-run requirements.txt to ensure sentence-transformers is installed
 REM ===============================================

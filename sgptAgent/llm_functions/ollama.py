@@ -81,6 +81,71 @@ class OllamaClient:
         """
         return self.generate(prompt, model=model, **kwargs)
 
+    def chat_with_image(self, model: str, prompt: str, image_path: str, **kwargs) -> str:
+        """
+        Sends a prompt and an image to the Ollama server and returns the completion.
+        """
+        import base64
+
+        with open(image_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "images": [encoded_string]
+        }
+
+        # Map advanced kwargs to Ollama API
+        if "system_prompt" in kwargs and kwargs["system_prompt"]:
+            payload["system"] = kwargs["system_prompt"]
+        if "context_window" in kwargs and kwargs["context_window"]:
+            payload["context_window"] = kwargs["context_window"]
+        if "temperature" in kwargs and kwargs["temperature"] is not None:
+            payload["temperature"] = kwargs["temperature"]
+        if "max_tokens" in kwargs and kwargs["max_tokens"]:
+            payload["num_predict"] = kwargs["max_tokens"]
+        # Forward any other kwargs
+        for k, v in kwargs.items():
+            if k not in ("system_prompt", "context_window", "temperature", "max_tokens"):
+                payload[k] = v
+
+        def stream_and_concat(resp):
+            output = ""
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    chunk = data.get("response", "")
+                    output += chunk
+                except Exception as e:
+                    print(f"[OLLAMA ERROR] Could not parse line: {line} | {e}")
+            return output
+
+        try:
+            resp = requests.post(self.api_url, json=payload, timeout=60, stream=True)
+            resp.raise_for_status()
+            return stream_and_concat(resp)
+        except requests.ConnectionError as e:
+            print("[OLLAMA ERROR] Ollama server is not running. Attempting to start with 'ollama serve'...")
+            try:
+                subprocess.Popen(["ollama", "serve"])
+                time.sleep(2)  # Give it a moment to start
+                resp = requests.post(self.api_url, json=payload, timeout=60, stream=True)
+                resp.raise_for_status()
+                return stream_and_concat(resp)
+            except Exception as e2:
+                return f"[Ollama error: Could not start Ollama server: {e2}]"
+        except requests.HTTPError as e:
+            print(f"[OLLAMA ERROR] HTTP error: {e}")
+            if e.response is not None and e.response.status_code == 404:
+                return f"[Ollama HTTP 404: Model '{model}' not found at {self.api_url}]"
+            return f"[Ollama HTTP error: {e}]"
+        except Exception as e:
+            print(f"[OLLAMA ERROR] Unexpected error: {e}")
+            return f"[Ollama error: {e}]"
+
     def list_models(self) -> list:
         """
         Lists available Ollama models.
