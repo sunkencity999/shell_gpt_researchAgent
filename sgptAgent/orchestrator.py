@@ -53,7 +53,7 @@ class ReportGeneratorAgent(ResearchAgent):
                     web_results_md.append(f"  - Analysis: {image['analysis']}")
 
         synthesis = await self.synthesize(summaries, goal, **kwargs)
-        reasoning = await self.generate_reasoning(synthesis, summaries, **kwargs)
+        reasoning = await self.generate_reasoning(synthesis, summaries, goal, **kwargs)
         self.sources = results # Set the sources for the report
 
         structured_data = None
@@ -62,7 +62,7 @@ class ReportGeneratorAgent(ResearchAgent):
             llm_kwargs = kwargs.copy()
             prompt_text = llm_kwargs.pop("structured_data_prompt", None)
             llm_kwargs.pop("progress_callback", None)  # Avoid passing non-serializable functions
-            structured_data = await self.extract_structured_data(summaries, prompt_text, **llm_kwargs)
+            structured_data = await self.extract_structured_data(summaries, structured_data_prompt=prompt_text, goal=goal, **llm_kwargs)
 
         # Explicitly pass arguments to avoid TypeError
         return self.write_report(
@@ -80,17 +80,41 @@ class ReportGeneratorAgent(ResearchAgent):
             documents_base_dir=kwargs.get("documents_base_dir")
         )
 
-    async def generate_reasoning(self, synthesis: str, summaries: list, **kwargs) -> str:
+    async def generate_reasoning(self, synthesis: str, summaries: list, goal: str, **kwargs) -> str:
         llm_kwargs = kwargs.copy()
         llm_kwargs.pop("progress_callback", None)
         combined_summaries = "\n\n".join(summaries)
-        prompt = f'''You are a research analyst. Your task is to explain the reasoning behind a given conclusion based on a set of summaries.\nFocus on connecting the key points in the summaries to the final answer, explaining *how* the evidence supports the conclusion.\n\n**Conclusion:**\n"""\n{synthesis}\n"""\n\n**Evidence (Summaries):**\n"""\n{combined_summaries}\n"""\n\n**Reasoning:**\n'''
+        prompt = f'''You are a research analyst. Your task is to explain the reasoning behind a given conclusion based on a set of summaries.
+Focus on connecting the key points in the summaries to the final answer, explaining *how* the evidence supports the conclusion.
+
+**Research Goal:**
+"""
+{goal}
+"""
+
+**Conclusion:**
+"""
+{synthesis}
+"""
+
+**Evidence (Summaries):**
+"""
+{combined_summaries}
+"""
+
+**Reasoning:**
+(Explain the *why* behind the conclusion, citing the evidence from the summaries.)
+'''
         return await self.llm.chat(self.model, prompt, **llm_kwargs)
 
-    async def extract_structured_data(self, summaries: list, structured_data_prompt: str, **kwargs) -> str:
+    async def extract_structured_data(self, summaries: list, structured_data_prompt: str, goal: str, **kwargs) -> str:
+        llm_kwargs = kwargs.copy()
+        llm_kwargs.pop("progress_callback", None)
         combined_summaries = "\n\n".join(summaries)
         prompt = f'''You are a data extraction tool. Your task is to extract information from the provided text based on the user's request and return it as a Markdown table.
 Do not include any explanations, apologies, or conversational text. Only output the raw Markdown table.
+
+**Research Goal:** "{goal}"
 
 **User Request:** "{structured_data_prompt}"
 
@@ -100,8 +124,13 @@ Do not include any explanations, apologies, or conversational text. Only output 
 ---
 
 **Markdown Table Output:**
+| Header 1 | Header 2 | Header 3 |
+|---|---|---|
+| Data 1 | Data 2 | Data 3 |
+
+(Your Markdown table output should follow this format)
 '''
-        return await self.llm.chat(self.model, prompt, **kwargs)
+        return await self.llm.chat(self.model, prompt, **llm_kwargs)
 
 class VisionAgent(ResearchAgent):
     def __init__(self, **kwargs):
