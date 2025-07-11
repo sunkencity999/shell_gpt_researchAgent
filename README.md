@@ -293,6 +293,38 @@ export OPENAI_API_KEY="your_openai_key"
 - **Citation Styles**: APA, MLA, Chicago, IEEE formatting
 - **Output Formats**: Markdown, PDF, HTML reports
 
+### **📊 Structured Data Extraction**
+This powerful feature allows you to extract specific, structured information from the research summaries and present it as a clean Markdown table in your final report. It's the ideal way to get organized, actionable data instead of just narrative text.
+
+**How It Works**
+The research process is now designed to always output structured data as a Markdown table. You control the *content* of this table using the **Structured Data Prompt** field in the UI (or the `structured_data_prompt` argument in the Python API).
+
+Your prompt should clearly define the columns of the table you want. The AI will then read the research summaries and populate the rows based on your instructions.
+
+**Best Practices for Prompts**
+- **Be Specific:** Clearly name the columns you want.
+- **Focus on Entities:** Ask for specific things (e.g., "artists," "companies," "statistics").
+- **Keep it Concise:** The prompt should be a clear instruction for creating the table.
+
+**Example Use Cases**
+
+**1. Analyzing Musicians**
+-   **Research Goal:** "Who was the most popular musician in 2024?"
+-   **Structured Data Prompt:** 
+    > "Create a table of the most popular musicians mentioned. Include columns for 'Artist Name', 'Primary Metric of Popularity (e.g., streams, awards, searches)', and 'Key Achievement'."
+
+**2. Comparing Sports Teams**
+-   **Research Goal:** "Who was the best pitcher in the MLB in 2024?"
+-   **Structured Data Prompt:**
+    > "Generate a table of top pitchers. The columns should be 'Pitcher Name', 'Team', 'Key Statistic', and 'Notable Accomplishments in 2024'."
+
+**3. Tracking Market Trends**
+-   **Research Goal:** "What are the leading AI companies to watch?"
+-   **Structured Data Prompt:**
+    > "Create a table of leading AI companies. Include columns for 'Company Name', 'Key Technology Area', and 'Recent Funding/Valuation'."
+
+By using a well-crafted prompt, you can transform raw research into a perfectly organized table, ready for analysis or presentation.
+
 ### **🔧 Developer Features**
 - **Python API**: Full programmatic access to research capabilities
 - **Plugin Architecture**: Extensible search providers and content extractors

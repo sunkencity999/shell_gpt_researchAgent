@@ -7,8 +7,8 @@ class PlannerAgent(ResearchAgent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def run(self, goal: str, **kwargs) -> list:
-        return self.plan(goal, **kwargs)
+    async def run(self, goal: str, **kwargs) -> list:
+        return await self.plan(goal, **kwargs)
 
 class DataCollectorAgent(ResearchAgent):
     def __init__(self, **kwargs):
@@ -27,7 +27,7 @@ class DataCollectorAgent(ResearchAgent):
                 total_results_found += len(search_results)
                 for result in search_results:
                     summary = await self.fetch_and_summarize_url(result['href'], result.get('snippet', ''))
-                    image_analyses = await vision_agent._process_images(result['href'], kwargs.get("project_name"), kwargs.get("documents_base_dir"), multimodal_agent)
+                    image_analyses = []
                     results.append({
                         "title": result.get("title"),
                         "href": result.get("href"),
@@ -41,7 +41,7 @@ class ReportGeneratorAgent(ResearchAgent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def run(self, goal: str, results: list, **kwargs) -> str:
+    async def run(self, goal: str, results: list, **kwargs) -> str:
         summaries = [result["summary"] for result in results]
         web_results_md = []
         for result in results:
@@ -52,7 +52,8 @@ class ReportGeneratorAgent(ResearchAgent):
                     web_results_md.append(f"- Image: {image['image_path']}")
                     web_results_md.append(f"  - Analysis: {image['analysis']}")
 
-        synthesis = self.synthesize(summaries, goal, **kwargs)
+        synthesis = await self.synthesize(summaries, goal, **kwargs)
+        reasoning = await self.generate_reasoning(synthesis, summaries, **kwargs)
         self.sources = results # Set the sources for the report
 
         structured_data = None
@@ -60,14 +61,47 @@ class ReportGeneratorAgent(ResearchAgent):
             # Copy kwargs to avoid modifying the original dict, which might be used elsewhere.
             llm_kwargs = kwargs.copy()
             prompt_text = llm_kwargs.pop("structured_data_prompt", None)
-            structured_data = self.extract_structured_data(summaries, prompt_text, **llm_kwargs)
+            llm_kwargs.pop("progress_callback", None)  # Avoid passing non-serializable functions
+            structured_data = await self.extract_structured_data(summaries, prompt_text, **llm_kwargs)
 
-        return self.write_report(synthesis, web_results_md, goal, structured_data=structured_data, **kwargs)
+        # Explicitly pass arguments to avoid TypeError
+        return self.write_report(
+            synthesis=synthesis, 
+            reasoning=reasoning, 
+            web_results_md=web_results_md, 
+            goal=goal, 
+            structured_data=structured_data, 
+            audience=kwargs.get("audience"),
+            tone=kwargs.get("tone"),
+            improvement=kwargs.get("improvement"),
+            citation_style=kwargs.get("citation_style"),
+            filename=kwargs.get("filename"),
+            project_name=kwargs.get("project_name"),
+            documents_base_dir=kwargs.get("documents_base_dir")
+        )
 
-    def extract_structured_data(self, summaries: list, structured_data_prompt: str, **kwargs) -> str:
+    async def generate_reasoning(self, synthesis: str, summaries: list, **kwargs) -> str:
+        llm_kwargs = kwargs.copy()
+        llm_kwargs.pop("progress_callback", None)
         combined_summaries = "\n\n".join(summaries)
-        prompt = f"Based on the following text, {structured_data_prompt}:\n\n{combined_summaries}"
-        return self.llm.chat(self.model, prompt, **kwargs)
+        prompt = f'''You are a research analyst. Your task is to explain the reasoning behind a given conclusion based on a set of summaries.\nFocus on connecting the key points in the summaries to the final answer, explaining *how* the evidence supports the conclusion.\n\n**Conclusion:**\n"""\n{synthesis}\n"""\n\n**Evidence (Summaries):**\n"""\n{combined_summaries}\n"""\n\n**Reasoning:**\n'''
+        return await self.llm.chat(self.model, prompt, **llm_kwargs)
+
+    async def extract_structured_data(self, summaries: list, structured_data_prompt: str, **kwargs) -> str:
+        combined_summaries = "\n\n".join(summaries)
+        prompt = f'''You are a data extraction tool. Your task is to extract information from the provided text based on the user's request and return it as a Markdown table.
+Do not include any explanations, apologies, or conversational text. Only output the raw Markdown table.
+
+**User Request:** "{structured_data_prompt}"
+
+**Text to Extract From:**
+---
+{combined_summaries}
+---
+
+**Markdown Table Output:**
+'''
+        return await self.llm.chat(self.model, prompt, **kwargs)
 
 class VisionAgent(ResearchAgent):
     def __init__(self, **kwargs):
@@ -86,7 +120,7 @@ class VisionAgent(ResearchAgent):
             import base64
             import asyncio
 
-            response = requests.get(url)
+            response = requests.get(url, timeout=30)
             soup = BeautifulSoup(response.content, "html.parser")
             images = soup.find_all("img")
             page_domain = urlparse(url).netloc
@@ -94,7 +128,11 @@ class VisionAgent(ResearchAgent):
             if not images:
                 return image_analyses
 
-            project_dir = os.path.join(documents_base_dir, project_name)
+            base_dir = documents_base_dir if documents_base_dir else os.getcwd()
+            if project_name:
+                project_dir = os.path.join(base_dir, project_name)
+            else:
+                project_dir = base_dir
             images_dir = os.path.join(project_dir, "images")
             os.makedirs(images_dir, exist_ok=True)
 
@@ -125,7 +163,7 @@ class VisionAgent(ResearchAgent):
                     if urlparse(img_url).netloc != page_domain:
                         return None
                     try:
-                        img_response = requests.get(img_url, stream=True)
+                        img_response = requests.get(img_url, stream=True, timeout=15)
                         img_response.raise_for_status()
                         # Check content length to filter small images
                         if int(img_response.headers.get('content-length', 0)) < 10000:
@@ -151,9 +189,10 @@ class VisionAgent(ResearchAgent):
                     print(f"Error analyzing image {img_path}: {e}")
                     return None
 
-            tasks = [process_single_image(i, img) for i, img in enumerate(images[:5])] # Limit to first 5 images
-            results = await asyncio.gather(*tasks)
-            image_analyses = [res for res in results if res is not None]
+            for i, img in enumerate(images[:5]): # Limit to first 5 images
+                result = await process_single_image(i, img)
+                if result:
+                    image_analyses.append(result)
 
         except Exception as e:
             print(f"Error processing images for {url}: {e}")
@@ -188,7 +227,7 @@ class Orchestrator:
                 progress_callback(desc, '', substep, percent, log)
 
         emit("Planning...", substep="Planning", percent=10)
-        plan = self.planner.run(goal, **kwargs)
+        plan = await self.planner.run(goal, **kwargs)
         
         emit("Collecting data...", substep="Data Collection", percent=30)
         # The plan is a string of bullet points, so we need to parse it into a list of strings
@@ -196,7 +235,7 @@ class Orchestrator:
         results, total_results_found, successful_queries, total_queries = await self.data_collector.run(queries, multimodal_agent=self.multimodal_agent, vision_agent=self.vision_agent, **kwargs)
 
         emit("Generating report...", substep="Report Generation", percent=80)
-        report_path = self.report_generator.run(goal, results, **kwargs)
+        report_path = await self.report_generator.run(goal, results, **kwargs)
         
         emit("Research complete!", substep="Complete", percent=100)
         return report_path, total_results_found, successful_queries, total_queries

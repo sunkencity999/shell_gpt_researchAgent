@@ -120,7 +120,7 @@ class ResearchAgent:
         
         emit(f"Finished indexing. Total chunks: {len(self.local_document_index)}", bar='', substep="Indexing", log="Local document indexing complete.")
 
-    def plan(self, goal: str, audience: str = "", tone: str = "", improvement: str = "", **kwargs) -> list:
+    async def plan(self, goal: str, audience: str = "", tone: str = "", improvement: str = "", **kwargs) -> list:
         """Use the LLM to break down the research goal into steps, with context."""
         context = ""
         if audience:
@@ -144,7 +144,7 @@ class ResearchAgent:
             f"- When did [specific thing] occur?\n"
             f"etc."
         )
-        response = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
+        response = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         return response
 
     def web_search(self, query: str, max_results: int = 10) -> list:
@@ -170,7 +170,7 @@ class ResearchAgent:
                 context += f"Special instructions: {improvement}. "
             
             prompt = f"{context}Summarize the following content in 2-3 sentences, focusing on the key information:\n\n{content[:2000]}"
-            summary = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
+            summary = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
             return summary
         except Exception as e:
             return f"Error processing {url}: {str(e)}. Snippet: {snippet}"
@@ -245,7 +245,7 @@ class ResearchAgent:
         validation_msg = f"Content validation: {len(relevant_summaries)} relevant, {irrelevant_count} irrelevant summaries"
         return relevant_summaries, validation_msg
 
-    def synthesize(self, summaries: list, goal: str, audience: str = "", tone: str = "", improvement: str = "", **kwargs) -> str:
+    async def synthesize(self, summaries: list, goal: str, audience: str = "", tone: str = "", improvement: str = "", **kwargs) -> str:
         """Synthesize multiple summaries into a coherent answer with content validation."""
         if not summaries:
             return "No relevant information found to synthesize."
@@ -255,21 +255,13 @@ class ResearchAgent:
         print(f" {validation_msg}")
         
         if not relevant_summaries:
-            return f"""I apologize, but I was unable to find relevant information to answer your research question: "{goal}"
-
-The search results contained content that was not related to your specific question. This could be due to:
-1. Limited availability of specific data on this topic
-2. Search queries not targeting the right sources
-3. The information you're looking for may require access to specialized databases
-
-**Suggestions:**
-- Try rephrasing your research question with more specific terms
-- Consider breaking down your question into smaller, more focused parts
-- Look for official sources, academic papers, or industry-specific databases
-- Try using more specific keywords related to your topic
-
-**Alternative approach:** You might want to search for more specific aspects of your topic or try different keyword combinations to get more targeted results."""
+            return f"""I apologize, but I was unable to find relevant information to answer your research question: "{goal}"\n\nThe search results contained content that was not related to your specific question. This could be due to:\n1. Limited availability of specific data on this topic\n2. Search queries not targeting the right sources\n3. The information you're looking for may require access to specialized databases\n\n**Suggestions:**\n- Try rephrasing your research question with more specific terms\n- Consider breaking down your question into smaller, more focused parts\n- Look for official sources, academic papers, or industry-specific databases\n- Try using more specific keywords related to your topic\n\n**Alternative approach:** You might want to search for more specific aspects of your topic or try different keyword combinations to get more targeted results."""
         
+        # Limit the number of summaries to avoid exceeding the context window
+        if len(relevant_summaries) > 30:
+            print(f"INFO: Limiting summaries for synthesis from {len(relevant_summaries)} to 30.")
+            relevant_summaries = relevant_summaries[:30]
+
         context = ""
         if audience:
             context += f"Intended audience: {audience}. "
@@ -280,24 +272,9 @@ The search results contained content that was not related to your specific quest
         
         combined_summaries = "\n\n".join(relevant_summaries)
         
-        prompt = f"""{context}Your task is to write a comprehensive answer to the following research goal, using ONLY the provided research summaries.
-
-**Research Goal:** "{goal}"
-
-**IMPORTANT INSTRUCTIONS:**
-1. **Stick to the Goal:** Your entire response must directly answer the research goal above. Do NOT deviate, introduce new topics, or answer a different question.
-2. **Use Only Provided Summaries:** Base your answer exclusively on the information in the "Summaries" section below. Do not use any outside knowledge.
-3. **Acknowledge Gaps:** If the summaries do not contain enough information to answer the goal, explicitly state that and describe what information is missing.
-4. **Structure:** Structure your response as a direct answer. Do not create your own "Research Question" or "Introduction" sections. Start directly with the answer.
-5. **Evidence:** Provide concrete evidence and data from the summaries to support your conclusions.
-
-**Summaries:**
-{combined_summaries}
-
-**Final Answer:**
-"""
+        prompt = f'''{context}You are a research assistant. Your sole task is to answer the user's research goal directly and concisely.Use the provided summaries to formulate your answer. Do not add any extra information, commentary, or introductory phrases.**Research Goal:** "{goal}"**Summaries:**---{combined_summaries}---Begin your response with the direct answer to the goal. For example, if the goal is "Who was the 16th president?", your answer should start with "Abraham Lincoln was the 16th president."**Answer:**'''
         
-        synthesis = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
+        synthesis = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         return synthesis
 
     def retrieve_local_documents(self, query: str, top_k: int = 3) -> list:
@@ -332,7 +309,7 @@ The search results contained content that was not related to your specific quest
 
         return relevant_chunks
 
-    def critique_and_find_gaps(self, synthesis: str, goal: str) -> tuple:
+    async def critique_and_find_gaps(self, synthesis: str, goal: str) -> tuple:
         """Critique the synthesis and identify specific data gaps for targeted searches."""
         
         # Check if synthesis indicates insufficient data
@@ -368,7 +345,7 @@ Provide:
 
 Make each gap a specific search query that could find the missing information."""
         
-        response = self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
+        response = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         
         lines = response.split('\n')
         gaps = [line.strip('- ').strip() for line in lines if line.strip().startswith('-')]
@@ -440,7 +417,7 @@ Make each gap a specific search query that could find the missing information.""
         else:
             return query
     
-    def write_report(self, synthesis: str, web_results_md: list, goal: str, structured_data: str = None, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None, project_name: str = None, documents_base_dir: str = None, **kwargs) -> str:
+    def write_report(self, synthesis: str, reasoning: str, web_results_md: list, goal: str, structured_data: str = None, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None, project_name: str = None, documents_base_dir: str = None, **kwargs) -> str:
         """Write a formatted research report to the project directory."""
         if not filename:
             import datetime
@@ -455,6 +432,26 @@ Make each gap a specific search query that could find the missing information.""
 
         os.makedirs(save_dir, exist_ok=True)
         report_path = os.path.join(save_dir, filename)
+
+        report_content = f"""# Research Report: {goal}
+
+## Synthesis
+
+{synthesis}
+
+### Reasoning
+
+{reasoning}
+
+"""
+        if structured_data:
+            report_content += f"""## Structured Data
+
+{structured_data}
+
+"""
+        report_content += "## Sources\n\n"
+        report_content += "\n".join(web_results_md)
 
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report_content)

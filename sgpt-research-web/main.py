@@ -50,7 +50,7 @@ async def get_models():
         
         ollama_client = OllamaClient()
         # The list_models() function returns a list of model name strings.
-        model_names = ollama_client.list_models()
+        model_names = await asyncio.to_thread(ollama_client.list_models)
         
         # Ensure default and embedding models are in the list, as a fallback
         default_model = cfg.get("DEFAULT_MODEL")

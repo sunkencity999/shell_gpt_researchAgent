@@ -1,4 +1,4 @@
-import requests
+import httpx
 import subprocess
 import time
 import json
@@ -11,7 +11,7 @@ class OllamaClient:
         self.api_url = f"{self.base_url}/api/generate"
         self.model = "qwen3:8b"
 
-    def generate(self, prompt: str, model: str = None, **kwargs) -> str:
+    async def generate(self, prompt: str, model: str = None, **kwargs) -> str:
         """
         Sends a prompt to the Ollama server and returns the completion.
         Handles streaming/multi-line JSON responses.
@@ -35,9 +35,10 @@ class OllamaClient:
         for k, v in kwargs.items():
             if k not in ("system_prompt", "context_window", "temperature", "max_tokens"):
                 payload[k] = v
-        def stream_and_concat(resp):
+        
+        async def stream_and_concat(resp):
             output = ""
-            for line in resp.iter_lines():
+            async for line in resp.aiter_lines():
                 if not line:
                     continue
                 try:
@@ -48,25 +49,24 @@ class OllamaClient:
                 except Exception as e:
                     print(f"[OLLAMA ERROR] Could not parse line: {line} | {e}")
             return output
+
         try:
-            resp = requests.post(self.api_url, json=payload, timeout=60, stream=True)
-            
-            
-            resp.raise_for_status()
-            return stream_and_concat(resp)
-        except requests.ConnectionError as e:
+            async with httpx.AsyncClient() as client:
+                async with client.stream("POST", self.api_url, json=payload, timeout=60) as resp:
+                    resp.raise_for_status()
+                    return await stream_and_concat(resp)
+        except httpx.ConnectError as e:
             print("[OLLAMA ERROR] Ollama server is not running. Attempting to start with 'ollama serve'...")
             try:
                 subprocess.Popen(["ollama", "serve"])
                 time.sleep(2)  # Give it a moment to start
-                resp = requests.post(self.api_url, json=payload, timeout=60, stream=True)
-                
-                
-                resp.raise_for_status()
-                return stream_and_concat(resp)
+                async with httpx.AsyncClient() as client:
+                    async with client.stream("POST", self.api_url, json=payload, timeout=60) as resp:
+                        resp.raise_for_status()
+                        return await stream_and_concat(resp)
             except Exception as e2:
                 return f"[Ollama error: Could not start Ollama server: {e2}]"
-        except requests.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             print(f"[OLLAMA ERROR] HTTP error: {e}")
             if e.response is not None and e.response.status_code == 404:
                 return f"[Ollama HTTP 404: Model '{model}' not found at {self.api_url}]"
@@ -75,12 +75,12 @@ class OllamaClient:
             print(f"[OLLAMA ERROR] Unexpected error: {e}")
             return f"[Ollama error: {e}]"
 
-    def chat(self, model: str, prompt: str, **kwargs) -> str:
+    async def chat(self, model: str, prompt: str, **kwargs) -> str:
         """
         Chat method that wraps generate() for compatibility with agent interface.
         Maps the expected chat parameters to generate parameters.
         """
-        return self.generate(prompt, model=model, **kwargs)
+        return await self.generate(prompt, model=model, **kwargs)
 
     def embeddings(self, model: str, prompt: str) -> list:
         """
