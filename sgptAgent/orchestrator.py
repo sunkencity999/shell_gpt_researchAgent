@@ -80,39 +80,114 @@ class ReportGeneratorAgent(ResearchAgent):
             documents_base_dir=kwargs.get("documents_base_dir")
         )
 
-    async def generate_reasoning(self, synthesis: str, summaries: list, goal: str, **kwargs) -> str:
+    async def extract_claims(self, synthesis: str, **kwargs) -> list:
+        """Extracts key claims from the synthesis."""
+        llm_kwargs = kwargs.copy()
+        llm_kwargs.pop("progress_callback", None)
+        
+        prompt = f"""**Your Task:**
+From the text below, extract the key claims being made. Each claim should be a single, complete sentence.
+Present them as a simple bulleted list.
+
+**Text to Analyze:**
+---
+{synthesis}
+---
+
+**Key Claims (bulleted list):**
+"""
+        response = await self.llm.chat(self.model, prompt, **llm_kwargs)
+        # Process the response to get a clean list of claims
+        claims = [line.strip('-*• ') for line in response.split('\n') if line.strip('-*• ')]
+        return claims
+
+    async def filter_summaries_for_claim(self, claim: str, summaries: list, **kwargs) -> list:
+        llm_kwargs = kwargs.copy()
+        llm_kwargs.pop("progress_callback", None)
+        
+        numbered_summaries = "\n".join([f"{i+1}. {summary}" for i, summary in enumerate(summaries)])
+
+        prompt = f'''**Your Task:** Read the following "Claim" and the "List of Summaries". Identify which summaries from the list are directly relevant to the claim.
+
+**Claim:**
+"{claim}"
+
+**List of Summaries:**
+---
+{numbered_summaries}
+---
+
+**Instructions:**
+Respond with a comma-separated list of the numbers corresponding to the relevant summaries. For example: 1, 5, 8.
+If no summaries are relevant, respond with "None".
+
+**Relevant Summary Numbers:**
+'''
+        response = await self.llm.chat(self.model, prompt, **llm_kwargs)
+        
+        if "none" in response.lower():
+            return []
+            
+        try:
+            relevant_indices = [int(i.strip()) - 1 for i in response.split(',') if i.strip().isdigit()]
+            relevant_summaries = [summaries[i] for i in relevant_indices if 0 <= i < len(summaries)]
+            return relevant_summaries
+        except (ValueError, IndexError):
+            return []
+
+    async def generate_reasoning_for_claim(self, claim: str, summaries: list, **kwargs) -> str:
+        if not summaries:
+            return "*   **Supporting Evidence:** None found in the provided sources.\n*   **Explanation:** No direct evidence was found in the provided summaries to support this claim."
+
         llm_kwargs = kwargs.copy()
         llm_kwargs.pop("progress_callback", None)
         combined_summaries = "\n\n".join(summaries)
-        prompt = f'''You are a research analyst. Your task is to explain the reasoning behind a given conclusion based on a set of summaries.
-Focus on connecting the key points in the summaries to the final answer, explaining *how* the evidence supports the conclusion.
 
-**Research Goal:**
-"""
-{goal}
-"""
+        prompt = f'''**Your Task:** Justify the following claim using the provided evidence.
 
-**Conclusion:**
-"""
-{synthesis}
-"""
+**Claim to Justify:**
+"{claim}"
 
-**Evidence (Summaries):**
-"""
+**Evidence:**
+---
 {combined_summaries}
-"""
+---
 
-**Reasoning:**
-(Explain the *why* behind the conclusion, citing the evidence from the summaries.)
+**Instructions:**
+1.  Cite the supporting evidence from the text provided.
+2.  Explain how the evidence directly supports the claim.
+
+**Output Format:**
+*   **Supporting Evidence:** [Cite the specific evidence]
+*   **Explanation:** [Explain how the evidence supports the claim]
 '''
         return await self.llm.chat(self.model, prompt, **llm_kwargs)
+
+    async def generate_reasoning(self, synthesis: str, summaries: list, goal: str, **kwargs) -> str:
+        claims = await self.extract_claims(synthesis, **kwargs)
+        
+        if not claims:
+            return "Could not extract key claims from the synthesis to generate reasoning."
+
+        reasoning_parts = []
+        for i, claim in enumerate(claims):
+            relevant_summaries = await self.filter_summaries_for_claim(claim, summaries, **kwargs)
+            reasoning_for_claim = await self.generate_reasoning_for_claim(claim, relevant_summaries, **kwargs)
+            reasoning_parts.append(f"**Point {i+1}:** {claim}\n{reasoning_for_claim}")
+
+        return "\n\n".join(reasoning_parts)
 
     async def extract_structured_data(self, summaries: list, structured_data_prompt: str, goal: str, **kwargs) -> str:
         llm_kwargs = kwargs.copy()
         llm_kwargs.pop("progress_callback", None)
         combined_summaries = "\n\n".join(summaries)
-        prompt = f'''You are a data extraction tool. Your task is to extract information from the provided text based on the user's request and return it as a Markdown table.
-Do not include any explanations, apologies, or conversational text. Only output the raw Markdown table.
+        prompt = f'''**Your Task:**
+You are a data extraction tool. Your only job is to extract information from the provided text and return it as a Markdown table. You must follow these instructions exactly:
+
+1.  **Do not** add any explanations, apologies, or conversational text.
+2.  **Only** output the raw Markdown table.
+3.  **Exactly** match the format of the example below.
+4.  **If** you cannot find the requested information, you **must** return an empty table with only headers.
 
 **Research Goal:** "{goal}"
 
@@ -123,12 +198,12 @@ Do not include any explanations, apologies, or conversational text. Only output 
 {combined_summaries}
 ---
 
-**Markdown Table Output:**
+**Example Markdown Table:**
 | Header 1 | Header 2 | Header 3 |
 |---|---|---|
 | Data 1 | Data 2 | Data 3 |
 
-(Your Markdown table output should follow this format)
+**Your Markdown Table Output:**
 '''
         return await self.llm.chat(self.model, prompt, **llm_kwargs)
 

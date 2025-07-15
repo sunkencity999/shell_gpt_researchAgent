@@ -272,7 +272,18 @@ class ResearchAgent:
         
         combined_summaries = "\n\n".join(relevant_summaries)
         
-        prompt = f'''{context}You are a research assistant. Your sole task is to answer the user's research goal directly and concisely.Use the provided summaries to formulate your answer. Do not add any extra information, commentary, or introductory phrases.**Research Goal:** "{goal}"**Summaries:**---{combined_summaries}---Begin your response with the direct answer to the goal. For example, if the goal is "Who was the 16th president?", your answer should start with "Abraham Lincoln was the 16th president."**Answer:**'''
+        prompt = f'''**Your Task:** Answer the following research goal **using only the provided summaries**. Your answer must be a direct and concise synthesis of the information. Do not add any information that is not present in the summaries.
+
+**Research Goal:**
+{goal}
+
+**Summaries:**
+---
+{combined_summaries}
+---
+
+**Answer:**
+'''
         
         synthesis = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         return synthesis
