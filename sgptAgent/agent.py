@@ -272,7 +272,7 @@ class ResearchAgent:
         
         combined_summaries = "\n\n".join(relevant_summaries)
         
-        prompt = f'''**Your Task:** Answer the following research goal **using only the provided summaries**. Your answer must be a direct and concise synthesis of the information. Do not add any information that is not present in the summaries.
+        prompt = f'''**Your Task:** You are a research analyst. Your job is to provide a clear, objective answer to the research goal based **only** on the provided summaries.
 
 **Research Goal:**
 {goal}
@@ -281,6 +281,14 @@ class ResearchAgent:
 ---
 {combined_summaries}
 ---
+
+**Instructions:**
+1.  **Analyze All Evidence:** Carefully review all the summaries and identify the key facts, figures, and claims related to the research goal.
+2.  **Evaluate the Evidence:** Determine if there is a single, definitive answer to the research goal supported by a consensus in the summaries.
+3.  **Construct a Grounded Answer:**
+    *   If a clear answer emerges, state it directly. Then, explain how the evidence supports it, citing the key facts from the summaries.
+    *   If the summaries present conflicting information or if no single piece of evidence is strong enough to be conclusive, you **must** state that a definitive answer cannot be determined. In this case, present the different pieces of evidence and explain why they are not conclusive.
+4.  **Do Not Invent:** Do not add any information or make any assumptions that are not explicitly stated in the summaries.
 
 **Answer:**
 '''

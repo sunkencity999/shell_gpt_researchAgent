@@ -85,20 +85,10 @@ class ReportGeneratorAgent(ResearchAgent):
         llm_kwargs = kwargs.copy()
         llm_kwargs.pop("progress_callback", None)
         
-        prompt = f"""**Your Task:**
-From the text below, extract the key claims being made. Each claim should be a single, complete sentence.
-Present them as a simple bulleted list.
-
-**Text to Analyze:**
----
-{synthesis}
----
-
-**Key Claims (bulleted list):**
-"""
+        prompt = f"""**Your Task:**\nFrom the text below, extract the key claims being made. Each claim should be a single, complete sentence.\nPresent them as a simple bulleted list.\n\n**Text to Analyze:**\n---\n{synthesis}\n---\n\n**Key Claims (bulleted list):**\n"""
         response = await self.llm.chat(self.model, prompt, **llm_kwargs)
         # Process the response to get a clean list of claims
-        claims = [line.strip('-*• ') for line in response.split('\n') if line.strip('-*• ')]
+        claims = [line.strip('*-• ') for line in response.split('\n') if line.strip('*-• ')]
         return claims
 
     async def filter_summaries_for_claim(self, claim: str, summaries: list, **kwargs) -> list:
@@ -107,22 +97,7 @@ Present them as a simple bulleted list.
         
         numbered_summaries = "\n".join([f"{i+1}. {summary}" for i, summary in enumerate(summaries)])
 
-        prompt = f'''**Your Task:** Read the following "Claim" and the "List of Summaries". Identify which summaries from the list are directly relevant to the claim.
-
-**Claim:**
-"{claim}"
-
-**List of Summaries:**
----
-{numbered_summaries}
----
-
-**Instructions:**
-Respond with a comma-separated list of the numbers corresponding to the relevant summaries. For example: 1, 5, 8.
-If no summaries are relevant, respond with "None".
-
-**Relevant Summary Numbers:**
-'''
+        prompt = f'''**Your Task:** You are a data filter. Your job is to determine which of the following summaries contain direct evidence to support the given claim.\n\n**Claim:**\n---\n{claim}\n---\n\n**Summaries to Evaluate:**\n---\n{numbered_summaries}\n---\n\n**Instructions:**\n1.  For each summary, decide if it contains a **direct fact** that supports the claim.\n2.  Do not select summaries that are only vaguely related or discuss the general topic. The connection must be direct.\n3.  Respond with a comma-separated list of the numbers for the summaries that contain direct evidence.\n4.  If no summaries are directly relevant, respond with the word "None".\n\n**Relevant Summary Numbers:**\n'''
         response = await self.llm.chat(self.model, prompt, **llm_kwargs)
         
         if "none" in response.lower():
@@ -137,30 +112,13 @@ If no summaries are relevant, respond with "None".
 
     async def generate_reasoning_for_claim(self, claim: str, summaries: list, **kwargs) -> str:
         if not summaries:
-            return "*   **Supporting Evidence:** None found in the provided sources.\n*   **Explanation:** No direct evidence was found in the provided summaries to support this claim."
+            return "No direct evidence was found in the provided summaries to support this claim."
 
         llm_kwargs = kwargs.copy()
         llm_kwargs.pop("progress_callback", None)
         combined_summaries = "\n\n".join(summaries)
 
-        prompt = f'''**Your Task:** Justify the following claim using the provided evidence.
-
-**Claim to Justify:**
-"{claim}"
-
-**Evidence:**
----
-{combined_summaries}
----
-
-**Instructions:**
-1.  Cite the supporting evidence from the text provided.
-2.  Explain how the evidence directly supports the claim.
-
-**Output Format:**
-*   **Supporting Evidence:** [Cite the specific evidence]
-*   **Explanation:** [Explain how the evidence supports the claim]
-'''
+        prompt = f'''**Your Task:** Justify the following claim using ONLY the provided evidence.\n\n**Claim:**\n---\n{claim}\n---\n\n**Supporting Evidence:**\n---\n{combined_summaries}\n---\n\n**Instructions:**\n1.  Write a brief explanation of how the "Supporting Evidence" proves the "Claim".\n2.  If the evidence is not sufficient, state that clearly.\n3.  Do not invent information or discuss topics not present in the evidence.\n\n**Justification:**\n'''
         return await self.llm.chat(self.model, prompt, **llm_kwargs)
 
     async def generate_reasoning(self, synthesis: str, summaries: list, goal: str, **kwargs) -> str:
