@@ -272,7 +272,7 @@ class ResearchAgent:
         
         combined_summaries = "\n\n".join(relevant_summaries)
         
-        prompt = f'''**Your Task:** You are a research analyst. Your job is to provide a clear, objective answer to the research goal based **only** on the provided summaries.
+        prompt = f'''**Your Task:** You are a research analyst. Your job is to analyze the provided summaries to answer the research goal. You must be objective and base your answer **only** on the information provided.
 
 **Research Goal:**
 {goal}
@@ -283,14 +283,22 @@ class ResearchAgent:
 ---
 
 **Instructions:**
-1.  **Analyze All Evidence:** Carefully review all the summaries and identify the key facts, figures, and claims related to the research goal.
-2.  **Evaluate the Evidence:** Determine if there is a single, definitive answer to the research goal supported by a consensus in the summaries.
-3.  **Construct a Grounded Answer:**
-    *   If a clear answer emerges, state it directly. Then, explain how the evidence supports it, citing the key facts from the summaries.
-    *   If the summaries present conflicting information or if no single piece of evidence is strong enough to be conclusive, you **must** state that a definitive answer cannot be determined. In this case, present the different pieces of evidence and explain why they are not conclusive.
-4.  **Do Not Invent:** Do not add any information or make any assumptions that are not explicitly stated in the summaries.
+Your response must follow this exact structure:
 
-**Answer:**
+### Analysis of Evidence
+1.  **Evidence Point 1:** [Summarize the first key piece of evidence related to the goal.]
+2.  **Evidence Point 2:** [Summarize the second key piece of evidence, even if it conflicts with the first.]
+3.  ... (continue for all relevant pieces of evidence).
+
+### Evaluation of Evidence
+-   [Provide a brief evaluation of the evidence. Does it all point to one answer? Is it conflicting? Is it too fragmented to draw a single conclusion?]
+
+### Conclusion
+-   [Based on your evaluation, state the final answer. If the evidence is not conclusive, you **MUST** state: "Based on the provided summaries, a definitive answer cannot be determined." and explain why.]
+
+**Do not invent any information. Stick strictly to the provided summaries.**
+
+**Your Report:**
 '''
         
         synthesis = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)

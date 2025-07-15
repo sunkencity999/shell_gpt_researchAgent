@@ -97,7 +97,27 @@ class ReportGeneratorAgent(ResearchAgent):
         
         numbered_summaries = "\n".join([f"{i+1}. {summary}" for i, summary in enumerate(summaries)])
 
-        prompt = f'''**Your Task:** You are a data filter. Your job is to determine which of the following summaries contain direct evidence to support the given claim.\n\n**Claim:**\n---\n{claim}\n---\n\n**Summaries to Evaluate:**\n---\n{numbered_summaries}\n---\n\n**Instructions:**\n1.  For each summary, decide if it contains a **direct fact** that supports the claim.\n2.  Do not select summaries that are only vaguely related or discuss the general topic. The connection must be direct.\n3.  Respond with a comma-separated list of the numbers for the summaries that contain direct evidence.\n4.  If no summaries are directly relevant, respond with the word "None".\n\n**Relevant Summary Numbers:**\n'''
+        prompt = f'''**Your Task:** You are a keyword-based data filter. Your only job is to identify which of the following summaries contain the **exact names or subjects** from the claim.
+
+**Claim:**
+---
+"{claim}"
+---
+
+**Summaries to Evaluate:**
+---
+{numbered_summaries}
+---
+
+**Instructions:**
+1.  Identify the key nouns (people, teams, leagues) in the "Claim".
+2.  Read each summary and check if it **explicitly mentions** those exact key nouns.
+3.  Only select summaries that contain a direct mention of the subjects in the claim. Do not select summaries based on general topic similarity.
+4.  Respond with a comma-separated list of the numbers for the summaries that are a direct match.
+5.  If no summaries contain the exact key nouns, you **MUST** respond with the word "None".
+
+**Relevant Summary Numbers:**
+'''
         response = await self.llm.chat(self.model, prompt, **llm_kwargs)
         
         if "none" in response.lower():
