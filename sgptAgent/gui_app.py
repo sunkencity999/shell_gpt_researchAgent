@@ -892,7 +892,7 @@ class ResearchAgentGUI(QMainWindow):
         
         self.run_btn = IconButton(
             "research", 
-            "Start Research",
+            "Generate Comprehensive Report",
             "primary"
         )
         self.run_btn.clicked.connect(self.run_research)
