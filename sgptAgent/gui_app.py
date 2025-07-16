@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QTextEdit, QLineEdit, QPushButton, QSplitter, QComboBox, QSpinBox, 
     QDoubleSpinBox, QGroupBox, QFormLayout, QListWidget, QProgressBar, 
     QMessageBox, QFileDialog, QAction, QMenuBar, QScrollArea, QSizePolicy,
-    QSplashScreen
+    QSplashScreen, QCheckBox, QInputDialog
 )
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QTimer, QEventLoop
 from PyQt5.QtGui import QIcon, QFont, QPalette, QColor, QPixmap, QPainter
@@ -263,6 +263,7 @@ class ResearchAgentGUI(QMainWindow):
         citation_style = self.citation_combo.currentText()
         filename = self.file_input.text().strip() or "research_report.txt"
         analyze_images = self.analyze_images_checkbox.isChecked()
+        domain = self.domain_combo.currentText()
 
         if not query:
             QMessageBox.warning(self, "Input Required", "Please enter a research query.")
@@ -295,7 +296,8 @@ class ResearchAgentGUI(QMainWindow):
         # Create and start the worker thread
         self.worker = ResearchWorker(
             query, audience, tone, improvement, project_name, model, num_results,
-            temperature, max_tokens, system_prompt, ctx_window, citation_style, filename
+            temperature, max_tokens, system_prompt, ctx_window, citation_style, filename,
+            analyze_images, mode, url, domain
         )
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.research_finished)
@@ -572,6 +574,13 @@ class ResearchAgentGUI(QMainWindow):
         url, ok = QInputDialog.getText(self, 'Analyze Images', 'Enter URL to analyze for images:')
         if ok and url:
             self.run_research(mode="vision", url=url)
+    
+    def toggle_vision_mode(self):
+        """Toggle UI elements based on selected mode."""
+        is_vision_mode = self.mode_combo.currentText() == "vision"
+        # For vision mode, we could add specific UI elements in the future
+        # Currently, the mode is passed to run_research which handles the logic
+        pass
 
     def _init_ui(self):
         """Initialize the modern user interface."""
@@ -679,6 +688,38 @@ class ResearchAgentGUI(QMainWindow):
         self.project_name_combo.setEditable(True)
         self._populate_project_list()
         params_layout.addWidget(create_form_row("Project Name:", self.project_name_combo))
+        
+        # Mode and Vision Settings
+        mode_layout = QHBoxLayout()
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItems(["research", "vision"])
+        self.mode_combo.currentTextChanged.connect(self.toggle_vision_mode)
+        mode_layout.addWidget(QLabel("Mode:"))
+        mode_layout.addWidget(self.mode_combo)
+        
+        self.analyze_images_checkbox = QCheckBox("Analyze Images")
+        self.analyze_images_checkbox.setChecked(True)
+        mode_layout.addWidget(self.analyze_images_checkbox)
+        
+        params_layout.addLayout(mode_layout)
+        
+        # Domain Agent Selection
+        domain_layout = QHBoxLayout()
+        self.domain_combo = QComboBox()
+        self.domain_combo.addItems([
+            "General", "Medical & Health", "Legal & Compliance", 
+            "Technology & AI", "Business & Finance", "Academic & Research",
+            "Science & Engineering", "Sports & Recreation", "Arts & Culture"
+        ])
+        domain_layout.addWidget(QLabel("Domain Expert:"))
+        domain_layout.addWidget(self.domain_combo)
+        
+        self.domain_help_button = IconButton("?", "ℹ️")
+        self.domain_help_button.setFixedSize(25, 25)
+        self.domain_help_button.clicked.connect(self.show_domain_help)
+        domain_layout.addWidget(self.domain_help_button)
+        
+        params_layout.addLayout(domain_layout)
         
         # Model and results count
         row2_layout = QHBoxLayout()
@@ -886,15 +927,27 @@ class ResearchAgentGUI(QMainWindow):
         self.report_list.setFont(get_font('body_md'))
         reports_layout.addWidget(self.report_list)
         
-        # Report actions
+        # Report actions - Enhanced file management
         open_report_btn = IconButton("document", "Open Report", "secondary")
         open_report_btn.clicked.connect(self.open_report_in_current)
         
         refresh_reports_btn = IconButton("refresh", "Refresh", "secondary")
         refresh_reports_btn.clicked.connect(self.refresh_report_list)
         
-        report_actions = create_button_row([open_report_btn, refresh_reports_btn])
-        reports_layout.addWidget(report_actions)
+        delete_report_btn = IconButton("delete", "Delete Report", "danger")
+        delete_report_btn.clicked.connect(self.delete_selected_report)
+        
+        rename_report_btn = IconButton("edit", "Rename Report", "secondary")
+        rename_report_btn.clicked.connect(self.rename_selected_report)
+        
+        export_report_btn = IconButton("export", "Export Report", "secondary")
+        export_report_btn.clicked.connect(self.export_selected_report)
+        
+        # Two rows of actions for better organization
+        report_actions_row1 = create_button_row([open_report_btn, refresh_reports_btn])
+        report_actions_row2 = create_button_row([delete_report_btn, rename_report_btn, export_report_btn])
+        reports_layout.addWidget(report_actions_row1)
+        reports_layout.addWidget(report_actions_row2)
         
         layout.addWidget(reports_card, 1)
         
@@ -1028,6 +1081,236 @@ class ResearchAgentGUI(QMainWindow):
                 success_rate = (self.successful_queries / self.total_queries) * 100
                 self.success_label.setText(f"✅ Success: {success_rate:.0f}%")
 
+    def delete_selected_report(self):
+        """Delete the selected report file."""
+        current_item = self.report_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "No Selection", "Please select a report to delete.")
+            return
+        
+        report_name = current_item.text()
+        report_path = os.path.join(DOCUMENTS_DIR, report_name)
+        
+        # Confirm deletion
+        reply = QMessageBox.question(
+            self, "Confirm Deletion", 
+            f"Are you sure you want to delete '{report_name}'?\n\nThis action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                if os.path.exists(report_path):
+                    os.remove(report_path)
+                    QMessageBox.information(self, "Success", f"Report '{report_name}' deleted successfully.")
+                    self.refresh_report_list()
+                    self.report_preview.clear()
+                else:
+                    QMessageBox.warning(self, "File Not Found", f"Report '{report_name}' not found.")
+            except Exception as e:
+                QMessageBox.critical(self, "Delete Error", f"Could not delete report:\n{e}")
+
+    def rename_selected_report(self):
+        """Rename the selected report file."""
+        current_item = self.report_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "No Selection", "Please select a report to rename.")
+            return
+        
+        old_name = current_item.text()
+        old_path = os.path.join(DOCUMENTS_DIR, old_name)
+        
+        if not os.path.exists(old_path):
+            QMessageBox.warning(self, "File Not Found", f"Report '{old_name}' not found.")
+            return
+        
+        # Get new name from user
+        new_name, ok = QInputDialog.getText(
+            self, "Rename Report", "Enter new name:", text=old_name
+        )
+        
+        if ok and new_name and new_name != old_name:
+            # Ensure proper extension
+            if not new_name.endswith('.txt') and not new_name.endswith('.md'):
+                new_name += '.txt'
+            
+            new_path = os.path.join(DOCUMENTS_DIR, new_name)
+            
+            # Check if new name already exists
+            if os.path.exists(new_path):
+                QMessageBox.warning(self, "Name Exists", f"A report named '{new_name}' already exists.")
+                return
+            
+            try:
+                os.rename(old_path, new_path)
+                QMessageBox.information(self, "Success", f"Report renamed to '{new_name}'.")
+                self.refresh_report_list()
+            except Exception as e:
+                QMessageBox.critical(self, "Rename Error", f"Could not rename report:\n{e}")
+
+    def export_selected_report(self):
+        """Export the selected report to various formats."""
+        current_item = self.report_list.currentItem()
+        if not current_item:
+            QMessageBox.warning(self, "No Selection", "Please select a report to export.")
+            return
+        
+        report_name = current_item.text()
+        report_path = os.path.join(DOCUMENTS_DIR, report_name)
+        
+        if not os.path.exists(report_path):
+            QMessageBox.warning(self, "File Not Found", f"Report '{report_name}' not found.")
+            return
+        
+        try:
+            with open(report_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            QMessageBox.critical(self, "Read Error", f"Could not read report:\n{e}")
+            return
+        
+        # Choose export format and location
+        filters = "PDF Files (*.pdf);;Word Document (*.docx);;HTML File (*.html);;Markdown (*.md);;Text File (*.txt)"
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Export Report", 
+            os.path.splitext(report_name)[0], 
+            filters
+        )
+        
+        if filename:
+            self._export_content_to_file(content, filename)
+
+    def _export_content_to_file(self, content, filename):
+        """Helper method to export content to various file formats."""
+        ext = os.path.splitext(filename)[1].lower()
+        try:
+            if ext == ".pdf":
+                self._export_to_pdf(content, filename)
+            elif ext == ".docx":
+                self._export_to_docx(content, filename)
+            elif ext == ".html":
+                self._export_to_html(content, filename)
+            else:  # .md, .txt, or other text formats
+                with open(filename, "w", encoding="utf-8") as f:
+                    f.write(content)
+            
+            QMessageBox.information(self, "Export Success", f"Report exported to:\n{filename}")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Could not export report:\n{e}")
+
+    def _export_to_pdf(self, content, filename):
+        """Export content to PDF format."""
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.units import inch
+            
+            doc = SimpleDocTemplate(filename, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            # Split content into paragraphs
+            paragraphs = content.split('\n\n')
+            for para in paragraphs:
+                if para.strip():
+                    story.append(Paragraph(para.strip(), styles['Normal']))
+                    story.append(Spacer(1, 0.2*inch))
+            
+            doc.build(story)
+        except ImportError:
+            # Fallback to simple canvas method
+            c = canvas.Canvas(filename, pagesize=letter)
+            width, height = letter
+            lines = content.split('\n')
+            y = height - 40
+            
+            for line in lines:
+                if y < 40:
+                    c.showPage()
+                    y = height - 40
+                c.drawString(40, y, line[:100])  # Truncate long lines
+                y -= 14
+            
+            c.save()
+
+    def _export_to_docx(self, content, filename):
+        """Export content to Word document format."""
+        try:
+            from docx import Document
+            doc = Document()
+            
+            # Split content into paragraphs
+            paragraphs = content.split('\n\n')
+            for para in paragraphs:
+                if para.strip():
+                    doc.add_paragraph(para.strip())
+            
+            doc.save(filename)
+        except ImportError:
+            raise ImportError("python-docx is required for DOCX export. Install with: pip install python-docx")
+
+    def _export_to_html(self, content, filename):
+        """Export content to HTML format."""
+        try:
+            import markdown
+            html_content = markdown.markdown(content)
+        except ImportError:
+            # Fallback to simple HTML
+            html_content = f"<html><body><pre>{content}</pre></body></html>"
+        
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(html_content)
+    
+    def show_domain_help(self):
+        """Display help information about domain agents."""
+        help_text = """
+<h3>🎯 Domain Expert Agents</h3>
+
+<p>Domain agents provide specialized expertise for your research:</p>
+
+<b>🩺 Medical & Health:</b> Evidence-based research with focus on medical journals, clinical studies, drug interactions, and health guidelines.
+
+<b>⚖️ Legal & Compliance:</b> Emphasis on legal precedents, regulations, compliance requirements, and authoritative legal sources.
+
+<b>🤖 Technology & AI:</b> Focus on technical specifications, research papers, GitHub repositories, and tech industry sources.
+
+<b>💼 Business & Finance:</b> Market analysis, financial data, business strategies, and economic indicators from reliable sources.
+
+<b>🎓 Academic & Research:</b> Scholarly articles, peer-reviewed sources, citation standards, and academic databases.
+
+<b>🔬 Science & Engineering:</b> Scientific journals, research papers, technical standards, and engineering specifications.
+
+<b>⚽ Sports & Recreation:</b> Sports statistics, team records, player data, and official sports organization sources.
+
+<b>🎨 Arts & Culture:</b> Cultural analysis, artistic movements, historical context, and creative industry insights.
+
+<b>🌐 General:</b> Broad research approach suitable for most topics without domain-specific bias.
+
+<p><i>Each domain agent uses specialized query enhancement, source targeting, and validation criteria tailored to that field.</i></p>
+        """
+        
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Domain Agent Help")
+        msg.setTextFormat(1)  # RichText format
+        msg.setText(help_text)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStyleSheet("""
+            QMessageBox { 
+                background-color: #2d2d30;
+                color: #ffffff;
+                font-size: 12px;
+            }
+            QMessageBox QLabel {
+                color: #ffffff;
+                min-width: 500px;
+                max-width: 600px;
+            }
+        """)
+        msg.exec_()
+
 # --- Threaded backend worker ---
 class ResearchWorker(QThread):
     finished = pyqtSignal(str, str)  # result, report_path
@@ -1035,7 +1318,7 @@ class ResearchWorker(QThread):
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
     def __init__(self, query, audience, tone, improvement, project_name, model, num_results,
-                 temperature, max_tokens, system_prompt, ctx_window, citation_style, filename, analyze_images, mode, url): 
+                 temperature, max_tokens, system_prompt, ctx_window, citation_style, filename, analyze_images, mode, url, domain="General"): 
         super().__init__()
         self.query = query
         self.audience = audience
@@ -1053,8 +1336,10 @@ class ResearchWorker(QThread):
         self.analyze_images = analyze_images
         self.mode = mode
         self.url = url
+        self.domain = domain
 
     def run(self):
+        import asyncio
         try:
             agent = ResearchAgent(model=self.model)
             def progress_callback(desc, bar, substep=None, percent=None, log=None):
@@ -1062,7 +1347,7 @@ class ResearchWorker(QThread):
             
             # Run the research and get the report path
             self.progress.emit("Starting research...", "", "Initializing", 0, "Research agent initialized.")
-            report_path, total_results_found, successful_queries, total_queries = await agent.run(
+            report_path, total_results_found, successful_queries, total_queries = asyncio.run(agent.run(
                 self.query,
                 audience=self.audience,
                 tone=self.tone,
@@ -1080,8 +1365,9 @@ class ResearchWorker(QThread):
                 analyze_images=self.analyze_images,
                 mode=self.mode,
                 url=self.url,
+                domain=self.domain,
                 progress_callback=progress_callback
-            )
+            ))
             
             self.progress.emit("Processing results...", "", "File Creation", 95, f"Research completed. Report path: {report_path}")
             

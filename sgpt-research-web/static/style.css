@@ -133,6 +133,15 @@ button.secondary:hover {
     background-color: #5a6268;
 }
 
+button.danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+button.danger:hover {
+    background-color: #c82333;
+}
+
 /* Progress Section */
 #progress-label {
     font-weight: bold;

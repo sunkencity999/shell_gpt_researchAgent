@@ -1,6 +1,7 @@
 
 from sgptAgent.agent import ResearchAgent
 from sgptAgent.config import cfg
+from sgptAgent.domain_agents import get_domain_agent
 import os
 
 class PlannerAgent(ResearchAgent):
@@ -296,6 +297,10 @@ class Orchestrator:
         self.report_generator = ReportGeneratorAgent(**kwargs)
         self.vision_agent = VisionAgent(**kwargs)
         self.multimodal_agent = MultimodalAgent(**kwargs)
+        
+        # Initialize domain agent
+        domain = kwargs.get('domain', 'General')
+        self.domain_agent = get_domain_agent(domain)
 
     async def run(self, goal: str, **kwargs):
         mode = kwargs.get("mode", "research")
@@ -314,6 +319,14 @@ class Orchestrator:
         emit("Collecting data...", substep="Data Collection", percent=30)
         # The plan is a string of bullet points, so we need to parse it into a list of strings
         queries = [line.strip('-*• ') for line in plan.split('\n') if line.strip('-*• ')]
+        
+        # Enhance queries with domain-specific targeting
+        if self.domain_agent and hasattr(self.domain_agent, 'enhance_queries'):
+            emit("Enhancing queries with domain expertise...", substep="Domain Enhancement", percent=35)
+            enhanced_queries = self.domain_agent.enhance_queries(queries, goal)
+            emit(f"Enhanced {len(queries)} queries for {self.domain_agent.domain_name} domain", log=f"Enhanced queries: {enhanced_queries[:3]}...")
+            queries = enhanced_queries
+        
         results, total_results_found, successful_queries, total_queries = await self.data_collector.run(queries, multimodal_agent=self.multimodal_agent, vision_agent=self.vision_agent, **kwargs)
 
         emit("Generating report...", substep="Report Generation", percent=80)

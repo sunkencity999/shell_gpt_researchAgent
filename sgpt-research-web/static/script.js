@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newProjectRow = document.getElementById('new-project-row');
     const newProjectNameInput = document.getElementById('new-project-name-input');
     const modelSelect = document.getElementById('model-select');
+    const domainSelect = document.getElementById('domain-select');
     const resultsSpin = document.getElementById('results-spin');
     const localDocsPathInput = document.getElementById('local-docs-path-input');
     const useLocalDocsCheckbox = document.getElementById('use-local-docs-checkbox');
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportList = document.getElementById('report-list');
     const openReportBtn = document.getElementById('open-report-btn');
     const downloadReportBtn = document.getElementById('download-report-btn');
+    const deleteReportBtn = document.getElementById('delete-report-btn');
     const refreshReportsBtn = document.getElementById('refresh-reports-btn');
     const reportPreview = document.getElementById('report-preview');
     const collapsibleHeader = document.querySelector('.collapsible-header');
@@ -230,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             structured_data_prompt: structuredDataPromptInput.value.trim(),
             project_name: projectName || null,
             model: modelSelect.value,
+            domain: domainSelect.value.trim() || null,
             num_results: parseInt(resultsSpin.value),
             temperature: parseFloat(tempSpin.value),
             max_tokens: parseInt(maxTokensSpin.value),
@@ -432,6 +435,37 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = `/api/download/${encodedPath}`;
         } else {
             alert('Please select a report to download.');
+        }
+    });
+
+    deleteReportBtn.addEventListener('click', async () => {
+        const selectedItem = reportList.querySelector('li.selected');
+        if (selectedItem) {
+            const reportPath = selectedItem.dataset.path;
+            const fileName = reportPath.split('/').pop(); // Get just the filename
+            
+            if (confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+                try {
+                    const encodedPath = encodeURIComponent(reportPath);
+                    const response = await fetch(`/api/delete/${encodedPath}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        alert('Report deleted successfully.');
+                        fetchReports(); // Refresh the list
+                        reportPreview.src = ''; // Clear preview
+                    } else {
+                        const error = await response.json();
+                        alert(`Failed to delete report: ${error.detail || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error deleting report:', error);
+                    alert('An error occurred while deleting the report.');
+                }
+            }
+        } else {
+            alert('Please select a report to delete.');
         }
     });
 

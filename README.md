@@ -52,7 +52,8 @@
 
 ### **🧠 Advanced NLP & Query Enhancement**
 - **Entity Recognition**: Uses spaCy to extract organizations, people, dates, locations
-- **Domain Detection**: Automatically identifies research domain (sports, tech, business, etc.)
+- **Domain Intelligence**: Both automatic detection AND user-selectable domains (Technology, Healthcare, Finance, Legal, Academic, Business, Science, General)
+- **Domain-Aware Enhancement**: Specialized agents enhance queries with domain-specific terminology and research focus
 - **Query Expansion**: NLTK WordNet synonyms + domain-specific keywords
 - **Contextual Rewriting**: Generates 10+ targeted search variations per step
 
@@ -208,9 +209,19 @@ python sgptAgent/gui_app.py
 launch_web.bat
 
 # Access the web UI in your browser at http://localhost:8000
-# In the web UI, you can select an existing project from the dropdown or choose "Add New Project..." to create a new one.
-# Reports can be previewed directly in the browser and downloaded.
 ```
+
+**🌐 Enhanced Web Interface Features:**
+- **📊 Domain-Specific Research**: Select from 8+ specialized research domains (Technology, Healthcare, Finance, Legal, Academic, Business, Science, General)
+- **🎯 Smart Query Enhancement**: Domain-aware agents automatically enhance your research queries with relevant terminology and focus areas
+- **📁 Complete File Management**: Full parity with desktop GUI including:
+  - 📋 **View & Preview**: Browse saved reports with live preview
+  - ⬇️ **Download**: Export reports in multiple formats
+  - 🗑️ **Delete**: Securely remove unwanted reports with confirmation
+  - 🔄 **Refresh**: Real-time file list updates
+- **⚙️ Advanced Settings**: Configure LLM parameters, output formats, and research depth
+- **📈 Live Progress Tracking**: Real-time research progress with detailed status updates
+- **🔒 Secure Operations**: Path validation and permission handling for all file operations
 
 **Direct Python:**
 ```python
@@ -336,6 +347,21 @@ By using a well-crafted prompt, you can transform raw research into a perfectly 
 - **Content Analysis**: Identify trending topics and information gaps
 - **Source Reliability**: Build reputation scores for different domains
 - **Research Patterns**: Analyze effective query strategies
+
+## 🆕 **Recent Updates**
+
+### **Enhanced Web GUI (Latest)**
+- 🎯 **Domain Selection**: Choose from 8 specialized research domains (Technology, Healthcare, Finance, Legal, Academic, Business, Science, General)
+- 🗑️ **Complete File Management**: Added secure file deletion with confirmation dialogs and path validation
+- 📊 **Advanced Progress Tracking**: Real-time metrics including elapsed time, ETA estimation, results counter, and success rates
+- 🔒 **Security Enhancements**: Directory traversal protection and secure file operations
+- 💼 **Professional UI**: Danger button styling, enhanced file management workflow, and improved user feedback
+
+### **Query Enhancement System**
+- 🧠 **Multi-Strategy Enhancement**: Progressive query enhancement with domain-aware targeting
+- 🔍 **Improved Search Targeting**: Domain-specific site targeting for better result quality
+- 📈 **Smart Fallback Strategies**: Multiple levels of query refinement with error handling
+- 🎪 **Content Validation**: Pre-synthesis relevance filtering to ensure quality outputs
 
 ## 👨‍💻 **Creator & Contact**
 

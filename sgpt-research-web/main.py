@@ -147,6 +147,7 @@ async def run_research_task(task_id: str, data: dict):
             filename=data.get("filename"),
             documents_base_dir=str(DOCUMENTS_DIR), # Pass the base documents directory
             local_docs_path=data.get("local_docs_path"),
+            domain=data.get("domain"),
             progress_callback=progress_callback
         )
         
@@ -236,6 +237,33 @@ async def download_file(file_path: str):
     if not full_path.is_file() or not full_path.is_relative_to(DOCUMENTS_DIR.resolve()):
         raise HTTPException(status_code=404, detail="File not found or access denied.")
     return FileResponse(full_path, media_type='application/octet-stream', filename=full_path.name)
+
+
+@app.delete("/api/delete/{file_path:path}")
+async def delete_file(file_path: str):
+    """Delete a file from the documents directory."""
+    try:
+        decoded_path = unquote(file_path)
+        full_path = (DOCUMENTS_DIR / decoded_path).resolve()
+        
+        # Security check: ensure the file is within the documents directory
+        if not full_path.is_relative_to(DOCUMENTS_DIR.resolve()):
+            raise HTTPException(status_code=403, detail="Access denied.")
+        
+        # Check if file exists
+        if not full_path.is_file():
+            raise HTTPException(status_code=404, detail=f"File not found: {full_path}")
+        
+        # Delete the file
+        full_path.unlink()
+        
+        return {"message": f"File '{full_path.name}' deleted successfully."}
+        
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied. Cannot delete file.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting file: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn

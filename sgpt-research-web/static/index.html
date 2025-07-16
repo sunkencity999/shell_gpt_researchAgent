@@ -54,6 +54,22 @@
                     <select id="model-select"></select>
                 </div>
                 <div class="form-row">
+                    <label for="domain-select">Research Domain:</label>
+                    <select id="domain-select">
+                        <option value="">General (No Domain)</option>
+                        <option value="technology">Technology</option>
+                        <option value="healthcare">Healthcare</option>
+                        <option value="finance">Finance</option>
+                        <option value="legal">Legal</option>
+                        <option value="academic">Academic</option>
+                        <option value="business">Business</option>
+                        <option value="science">Science</option>
+                        <option value="news">News & Current Events</option>
+                        <option value="education">Education</option>
+                        <option value="environment">Environment</option>
+                    </select>
+                </div>
+                <div class="form-row">
                     <label for="results-spin">Web Results:</label>
                     <input type="number" id="results-spin" value="10" min="1" max="20">
                 </div>
@@ -142,6 +158,7 @@
                 <div class="button-group">
                     <button id="open-report-btn" class="secondary">Open Report</button>
                     <button id="download-report-btn" class="secondary">Download</button>
+                    <button id="delete-report-btn" class="danger">Delete</button>
                     <button id="refresh-reports-btn" class="secondary">Refresh</button>
                 </div>
             </div>
