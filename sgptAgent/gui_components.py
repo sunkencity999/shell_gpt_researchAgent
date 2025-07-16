@@ -289,6 +289,18 @@ class ModernComboBox(QWidget):
         """Set current selected text."""
         self.combo.setCurrentText(text)
     
+    def setCurrentIndex(self, index):
+        """Set current selected index."""
+        self.combo.setCurrentIndex(index)
+    
+    def currentIndex(self):
+        """Get current selected index."""
+        return self.combo.currentIndex()
+    
+    def count(self):
+        """Get number of items in combo box."""
+        return self.combo.count()
+    
     def setEditable(self, editable):
         """Set whether the combo box is editable."""
         self.combo.setEditable(editable)

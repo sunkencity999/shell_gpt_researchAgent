@@ -201,6 +201,8 @@ class ResearchAgentGUI(QMainWindow):
         self.improvement_input.clear()
         self.file_input.clear()
         self.system_prompt_input.clear()
+        # Reset project name to "None" option (index 0)
+        self.project_name_combo.setCurrentIndex(0)
         self.output_box.clear()
         self.progress_bar.setValue(0)
         self.progress_label.setText("")
@@ -227,12 +229,29 @@ class ResearchAgentGUI(QMainWindow):
         """Populate the project list combobox with existing projects."""
         try:
             self.project_name_combo.clear()
-            projects_dir = os.path.join(os.path.expanduser("~"), ".sgpt_research", "projects")
-            if os.path.exists(projects_dir):
-                projects = [d for d in os.listdir(projects_dir) if os.path.isdir(os.path.join(projects_dir, d))]
-                self.project_name_combo.addItems(projects)
+            
+            # Add "None" option first (matches web version)
+            self.project_name_combo.addItem("None", "")
+            
+            # Use same documents directory as web version
+            documents_dir = DOCUMENTS_DIR
+            if documents_dir.exists():
+                # Get all directories in documents folder (these are projects)
+                projects = [d.name for d in documents_dir.iterdir() if d.is_dir()]
+                projects.sort()  # Sort alphabetically
+                
+                # Add each project to the combo box
+                for project in projects:
+                    self.project_name_combo.addItem(project, project)
+            
+            # Set default to "None" to match web version
+            self.project_name_combo.setCurrentIndex(0)
+            
         except Exception as e:
             print(f"[WARNING] Error populating project list: {e}")
+            # Ensure at least "None" option exists
+            if self.project_name_combo.count() == 0:
+                self.project_name_combo.addItem("None", "")
     
     def browse_file(self):
         fname, _ = QFileDialog.getSaveFileName(self, "Save Research Report As", str(DOCUMENTS_DIR / "research_report.txt"), "Text/Markdown Files (*.txt *.md)")
@@ -246,7 +265,10 @@ class ResearchAgentGUI(QMainWindow):
         audience = self.audience_input.text().strip()
         tone = self.tone_input.text().strip()
         improvement = self.improvement_input.text().strip()
-        project_name = self.project_name_combo.currentText().strip() or None
+        # Get project name from combo box data (not text) to handle "None" option correctly
+        project_name = self.project_name_combo.currentData()
+        if not project_name:  # If empty string or None, set to None
+            project_name = None
         
         # Get model name from combo box
         model_text = self.model_combo.currentText()
@@ -262,7 +284,7 @@ class ResearchAgentGUI(QMainWindow):
         ctx_window = self.ctx_window_spin.value()
         citation_style = self.citation_combo.currentText()
         filename = self.file_input.text().strip() or "research_report.txt"
-        analyze_images = self.analyze_images_checkbox.isChecked()
+        analyze_images = True  # Default to True since image analysis is now handled by separate button
         domain = self.domain_combo.currentText()
 
         if not query:
@@ -387,10 +409,12 @@ class ResearchAgentGUI(QMainWindow):
         
         # Show file creation notification
         if report_path:
-            if self.project_name_combo.currentText().strip():
+            # Check if project name is set (using data, not text, to handle "None" option)
+            current_project_data = self.project_name_combo.currentData()
+            if current_project_data:  # Non-empty project selected
                 project_dir = os.path.dirname(report_path)
                 self.progress_label.setText(f"✅ Research completed! | 📁 Project saved to: {project_dir}")
-            else:
+            else:  # "None" option selected
                 filename = os.path.basename(report_path)
                 self.progress_label.setText(f"✅ Research completed successfully! | 📁 Saved: {filename}")
         else:
@@ -697,10 +721,6 @@ class ResearchAgentGUI(QMainWindow):
         mode_layout.addWidget(QLabel("Mode:"))
         mode_layout.addWidget(self.mode_combo)
         
-        self.analyze_images_checkbox = QCheckBox("Analyze Images")
-        self.analyze_images_checkbox.setChecked(True)
-        mode_layout.addWidget(self.analyze_images_checkbox)
-        
         params_layout.addLayout(mode_layout)
         
         # Domain Agent Selection
@@ -730,10 +750,6 @@ class ResearchAgentGUI(QMainWindow):
         row2_layout.addWidget(create_form_row("Model:", self.model_combo))
         row2_layout.addWidget(create_form_row("Web Results:", self.results_spin))
         params_layout.addLayout(row2_layout)
-        
-        self.analyze_images_button = IconButton("image", "Analyze Images", "secondary")
-        self.analyze_images_button.clicked.connect(self.analyze_images_from_url)
-        params_layout.addWidget(self.analyze_images_button)
 
         layout.addWidget(params_card)
         
@@ -759,9 +775,6 @@ class ResearchAgentGUI(QMainWindow):
         self.ctx_window_spin = ModernSpinBox(128, 8192, 2048)
         advanced_layout.addWidget(create_form_row("Context Window:", self.ctx_window_spin))
 
-        self.analyze_images_checkbox = QCheckBox("Analyze images in search results")
-        advanced_layout.addWidget(self.analyze_images_checkbox)
-        
         self.advanced_section.add_layout(advanced_layout)
         layout.addWidget(self.advanced_section)
         

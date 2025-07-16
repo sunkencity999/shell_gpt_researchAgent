@@ -78,9 +78,15 @@ class QueryEnhancer:
                 'latest', 'new', 'update', 'version', 'features', 'specifications', 'requirements', 'compatibility'
             ],
             'business': [
-                'company', 'market', 'revenue', 'profit', 'strategy', 'competition', 'industry', 'growth', 'investment', 'financial',
-                'vs', 'versus', 'compare', 'comparison', 'better', 'performance', 'metrics', 'KPI', 'ROI', 'analysis',
-                'quarterly', 'annual', 'fiscal', 'earnings', 'stock', 'valuation', 'market share', 'competitive advantage'
+                # Startup & Entrepreneurship keywords
+                'startup', 'entrepreneur', 'business plan', 'startup costs', 'equipment', 'pricing', 'customers', 'target market',
+                'profitable', 'revenue streams', 'business model', 'initial investment', 'overhead costs', 'break-even',
+                'small business', 'home business', 'franchise', 'licensing', 'permits', 'business registration',
+                # Practical business guidance
+                'how to start', 'getting started', 'first steps', 'beginner guide', 'step by step', 'requirements',
+                'tips', 'advice', 'success stories', 'mistakes to avoid', 'best practices', 'lessons learned',
+                # Business operations
+                'marketing', 'advertising', 'sales', 'inventory', 'suppliers', 'location', 'workspace', 'tools needed'
             ],
             'science': [
                 'research', 'study', 'experiment', 'data', 'analysis', 'theory', 'hypothesis', 'methodology', 'findings', 'publication',
@@ -97,15 +103,49 @@ class QueryEnhancer:
                 'compare', 'comparison', 'versus', 'debate', 'position', 'stance', 'record', 'polling', 'approval rating',
                 'term', 'tenure', 'presidency', 'congress', 'senate', 'house', 'supreme court', 'federal', 'state', 'local'
             ],
+            'sports': [
+                # Major sports
+                'football', 'basketball', 'baseball', 'soccer', 'tennis', 'golf', 'hockey', 'volleyball', 'swimming',
+                'track and field', 'gymnastics', 'wrestling', 'boxing', 'martial arts', 'cycling', 'running', 'marathon',
+                # Team sports
+                'NFL', 'NBA', 'MLB', 'NHL', 'MLS', 'NCAA', 'team', 'player', 'coach', 'season', 'playoffs', 'championship',
+                'draft', 'trade', 'roster', 'lineup', 'statistics', 'stats', 'performance', 'record', 'standings',
+                # Comparison & analysis
+                'compare', 'comparison', 'versus', 'vs', 'better', 'best', 'top', 'ranking', 'analysis', 'prediction',
+                'odds', 'betting', 'fantasy', 'injury report', 'news', 'highlights', 'recap', 'preview',
+                # Equipment & training
+                'equipment', 'gear', 'training', 'fitness', 'workout', 'diet', 'nutrition', 'recovery', 'technique',
+                # Events & venues
+                'tournament', 'game', 'match', 'competition', 'stadium', 'arena', 'venue', 'schedule', 'tickets'
+            ],
             'finance': [
+                # Investment & Trading keywords
                 'investment', 'stock', 'bond', 'portfolio', 'return', 'risk', 'market', 'trading', 'valuation', 'analysis',
+                'ETF', 'mutual fund', 'index fund', 'options', 'futures', 'crypto', 'cryptocurrency', 'forex', 'commodities',
+                # Financial planning & personal finance
+                'retirement', '401k', 'IRA', 'savings', 'budget', 'debt', 'mortgage', 'insurance', 'tax planning',
+                'financial advisor', 'wealth management', 'estate planning', 'emergency fund', 'credit score',
+                # Analysis & comparison
                 'compare', 'comparison', 'versus', 'performance', 'benchmark', 'yield', 'dividend', 'growth', 'volatility',
-                'bull market', 'bear market', 'recession', 'inflation', 'interest rate', 'economic', 'financial'
+                'bull market', 'bear market', 'recession', 'inflation', 'interest rate', 'economic', 'financial',
+                # Market analysis
+                'earnings', 'P/E ratio', 'market cap', 'revenue', 'profit margin', 'cash flow', 'balance sheet'
             ],
             'education': [
-                'school', 'university', 'college', 'student', 'teacher', 'curriculum', 'degree', 'program', 'course', 'learning',
+                # Educational institutions
+                'school', 'university', 'college', 'community college', 'trade school', 'vocational school', 'bootcamp',
+                'public school', 'private school', 'charter school', 'homeschool', 'K-12', 'elementary', 'high school',
+                # Academic programs & degrees
+                'degree', 'bachelor', 'master', 'PhD', 'doctorate', 'certificate', 'diploma', 'major', 'minor',
+                'STEM', 'liberal arts', 'business school', 'medical school', 'law school', 'graduate school',
+                # Educational process
+                'curriculum', 'program', 'course', 'learning', 'teaching', 'instruction', 'pedagogy', 'assessment',
+                'student', 'teacher', 'professor', 'faculty', 'advisor', 'mentor', 'tutor',
+                # Comparison & evaluation
                 'compare', 'comparison', 'versus', 'ranking', 'rating', 'accreditation', 'admission', 'tuition', 'quality',
-                'academic', 'scholarship', 'graduation', 'enrollment', 'faculty', 'research', 'campus', 'online'
+                'best schools', 'top programs', 'requirements', 'acceptance rate', 'graduation rate', 'job placement',
+                # Modern education
+                'online learning', 'distance learning', 'e-learning', 'MOOCs', 'blended learning', 'skills training'
             ],
             'general': [
                 'compare', 'comparison', 'versus', 'vs', 'better', 'best', 'worst', 'difference', 'analysis', 'review',
@@ -191,7 +231,7 @@ class QueryEnhancer:
                     # Weight scoring based on keyword importance
                     if keyword in comparison_keywords:
                         score += 2  # Comparison keywords get higher weight
-                    elif keyword in ['team', 'player', 'company', 'research', 'treatment', 'government']:
+                    elif keyword in ['team', 'player', 'company', 'research', 'treatment', 'government', 'NFL', 'NBA', 'MLB', 'NHL', 'university', 'college', 'degree', 'school', 'election', 'political', 'polling']:
                         score += 3  # Domain-specific core keywords get highest weight
                     else:
                         score += 1  # Regular keywords
@@ -393,10 +433,16 @@ class QueryEnhancer:
         
         # Domain-specific patterns
         if domain == 'business':
+            # Startup and entrepreneurship-focused patterns
             queries.extend([
-                f'{query} financial performance',
-                f'{query} market analysis',
-                f'{query} competitive comparison'
+                f'{query} startup guide',
+                f'{query} business plan',
+                f'{query} startup costs',
+                f'{query} getting started',
+                f'{query} equipment needed',
+                f'{query} profitable business',
+                f'{query} beginner tips',
+                f'{query} small business'
             ])
         elif domain == 'technology':
             queries.extend([
@@ -443,6 +489,19 @@ class QueryEnhancer:
                 f'how does {query} work',
                 f'why {query}'
             ])
+        
+        # Business-specific question patterns for startup guidance
+        if 'business' in research_goal.lower() or any(word in query.lower() for word in ['business', 'startup', 'entrepreneur', 'profitable']):
+            business_questions = [
+                f'how to start {query}',
+                f'how much does {query} cost',
+                f'what equipment needed for {query}',
+                f'how to make {query} profitable',
+                f'{query} business model',
+                f'{query} target customers',
+                f'{query} pricing strategy'
+            ]
+            queries.extend(business_questions)
         
         # Research-specific fallbacks
         if research_goal and len(research_goal) > 10:

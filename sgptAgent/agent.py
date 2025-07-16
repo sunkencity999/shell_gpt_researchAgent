@@ -419,7 +419,7 @@ Make each gap a specific search query that could find the missing information.""
     def add_domain_targeting(self, query: str, domain: str) -> str:
         """Add domain-specific targeting to the search query."""
         # Don't add domain targeting for historical, biographical, or sensitive topics
-        sensitive_keywords = ['assassin', 'murder', 'kill', 'death', 'crime', 'history', 'historical', 'biography', 'war', 'politics']
+        sensitive_keywords = ['assassin', 'murder', 'kill', 'death', 'crime', 'history', 'historical', 'biography', 'war', 'assassination']
         query_lower = query.lower()
         
         if any(keyword in query_lower for keyword in sensitive_keywords):
@@ -430,17 +430,19 @@ Make each gap a specific search query that could find the missing information.""
         elif domain == 'technology':
             return f"{query} site:techcrunch.com OR site:arstechnica.com OR site:wired.com OR site:theverge.com"
         elif domain == 'business':
-            return f"{query} site:bloomberg.com OR site:reuters.com OR site:wsj.com OR site:forbes.com"
+            return f"{query} site:entrepreneur.com OR site:inc.com OR site:sba.gov OR site:forbes.com/entrepreneurs OR site:smallbusiness.chron.com OR site:nerdwallet.com/small-business"
         elif domain == 'science':
             return f"{query} site:nature.com OR site:science.org OR site:ncbi.nlm.nih.gov OR site:pubmed.ncbi.nlm.nih.gov"
         elif domain == 'health':
             return f"{query} site:mayoclinic.org OR site:webmd.com OR site:nih.gov OR site:cdc.gov"
+        elif domain == 'sports':
+            return f"{query} site:espn.com OR site:sports.yahoo.com OR site:bleacherreport.com OR site:si.com OR site:nfl.com OR site:nba.com OR site:mlb.com OR site:nhl.com"
         elif domain == 'finance':
-            return f"{query} site:marketwatch.com OR site:yahoo.com/finance OR site:morningstar.com"
+            return f"{query} site:bloomberg.com OR site:marketwatch.com OR site:yahoo.com/finance OR site:morningstar.com OR site:investopedia.com OR site:seekingalpha.com OR site:fool.com"
         elif domain == 'education':
-            return f"{query} site:edu OR site:khanacademy.org OR site:coursera.org"
+            return f"{query} site:edu OR site:khanacademy.org OR site:coursera.org OR site:edx.org OR site:mit.edu OR site:stanford.edu OR site:harvard.edu"
         elif domain == 'politics':
-            return f"{query} site:politico.com OR site:reuters.com OR site:apnews.com"
+            return f"{query} site:politico.com OR site:reuters.com OR site:apnews.com OR site:washingtonpost.com OR site:nytimes.com OR site:cnn.com/politics OR site:bbc.com/news/world"
         else:
             return query
     
