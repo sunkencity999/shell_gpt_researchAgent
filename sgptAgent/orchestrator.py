@@ -315,10 +315,27 @@ class Orchestrator:
 
         emit("Planning...", substep="Planning", percent=10)
         plan = await self.planner.run(goal, **kwargs)
+        emit("Plan generated", log=f"Plan content: {plan[:300]}...")
         
         emit("Collecting data...", substep="Data Collection", percent=30)
         # The plan is a string of bullet points, so we need to parse it into a list of strings
-        queries = [line.strip('-*• ') for line in plan.split('\n') if line.strip('-*• ')]
+        # Filter out explanatory text and only keep actual bullet points
+        queries = []
+        for line in plan.split('\n'):
+            stripped = line.strip()
+            # Only include lines that start with bullet point markers and are questions
+            if stripped and any(stripped.startswith(marker) for marker in ['-', '*', '•', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.']):
+                query = stripped.lstrip('-*• 0123456789.').strip()
+                # Only add if it's a reasonable query (not too long, contains question words or key terms)
+                if query and len(query) < 200 and (query.endswith('?') or any(word in query.lower() for word in ['what', 'who', 'when', 'where', 'why', 'how', 'best', 'top', 'effective', 'strategy'])):
+                    queries.append(query)
+        
+        # Fallback: if no valid queries were extracted, create basic queries from the goal
+        if not queries:
+            emit("No valid queries extracted from plan, using fallback queries", log=f"Original plan: {plan[:200]}...")
+            queries = [goal, f"what is {goal}", f"how to {goal}", f"{goal} guide", f"{goal} best practices"]
+        else:
+            emit(f"Extracted {len(queries)} valid queries from plan", log=f"Queries: {queries[:3]}...")
         
         # Enhance queries with domain-specific targeting
         if self.domain_agent and hasattr(self.domain_agent, 'enhance_queries'):

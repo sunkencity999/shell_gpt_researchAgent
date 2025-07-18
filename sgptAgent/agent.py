@@ -132,21 +132,26 @@ class ResearchAgent:
             context += f"Special instructions: {improvement}. "
         
         prompt = (
-            f"{context}\nYou are a research assistant. Break down the following research goal into simple, direct questions that work well for web search. Each question should be:\n\n"
-            f"- SHORT and SPECIFIC (under 10 words)\n"
-            f"- Use SIMPLE language, not academic jargon\n"
-            f"- Focus on FACTS and NAMES, not abstract concepts\n"
-            f"- Avoid complex philosophical or theoretical questions\n\n"
-            f"IMPORTANT: Respond with ONLY a clean bullet list of SHORT questions. No explanations, reasoning, or commentary.\n\n"
-            f"Research goal: {goal}\n\n"
-            f"Format your response as:\n"
-            f"- Who was [specific person]?\n"
-            f"- What happened in [specific event]?\n"
-            f"- When did [specific thing] occur?\n"
-            f"etc."
-        )
+        f"{context}\nYou are a research assistant. Break down the following research goal into simple, direct questions that work well for web search.\n\n"
+        f"CRITICAL REQUIREMENTS:\n"
+        f"- Each question must be SHORT and SPECIFIC (under 10 words)\n"
+        f"- Use SIMPLE language, not academic jargon\n"
+        f"- Focus on FACTS and NAMES, not abstract concepts\n"
+        f"- Start each line with a dash (-) followed by a space\n"
+        f"- NO explanations, reasoning, commentary, or introductory text\n"
+        f"- ONLY return the bullet list, nothing else\n\n"
+        f"Research goal: {goal}\n\n"
+        f"Example format (do NOT include this text, only the questions):\n"
+        f"- What is [specific topic]?\n"
+        f"- How does [specific process] work?\n"
+        f"- Who are the top [specific people/companies]?\n"
+        f"- When did [specific event] happen?\n\n"
+        f"Now generate 5-8 questions for the research goal above:"
+    )
         response = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
-        return response
+        # Clean the response to remove thinking tags and explanatory text
+        cleaned_response = self.clean_llm_response(response)
+        return cleaned_response
 
     def web_search(self, query: str, max_results: int = 10) -> list:
         """Sanitize the query and search the web."""
@@ -492,7 +497,6 @@ Make each gap a specific search query that could find the missing information.""
     def write_report(self, synthesis: str, reasoning: str, web_results_md: list, goal: str, structured_data: str = None, audience: str = "", tone: str = "", improvement: str = "", citation_style: str = "APA", filename: str = None, project_name: str = None, documents_base_dir: str = None, **kwargs) -> str:
         """Write a formatted research report to the project directory."""
         if not filename:
-            import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"research_report_{timestamp}.md"
 
@@ -581,6 +585,32 @@ All sources included in this research have been evaluated for authority, relevan
         orchestrator = Orchestrator(**self.__dict__)
         return await orchestrator.run(goal, **kwargs)
 
+    def clean_llm_response(self, response: str) -> str:
+        """Clean LLM response by removing thinking tags and explanatory text."""
+        import re
+        
+        # Remove thinking tags and their content
+        response = re.sub(r'<thinking>.*?</thinking>', '', response, flags=re.DOTALL)
+        
+        # Remove common explanatory patterns
+        explanatory_patterns = [
+            r'Okay, the user wants.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'I need to.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'Let me.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'First, I.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'The user is asking.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'To answer this.*?(?=\n-|\n\*|\n\d+\.|$)',
+        ]
+        
+        for pattern in explanatory_patterns:
+            response = re.sub(pattern, '', response, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Clean up extra whitespace
+        response = re.sub(r'\n\s*\n', '\n', response)
+        response = response.strip()
+        
+        return response
+    
     def simplify_search_query(self, query: str) -> str:
         """Simplify complex search queries."""
         # Remove unnecessary words and phrases

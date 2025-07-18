@@ -69,6 +69,7 @@ if __name__ == "__main__":
         tone = input("Preferred tone/style? (e.g., formal, technical, accessible): ").strip()
         improvement = input("Anything specific to improve with the summary? (optional): ").strip()
         agent = ResearchAgent(model=model)
-        agent.run(goal, audience=audience, tone=tone, improvement=improvement)
+        import asyncio
+        asyncio.run(agent.run(goal, audience=audience, tone=tone, improvement=improvement))
     except (KeyboardInterrupt, EOFError):
         print("\nExiting.")

@@ -52,7 +52,7 @@ class OllamaClient:
 
         try:
             async with httpx.AsyncClient() as client:
-                async with client.stream("POST", self.api_url, json=payload, timeout=60) as resp:
+                async with client.stream("POST", self.api_url, json=payload, timeout=120) as resp:
                     resp.raise_for_status()
                     return await stream_and_concat(resp)
         except httpx.ConnectError as e:
@@ -61,7 +61,7 @@ class OllamaClient:
                 subprocess.Popen(["ollama", "serve"])
                 time.sleep(2)  # Give it a moment to start
                 async with httpx.AsyncClient() as client:
-                    async with client.stream("POST", self.api_url, json=payload, timeout=60) as resp:
+                    async with client.stream("POST", self.api_url, json=payload, timeout=120) as resp:
                         resp.raise_for_status()
                         return await stream_and_concat(resp)
             except Exception as e2:
@@ -72,7 +72,9 @@ class OllamaClient:
                 return f"[Ollama HTTP 404: Model '{model}' not found at {self.api_url}]"
             return f"[Ollama HTTP error: {e}]"
         except Exception as e:
+            import traceback
             print(f"[OLLAMA ERROR] Unexpected error: {e}")
+            print(f"[OLLAMA ERROR] Traceback: {traceback.format_exc()}")
             return f"[Ollama error: {e}]"
 
     async def chat(self, model: str, prompt: str, **kwargs) -> str:
@@ -159,7 +161,9 @@ class OllamaClient:
                 return f"[Ollama HTTP 404: Model '{model}' not found at {self.api_url}]"
             return f"[Ollama HTTP error: {e}]"
         except Exception as e:
+            import traceback
             print(f"[OLLAMA ERROR] Unexpected error: {e}")
+            print(f"[OLLAMA ERROR] Traceback: {traceback.format_exc()}")
             return f"[Ollama error: {e}]"
 
     def list_models(self) -> list:
