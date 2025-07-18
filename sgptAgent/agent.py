@@ -175,7 +175,7 @@ class ResearchAgent:
             if improvement:
                 context += f"Special instructions: {improvement}. "
             
-            prompt = f"{context}Create a comprehensive summary of the following content. Your summary should be detailed and thorough, covering:\n\n1. Main points and key findings\n2. Supporting details and evidence\n3. Important context and background\n4. Specific data, statistics, or examples mentioned\n5. Any conclusions or implications discussed\n\nAim for 4-6 paragraphs that capture the full scope and depth of the information. Be detailed but stay focused on the most important information:\n\n{content[:4000]}"
+            prompt = f"{context}Create a comprehensive summary of the following content. Focus on extracting specific facts, data, examples, and actionable insights. Your summary should be detailed and thorough, covering:\n\n1. Main points and key findings\n2. Specific data, statistics, numbers, and examples\n3. Important context and background information\n4. Business insights, trends, or market information\n5. Any conclusions, recommendations, or implications\n\nAim for 4-6 detailed paragraphs that capture the full scope and depth of the information. Include specific details and avoid generic statements:\n\n{content[:8000]}"
             summary = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
             return summary
         except Exception as e:
@@ -195,58 +195,60 @@ class ResearchAgent:
                 return False # If similarity check fails, assume not similar
         return False # Default to false if module can't be loaded
 
-    def validate_content_relevance(self, summaries: list, goal: str, min_relevance_threshold: float = 0.1) -> tuple:
-        """Validate that summaries are relevant to the research goal before synthesis, using a hybrid approach."""
+    def validate_content_relevance(self, summaries: list, goal: str, min_relevance_threshold: float = 0.05) -> tuple:
+        """Validate that summaries are relevant to the research goal before synthesis, using a more inclusive approach."""
         if not summaries:
             return [], "No summaries provided for validation."
 
         relevant_summaries = []
         irrelevant_count = 0
 
-        # Extract key terms from the research goal
+        # Extract key terms from the research goal - be more inclusive
         goal_lower = goal.lower()
-        # Be more inclusive with keywords
         goal_keywords = set(word.strip('.,!?()[]{}":;') for word in goal_lower.split()
                            if len(word) > 2 and word not in ['the', 'and', 'or', 'but', 'for', 'with', 'this', 'that', 'what', 'how', 'who', 'is', 'a', 'in', 'to', 'of'])
 
         for summary in summaries:
             summary_lower = summary.lower()
 
-            # 1. Check for explicit error indicators or irrelevant topics
+            # 1. Check for explicit error indicators - be more selective
             error_indicators = [
-                "error message", "page not found", "copyright", "terms and conditions",
-                "login to access", "cannot be provided", "generic webpage", "corrupted pdf",
-                "unable to fetch", "access denied", "404", "403", "500", "client error",
-                "i apologize", "i'm unable", "i cannot", "not related to", "appears to be",
-                "stardew valley", "daily harvest", "u.s. bureau of labor statistics"
+                "error message", "page not found", "corrupted pdf", "unable to fetch", 
+                "access denied", "404", "403", "500", "client error",
+                "i apologize", "i'm unable", "i cannot", "login required",
+                "stardew valley", "daily harvest"  # Remove overly broad filters
             ]
             if any(indicator in summary_lower for indicator in error_indicators):
                 irrelevant_count += 1
                 continue
 
-            # 2. Calculate keyword overlap score
+            # 2. Check if summary is too short to be useful
+            if len(summary.strip()) < 50:
+                irrelevant_count += 1
+                continue
+
+            # 3. Calculate keyword overlap score - be more lenient
             summary_words = set(word.strip('.,!?()[]{}":;') for word in summary_lower.split())
             overlap = len(goal_keywords.intersection(summary_words))
             relevance_score = overlap / len(goal_keywords) if goal_keywords else 0
 
-            # 3. Check for semantic similarity
-            is_similar = self._is_semantically_similar(summary_lower, goal_lower, threshold=0.45)
+            # 4. Check for semantic similarity with lower threshold
+            is_similar = self._is_semantically_similar(summary_lower, goal_lower, threshold=0.3)
 
-            # 4. Determine relevance
-            if relevance_score >= min_relevance_threshold or is_similar:
+            # 5. Determine relevance - be more inclusive
+            if relevance_score >= min_relevance_threshold or is_similar or len(summary) > 200:
                 relevant_summaries.append(summary)
             else:
                 irrelevant_count += 1
 
-        # If no summaries are relevant, be less strict and try again
-        if not relevant_summaries and summaries:
+        # If very few summaries are relevant, include more with even lower standards
+        if len(relevant_summaries) < 3 and len(summaries) > 3:
             for summary in summaries:
-                 # Check again with a lower semantic threshold
-                 if self._is_semantically_similar(summary.lower(), goal.lower(), threshold=0.35):
-                     relevant_summaries.append(summary)
-            if relevant_summaries:
-                irrelevant_count = len(summaries) - len(relevant_summaries)
-
+                if summary not in relevant_summaries and len(summary.strip()) > 100:
+                    # Very basic check - just avoid obvious errors
+                    if not any(indicator in summary.lower() for indicator in ["error", "404", "unable to fetch", "corrupted"]):
+                        relevant_summaries.append(summary)
+                        irrelevant_count = max(0, irrelevant_count - 1)
 
         validation_msg = f"Content validation: {len(relevant_summaries)} relevant, {irrelevant_count} irrelevant summaries"
         return relevant_summaries, validation_msg
@@ -278,7 +280,23 @@ class ResearchAgent:
         
         combined_summaries = "\n\n".join(relevant_summaries)
         
-        prompt = f'''**Your Role:** You are an expert research analyst and report writer. Your task is to create a comprehensive, detailed research report based on the provided summaries. This should be a thorough, professional document that provides deep insights and analysis.
+        # Debug output
+        print(f"\n=== SYNTHESIS DEBUG ===")
+        print(f"Research Goal: {goal}")
+        print(f"Number of relevant summaries: {len(relevant_summaries)}")
+        print(f"Combined summaries length: {len(combined_summaries)} characters")
+        if relevant_summaries:
+            print(f"First summary preview: {relevant_summaries[0][:200]}...")
+        print(f"========================\n")
+        
+        prompt = f'''You are a research analyst writing a comprehensive report. Your task is to analyze the provided source material and create a detailed research report that directly addresses the research question.
+
+**CRITICAL INSTRUCTIONS:**
+- Base your report ONLY on the information provided in the source material below
+- Do NOT add information from your general knowledge
+- Do NOT make assumptions or speculate beyond what the sources state
+- Quote specific facts, data, and examples from the sources
+- If the sources don't contain information about a topic, state that clearly
 
 **Research Question:**
 {goal}
@@ -286,67 +304,25 @@ class ResearchAgent:
 {context}
 
 **Source Material:**
----
 {combined_summaries}
----
 
-**Instructions:** Create a comprehensive research report using the following structure. Each section should be detailed and thoroughly developed:
+**Report Structure:**
+
+# Research Report: {goal}
 
 ## Executive Summary
-[Provide a detailed 3-4 paragraph executive summary that captures the key findings, main conclusions, and significance of the research. This should be comprehensive enough to stand alone.]
-
-## Background and Context
-[Provide extensive background information on the topic. Explain the broader context, historical perspective, and why this research question is important. Include relevant trends, developments, and contextual factors.]
+[Provide a 2-3 paragraph summary of the key findings from the source material that directly relate to the research question]
 
 ## Key Findings
-[Present your findings in detail with multiple subsections. For each major finding:]
+[Present the main findings from the source material, organized by theme. Use specific data, examples, and quotes from the sources]
 
-### Finding 1: [Descriptive Title]
-[Provide comprehensive analysis of this finding, including:
-- Detailed explanation of what was discovered
-- Supporting evidence from multiple sources
-- Implications and significance
-- Any contradictory evidence or limitations]
+## Analysis
+[Analyze the information from the sources, identifying patterns, trends, and insights that address the research question]
 
-### Finding 2: [Descriptive Title]
-[Continue with the same detailed format for each major finding...]
+## Conclusions
+[Summarize what the source material reveals about the research question, including any limitations or gaps in the available information]
 
-## Detailed Analysis
-[Provide deep, analytical discussion of the findings. This should include:
-- Cross-referencing between different sources
-- Identification of patterns and trends
-- Discussion of conflicting information and how to reconcile it
-- Analysis of data quality and source reliability
-- Exploration of cause-and-effect relationships
-- Discussion of broader implications]
-
-## Comparative Analysis
-[Where applicable, compare different approaches, viewpoints, or solutions mentioned in the sources. Analyze advantages, disadvantages, and trade-offs.]
-
-## Limitations and Gaps
-[Discuss what information is missing, what questions remain unanswered, and what limitations exist in the current research. Be specific about areas where more research is needed.]
-
-## Conclusions and Implications
-[Provide detailed conclusions that synthesize all findings. Discuss:
-- Primary conclusions based on the evidence
-- Secondary insights and implications
-- Practical applications and recommendations
-- Future research directions
-- Broader significance of the findings]
-
-## Recommendations
-[Where appropriate, provide specific, actionable recommendations based on the research findings.]
-
-**Guidelines:**
-- Write in a professional, academic tone while remaining accessible
-- Use specific examples and data points from the sources
-- Ensure each section is substantive (aim for 2-4 paragraphs per section minimum)
-- Connect findings across different sources to create a cohesive narrative
-- Be thorough but stay strictly within the bounds of the provided information
-- Use clear headings and subheadings to organize the content
-- Aim for a comprehensive report of 2000-4000 words
-
-**Your Comprehensive Research Report:**
+**Write your report now, staying strictly within the bounds of the provided source material:**
 '''
         
         synthesis = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
