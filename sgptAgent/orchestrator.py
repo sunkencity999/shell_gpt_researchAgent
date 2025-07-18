@@ -323,9 +323,8 @@ class Orchestrator:
         # Enhance queries with domain-specific targeting
         if self.domain_agent and hasattr(self.domain_agent, 'enhance_queries'):
             emit("Enhancing queries with domain expertise...", substep="Domain Enhancement", percent=35)
-            enhanced_queries = self.domain_agent.enhance_queries(queries, goal)
-            emit(f"Enhanced {len(queries)} queries for {self.domain_agent.domain_name} domain", log=f"Enhanced queries: {enhanced_queries[:3]}...")
-            queries = enhanced_queries
+            queries = self.domain_agent.enhance_queries(queries, goal)
+            emit(f"Enhanced {len(queries)} queries for {self.domain_agent.domain_name} domain", log=f"Enhanced queries: {queries[:3]}...")
         
         results, total_results_found, successful_queries, total_queries = await self.data_collector.run(queries, multimodal_agent=self.multimodal_agent, vision_agent=self.vision_agent, **kwargs)
 
