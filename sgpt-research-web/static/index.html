@@ -12,12 +12,12 @@
             <div class="card logo-card">
                 <img src="/static/sgptRAicon.png" alt="Research Agent Icon" class="logo-icon">
                 <h1>Research Agent</h1>
-                <p>AI-Powered Research Assistant</p>
+                <p>Comprehensive AI Research Partner</p>
             </div>
 
             <div class="card">
                 <h2>Research Query</h2>
-                <textarea id="query-input" placeholder="Enter your research question or topic..."></textarea>
+                <textarea id="query-input" placeholder="Enter your research question or topic to generate a comprehensive multi-section research report..."></textarea>
             </div>
 
             <div class="card">
@@ -56,17 +56,15 @@
                 <div class="form-row">
                     <label for="domain-select">Research Domain:</label>
                     <select id="domain-select">
-                        <option value="">General (No Domain)</option>
-                        <option value="technology">Technology</option>
-                        <option value="healthcare">Healthcare</option>
-                        <option value="finance">Finance</option>
-                        <option value="legal">Legal</option>
-                        <option value="academic">Academic</option>
+                        <option value="general">General (No Domain)</option>
                         <option value="business">Business</option>
+                        <option value="technology">Technology</option>
                         <option value="science">Science</option>
-                        <option value="news">News & Current Events</option>
+                        <option value="health">Health & Medical</option>
+                        <option value="finance">Finance</option>
                         <option value="education">Education</option>
-                        <option value="environment">Environment</option>
+                        <option value="politics">Politics</option>
+                        <option value="sports">Sports</option>
                     </select>
                 </div>
                 <div class="form-row">
@@ -92,7 +90,7 @@
                     </div>
                     <div class="form-row">
                         <label for="max-tokens-spin">Max Tokens:</label>
-                        <input type="number" id="max-tokens-spin" value="2048" min="128" max="4096">
+                        <input type="number" id="max-tokens-spin" value="6144" min="128" max="8192">
                     </div>
                     <div class="form-row">
                         <label for="system-prompt-input">System Prompt:</label>
@@ -100,7 +98,7 @@
                     </div>
                     <div class="form-row">
                         <label for="ctx-window-spin">Context Window:</label>
-                        <input type="number" id="ctx-window-spin" value="2048" min="128" max="8192">
+                        <input type="number" id="ctx-window-spin" value="8192" min="128" max="16384">
                     </div>
                     
                 </div>
@@ -110,7 +108,7 @@
                 <h2>Output Settings</h2>
                 <div class="form-row">
                     <label for="file-input">Save As:</label>
-                    <input type="text" id="file-input" placeholder="research_report.txt">
+                    <input type="text" id="file-input" placeholder="comprehensive_research_report.txt">
                 </div>
                 <div class="form-row">
                     <label for="citation-select">Citation Style:</label>
@@ -141,13 +139,13 @@
             <div class="button-group">
                 <button id="clear-btn" class="secondary">Clear</button>
                 <button id="analyze-images-btn" class="secondary">Analyze Images</button>
-                <button id="run-btn" class="primary">Start Research</button>
+                <button id="run-btn" class="primary">Generate Comprehensive Report</button>
             </div>
         </div>
 
         <div class="panel right-panel">
             <div class="card output-card">
-                <h2>Research Output</h2>
+                <h2>Comprehensive Research Report</h2>
                 <textarea id="output-box" readonly></textarea>
             </div>
 

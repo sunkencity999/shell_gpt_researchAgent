@@ -16,9 +16,10 @@ from sgptAgent.config import cfg
 app = FastAPI()
 
 # Mount static files (HTML, CSS, JS)
-app.mount("/static", StaticFiles(directory="/home/administrator/shell_gpt_researchAgent/sgpt-research-web/static"), name="static")
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-templates = Jinja2Templates(directory="/home/administrator/shell_gpt_researchAgent/sgpt-research-web/static")
+templates = Jinja2Templates(directory=STATIC_DIR)
 
 # Directory for storing research reports and project data
 DOCUMENTS_DIR = Path(__file__).resolve().parent.parent / "documents"
