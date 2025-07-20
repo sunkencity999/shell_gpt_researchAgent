@@ -2,6 +2,7 @@ import httpx
 import subprocess
 import time
 import json
+import asyncio
 from typing import Optional, Dict, Any
 import ollama
 
@@ -50,32 +51,43 @@ class OllamaClient:
                     print(f"[OLLAMA ERROR] Could not parse line: {line} | {e}")
             return output
 
-        try:
-            async with httpx.AsyncClient() as client:
-                async with client.stream("POST", self.api_url, json=payload, timeout=120) as resp:
-                    resp.raise_for_status()
-                    return await stream_and_concat(resp)
-        except httpx.ConnectError as e:
-            print("[OLLAMA ERROR] Ollama server is not running. Attempting to start with 'ollama serve'...")
+        # Retry logic for timeout errors
+        max_retries = 3
+        for attempt in range(max_retries):
             try:
-                subprocess.Popen(["ollama", "serve"])
-                time.sleep(2)  # Give it a moment to start
+                timeout_duration = 120 + (attempt * 60)  # Increase timeout on retries
                 async with httpx.AsyncClient() as client:
-                    async with client.stream("POST", self.api_url, json=payload, timeout=120) as resp:
+                    async with client.stream("POST", self.api_url, json=payload, timeout=timeout_duration) as resp:
                         resp.raise_for_status()
                         return await stream_and_concat(resp)
-            except Exception as e2:
-                return f"[Ollama error: Could not start Ollama server: {e2}]"
-        except httpx.HTTPStatusError as e:
-            print(f"[OLLAMA ERROR] HTTP error: {e}")
-            if e.response is not None and e.response.status_code == 404:
-                return f"[Ollama HTTP 404: Model '{model}' not found at {self.api_url}]"
-            return f"[Ollama HTTP error: {e}]"
-        except Exception as e:
-            import traceback
-            print(f"[OLLAMA ERROR] Unexpected error: {e}")
-            print(f"[OLLAMA ERROR] Traceback: {traceback.format_exc()}")
-            return f"[Ollama error: {e}]"
+            except httpx.ReadTimeout as e:
+                print(f"[OLLAMA ERROR] Request timed out (attempt {attempt + 1}/{max_retries})")
+                if attempt == max_retries - 1:
+                    return f"[Ollama error: Request timed out after {max_retries} attempts. The model may be overloaded or the request too complex.]"
+                print(f"[OLLAMA ERROR] Retrying with longer timeout...")
+                await asyncio.sleep(2)  # Brief pause before retry
+                continue
+            except httpx.ConnectError as e:
+                print("[OLLAMA ERROR] Ollama server is not running. Attempting to start with 'ollama serve'...")
+                try:
+                    subprocess.Popen(["ollama", "serve"])
+                    time.sleep(2)  # Give it a moment to start
+                    async with httpx.AsyncClient() as client:
+                        async with client.stream("POST", self.api_url, json=payload, timeout=120) as resp:
+                            resp.raise_for_status()
+                            return await stream_and_concat(resp)
+                except Exception as e2:
+                    return f"[Ollama error: Could not start Ollama server: {e2}]"
+            except httpx.HTTPStatusError as e:
+                print(f"[OLLAMA ERROR] HTTP error: {e}")
+                if e.response is not None and e.response.status_code == 404:
+                    return f"[Ollama HTTP 404: Model '{model}' not found at {self.api_url}]"
+                return f"[Ollama HTTP error: {e}]"
+            except Exception as e:
+                import traceback
+                print(f"[OLLAMA ERROR] Unexpected error: {e}")
+                print(f"[OLLAMA ERROR] Traceback: {traceback.format_exc()}")
+                return f"[Ollama error: {e}]"
 
     async def chat(self, model: str, prompt: str, **kwargs) -> str:
         """

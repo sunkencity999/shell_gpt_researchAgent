@@ -759,7 +759,7 @@ class ResearchAgentGUI(QMainWindow):
         
         # Temperature and Max Tokens
         adv_row1 = QHBoxLayout()
-        self.temp_spin = ModernSpinBox(0.0, 1.5, 0.7, is_double=True, step=0.01)
+        self.temp_spin = ModernSpinBox(0.0, 1.5, 0.3, is_double=True, step=0.01)
         self.max_tokens_spin = ModernSpinBox(128, 4096, 2048)
         adv_row1.addWidget(create_form_row("Temperature:", self.temp_spin))
         adv_row1.addWidget(create_form_row("Max Tokens:", self.max_tokens_spin))

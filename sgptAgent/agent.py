@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class ResearchAgent:
-    def __init__(self, model=None, temperature=0.7, max_tokens=6144, system_prompt="", ctx_window=8192, **kwargs):
+    def __init__(self, model=None, temperature=0.3, max_tokens=6144, system_prompt="", ctx_window=8192, **kwargs):
         self.model = model or cfg.get("DEFAULT_MODEL")
         self.embedding_model = cfg.get("EMBEDDING_MODEL")
         # Remove 'ollama/' prefix if present
@@ -134,19 +134,22 @@ class ResearchAgent:
         prompt = (
         f"{context}\nYou are a research assistant. Break down the following research goal into simple, direct questions that work well for web search.\n\n"
         f"CRITICAL REQUIREMENTS:\n"
+        f"- Each question must DIRECTLY relate to the research goal\n"
         f"- Each question must be SHORT and SPECIFIC (under 10 words)\n"
         f"- Use SIMPLE language, not academic jargon\n"
-        f"- Focus on FACTS and NAMES, not abstract concepts\n"
+        f"- Focus on PRACTICAL, ACTIONABLE information\n"
         f"- Start each line with a dash (-) followed by a space\n"
         f"- NO explanations, reasoning, commentary, or introductory text\n"
         f"- ONLY return the bullet list, nothing else\n\n"
         f"Research goal: {goal}\n\n"
+        f"IMPORTANT: Your questions must help answer the research goal above. Do NOT generate questions about unrelated topics.\n\n"
         f"Example format (do NOT include this text, only the questions):\n"
         f"- What is [specific topic]?\n"
         f"- How does [specific process] work?\n"
         f"- Who are the top [specific people/companies]?\n"
-        f"- When did [specific event] happen?\n\n"
-        f"Now generate 5-8 questions for the research goal above:"
+        f"- What are [specific topic] best practices?\n"
+        f"- When did [specific development] happen?\n\n"
+        f"Now generate 5-8 questions that directly help answer: {goal}"
     )
         response = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         # Clean the response to remove thinking tags and explanatory text
@@ -289,44 +292,87 @@ class ResearchAgent:
             print(f"First summary preview: {relevant_summaries[0][:200]}...")
         print(f"========================\n")
         
-        prompt = f'''You are a research analyst writing a comprehensive report. Your task is to analyze the provided source material and create a detailed research report that directly addresses the research question.
+        prompt = f'''You are a research analyst. Your ONLY task is to extract and organize information from the provided source material to answer the research question. You must NOT add any information beyond what is explicitly stated in the sources.
 
-**CRITICAL INSTRUCTIONS:**
-- Base your report ONLY on the information provided in the source material below
-- Do NOT add information from your general knowledge
-- Do NOT make assumptions or speculate beyond what the sources state
-- Quote specific facts, data, and examples from the sources
-- If the sources don't contain information about a topic, state that clearly
+**STRICT RULES:**
+1. Use ONLY information explicitly stated in the source material below
+2. Do NOT invent facts, statistics, or examples
+3. Do NOT reference sources that aren't in the material (no made-up citations)
+4. If you cannot find information about something, say "The sources do not provide information about [topic]"
+5. Quote directly from the sources when possible
 
-**Research Question:**
-{goal}
+**Research Question:** {goal}
 
-{context}
-
-**Source Material:**
+**Available Source Material:**
 {combined_summaries}
 
-**Report Structure:**
+**Your Task:** Write a research report using ONLY the information above. Structure it as follows:
 
 # Research Report: {goal}
 
-## Executive Summary
-[Provide a 2-3 paragraph summary of the key findings from the source material that directly relate to the research question]
+## What the Sources Reveal
+[Extract the key facts and insights from the source material that relate to the research question. Use direct quotes where possible.]
 
-## Key Findings
-[Present the main findings from the source material, organized by theme. Use specific data, examples, and quotes from the sources]
+## Business Insights from Sources
+[Organize any business-related information, market data, trends, or practical insights found in the sources.]
 
-## Analysis
-[Analyze the information from the sources, identifying patterns, trends, and insights that address the research question]
+## Gaps in Available Information
+[Clearly state what information is missing or what questions the sources don't address.]
 
-## Conclusions
-[Summarize what the source material reveals about the research question, including any limitations or gaps in the available information]
+## Summary
+[Summarize what can be concluded based solely on the provided source material.]
 
-**Write your report now, staying strictly within the bounds of the provided source material:**
-'''
+Remember: Use ONLY the source material provided. Do not add external knowledge.'''
         
         synthesis = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
-        return synthesis
+        
+        # Validate and clean up any hallucinated source references
+        validated_synthesis = self.validate_and_clean_sources(synthesis, combined_summaries)
+        return validated_synthesis
+
+    def validate_and_clean_sources(self, synthesis: str, source_material: str) -> str:
+        """Validate source references in synthesis and remove/flag hallucinated citations."""
+        import re
+        
+        # Common patterns for fake source references that LLMs generate
+        fake_source_patterns = [
+            r'\(Source: \[.*?\]\)',  # (Source: [Something])
+            r'\[.*? Source\]',       # [Print Shop Source], [Mimaki Source], etc.
+            r'\(.*? Source\)',       # (Print Shop Source)
+            r'Source: .*?(?=\.|\n)',  # Source: Something
+            r'According to \[.*?\]',  # According to [Source]
+            r'\[Source \d+\]',       # [Source 1], [Source 2]
+            r'\(Ref: .*?\)',         # (Ref: Something)
+            r'\[Ref \d+\]'          # [Ref 1], [Ref 2]
+        ]
+        
+        cleaned_synthesis = synthesis
+        removed_references = []
+        
+        # Remove fake source references
+        for pattern in fake_source_patterns:
+            matches = re.findall(pattern, cleaned_synthesis, re.IGNORECASE)
+            if matches:
+                removed_references.extend(matches)
+                cleaned_synthesis = re.sub(pattern, '', cleaned_synthesis, flags=re.IGNORECASE)
+        
+        # Clean up extra whitespace and punctuation left by removed references
+        cleaned_synthesis = re.sub(r'\s+', ' ', cleaned_synthesis)  # Multiple spaces to single
+        cleaned_synthesis = re.sub(r'\s+\.', '.', cleaned_synthesis)  # Space before period
+        cleaned_synthesis = re.sub(r'\s+,', ',', cleaned_synthesis)   # Space before comma
+        cleaned_synthesis = re.sub(r'\.\s*\.', '.', cleaned_synthesis) # Double periods
+        
+        # Log what was removed for debugging
+        if removed_references:
+            print(f"\n=== SOURCE VALIDATION ===")
+            print(f"Removed {len(removed_references)} hallucinated source references:")
+            for ref in removed_references[:5]:  # Show first 5
+                print(f"  - {ref}")
+            if len(removed_references) > 5:
+                print(f"  ... and {len(removed_references) - 5} more")
+            print(f"========================\n")
+        
+        return cleaned_synthesis.strip()
 
     def retrieve_local_documents(self, query: str, top_k: int = 3) -> list:
         """Retrieves top_k most relevant local document chunks based on semantic similarity."""
