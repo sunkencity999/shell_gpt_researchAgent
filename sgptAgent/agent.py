@@ -292,37 +292,68 @@ class ResearchAgent:
             print(f"First summary preview: {relevant_summaries[0][:200]}...")
         print(f"========================\n")
         
-        prompt = f'''You are a research analyst. Your ONLY task is to extract and organize information from the provided source material to answer the research question. You must NOT add any information beyond what is explicitly stated in the sources.
-
-**STRICT RULES:**
-1. Use ONLY information explicitly stated in the source material below
-2. Do NOT invent facts, statistics, or examples
-3. Do NOT reference sources that aren't in the material (no made-up citations)
-4. If you cannot find information about something, say "The sources do not provide information about [topic]"
-5. Quote directly from the sources when possible
+        prompt = f'''You are a professional research analyst tasked with creating a comprehensive, detailed research report. Based on the provided source material, produce a rich, multi-section analysis that thoroughly examines all aspects of the research question.
 
 **Research Question:** {goal}
 
-**Available Source Material:**
+**Context:** {context}
+
+**Source Material:**
 {combined_summaries}
 
-**Your Task:** Write a research report using ONLY the information above. Structure it as follows:
+**Instructions:** Create a comprehensive research report with the following structure. Each section should be detailed and substantive (aim for 4-6 paragraphs per major section). Use evidence from the sources to support all claims and provide thorough analysis.
 
-# Research Report: {goal}
+# Executive Summary
 
-## What the Sources Reveal
-[Extract the key facts and insights from the source material that relate to the research question. Use direct quotes where possible.]
+Provide a comprehensive overview of the research findings, key insights, and main conclusions. This should be a substantial summary that captures the essence of the entire report in 3-4 detailed paragraphs.
 
-## Business Insights from Sources
-[Organize any business-related information, market data, trends, or practical insights found in the sources.]
+# Background and Context
 
-## Gaps in Available Information
-[Clearly state what information is missing or what questions the sources don't address.]
+Establish the context and background necessary to understand the research topic. Include relevant industry context, historical perspective, market conditions, or foundational concepts that frame the research question. Draw from the source material to provide comprehensive background information.
 
-## Summary
-[Summarize what can be concluded based solely on the provided source material.]
+# Key Findings
 
-Remember: Use ONLY the source material provided. Do not add external knowledge.'''
+Organize and present the main research findings in detailed subsections:
+
+## Primary Research Insights
+Present the most significant findings from your analysis of the source material. Use specific evidence, data, and examples from the sources.
+
+## Supporting Evidence and Data
+Detail the evidence that supports your primary findings. Include relevant statistics, expert opinions, case studies, or examples found in the sources.
+
+## Market Analysis and Trends
+(If applicable) Analyze market conditions, trends, and competitive landscape based on the source material.
+
+# Detailed Analysis
+
+Provide an in-depth analysis that goes beyond simple presentation of facts:
+
+## Critical Examination
+Analyze the implications of the findings. What do these results mean? How do they connect to broader themes or issues?
+
+## Cross-Source Analysis
+Compare and contrast information from different sources. Identify areas of agreement, disagreement, or complementary perspectives.
+
+## Data Quality and Source Reliability
+Assess the quality and reliability of the information found in the sources. Note any limitations or gaps in the data.
+
+# Comparative Analysis
+
+(Where relevant) Compare different approaches, solutions, products, or perspectives found in the research. Analyze the strengths and weaknesses of various options or viewpoints presented in the sources.
+
+# Limitations and Research Gaps
+
+Identify what information is missing from the source material and what questions remain unanswered. Discuss any limitations in the available data or research scope.
+
+# Conclusions and Implications
+
+Summarize the overall conclusions drawn from the research and discuss their implications. What are the key takeaways? How might these findings impact stakeholders or inform decision-making?
+
+# Recommendations
+
+(Where appropriate) Based on the research findings, provide recommendations for action, further research, or consideration. Ground all recommendations in the evidence found in the sources.
+
+**Important:** Use only information found in the provided source material. When specific information is not available in the sources, clearly state this limitation. Quote directly from sources when possible and ensure all claims are supported by evidence from the provided material.'''
         
         synthesis = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
         
