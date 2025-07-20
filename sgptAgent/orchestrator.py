@@ -315,13 +315,20 @@ class Orchestrator:
 
         emit("Planning...", substep="Planning", percent=10)
         plan = await self.planner.run(goal, **kwargs)
-        emit("Plan generated", log=f"Plan content: {plan[:300]}...")
+        
+        # Debug: Show first 500 chars of plan to identify issues
+        emit("Plan generated", log=f"Plan content (first 500 chars): {plan[:500]}...")
         
         emit("Collecting data...", substep="Data Collection", percent=30)
         # The plan is a string of bullet points, so we need to parse it into a list of strings
         # Filter out explanatory text and only keep actual bullet points
         queries = []
-        for line in plan.split('\n'):
+        plan_lines = plan.split('\n')
+        
+        # Debug: Show how many lines we're processing
+        emit(f"Processing {len(plan_lines)} lines from plan", log=f"Sample lines: {plan_lines[:5]}")
+        
+        for line in plan_lines:
             stripped = line.strip()
             # Only include lines that start with bullet point markers and are questions
             if stripped and any(stripped.startswith(marker) for marker in ['-', '*', '•', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.']):
@@ -330,8 +337,11 @@ class Orchestrator:
                 if query and len(query) < 200 and (query.endswith('?') or any(word in query.lower() for word in ['what', 'who', 'when', 'where', 'why', 'how', 'best', 'top', 'effective', 'strategy'])):
                     queries.append(query)
         
-        # Fallback: if no valid queries were extracted, create basic queries from the goal
-        if not queries:
+        # Circuit breaker: if we get no queries and the plan looks like reasoning text, force fallback
+        if not queries and ('okay' in plan.lower()[:100] or 'let me' in plan.lower()[:100] or 'user wants' in plan.lower()[:100]):
+            emit("Detected reasoning model output instead of bullet points, forcing fallback", log=f"Plan starts with: {plan[:200]}")
+            queries = [goal, f"what is {goal}", f"how to {goal}", f"{goal} guide", f"{goal} best practices"]
+        elif not queries:
             emit("No valid queries extracted from plan, using fallback queries", log=f"Original plan: {plan[:200]}...")
             queries = [goal, f"what is {goal}", f"how to {goal}", f"{goal} guide", f"{goal} best practices"]
         else:

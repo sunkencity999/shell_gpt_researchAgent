@@ -614,18 +614,32 @@ All sources included in this research have been evaluated for authority, relevan
         # Remove thinking tags and their content
         response = re.sub(r'<thinking>.*?</thinking>', '', response, flags=re.DOTALL)
         
-        # Remove common explanatory patterns
+        # Remove common explanatory patterns that reasoning models produce
         explanatory_patterns = [
-            r'Okay, the user wants.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'Okay.*?(?=\n-|\n\*|\n\d+\.|$)',  # Catches "Okay, let's see. The user wants..."
             r'I need to.*?(?=\n-|\n\*|\n\d+\.|$)',
             r'Let me.*?(?=\n-|\n\*|\n\d+\.|$)',
-            r'First, I.*?(?=\n-|\n\*|\n\d+\.|$)',
-            r'The user is asking.*?(?=\n-|\n\*|\n\d+\.|$)',
-            r'To answer this.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'First.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'The user.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'To answer.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'Here are.*?(?=\n-|\n\*|\n\d+\.|$)',
+            r'Based on.*?(?=\n-|\n\*|\n\d+\.|$)',
         ]
         
         for pattern in explanatory_patterns:
             response = re.sub(pattern, '', response, flags=re.DOTALL | re.IGNORECASE)
+        
+        # If response still doesn't contain bullet points, extract only lines that start with bullets
+        lines = response.split('\n')
+        bullet_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped and any(stripped.startswith(marker) for marker in ['-', '*', '•', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.']):
+                bullet_lines.append(line)
+        
+        # If we found bullet points, use only those
+        if bullet_lines:
+            response = '\n'.join(bullet_lines)
         
         # Clean up extra whitespace
         response = re.sub(r'\n\s*\n', '\n', response)
