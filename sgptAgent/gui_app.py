@@ -300,8 +300,8 @@ class ResearchAgentGUI(QMainWindow):
             QMessageBox.warning(self, "Input Required", "Please enter a research query.")
             return
 
-        # Disable the run button and clear output
-        self.run_btn.setEnabled(False)
+        # Set UI to research state (disable controls, show cancel button)
+        self.set_research_state(True)
         self.output_box.clear()
         self.progress_bar.setValue(0)
         self.progress_label.setText("Initializing research...")
@@ -333,6 +333,7 @@ class ResearchAgentGUI(QMainWindow):
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.research_finished)
         self.worker.error.connect(self.research_error)
+        self.worker.cancelled.connect(self.research_cancelled)
         self.worker.start()
 
     def update_progress(self, desc, bar, substep=None, percent=None, log=None):
@@ -470,7 +471,56 @@ class ResearchAgentGUI(QMainWindow):
         self.progress_bar.setValue(0)
         self.progress_timer.stop()
         self.eta_label.setText("🎯 Failed")
-        self.run_btn.setEnabled(True)
+        self.set_research_state(False)
+
+    def set_research_state(self, is_researching):
+        """Enable/disable UI elements based on research state."""
+        # Input fields and controls
+        self.query_input.setEnabled(not is_researching)
+        self.audience_input.setEnabled(not is_researching)
+        self.tone_input.setEnabled(not is_researching)
+        self.improvement_input.setEnabled(not is_researching)
+        self.project_name_combo.setEnabled(not is_researching)
+        self.model_combo.setEnabled(not is_researching)
+        self.results_spin.setEnabled(not is_researching)
+        self.temp_spin.setEnabled(not is_researching)
+        self.max_tokens_spin.setEnabled(not is_researching)
+        self.system_prompt_input.setEnabled(not is_researching)
+        self.ctx_window_spin.setEnabled(not is_researching)
+        self.citation_combo.setEnabled(not is_researching)
+        self.file_input.setEnabled(not is_researching)
+        self.domain_combo.setEnabled(not is_researching)
+        self.depth_combo.setEnabled(not is_researching)
+        
+        # Action buttons
+        self.run_btn.setEnabled(not is_researching)
+        self.clear_btn.setEnabled(not is_researching)
+        self.analyze_images_button.setEnabled(not is_researching)
+        
+        # Show/hide cancel button
+        if is_researching:
+            self.cancel_btn.show()
+            self.run_btn.hide()
+        else:
+            self.cancel_btn.hide()
+            self.run_btn.show()
+    
+    def cancel_research(self):
+        """Cancel the currently running research."""
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+            self.worker.cancel()
+            self.progress_label.setText("🛑 Cancelling research...")
+            self.progress_substep.setText("Please wait while the research is safely terminated.")
+    
+    def research_cancelled(self):
+        """Handle research cancellation."""
+        self.output_box.setPlainText("Research was cancelled by the user.")
+        self.progress_label.setText("🛑 Research cancelled")
+        self.progress_substep.setText("You can start a new research query.")
+        self.progress_bar.setValue(0)
+        self.progress_timer.stop()
+        self.eta_label.setText("🎯 Cancelled")
+        self.set_research_state(False)
 
     def export_report(self):
         content = self.output_box.toPlainText()
@@ -926,6 +976,15 @@ class ResearchAgentGUI(QMainWindow):
         )
         self.run_btn.clicked.connect(self.run_research)
         
+        # Cancel button - initially hidden
+        self.cancel_btn = IconButton(
+            "stop", 
+            "Cancel Research",
+            "danger"
+        )
+        self.cancel_btn.clicked.connect(self.cancel_research)
+        self.cancel_btn.hide()  # Hidden by default
+        
         # Action buttons - use responsive button row
         action_buttons = create_button_row([self.clear_btn])
         self.analyze_images_button = IconButton("image", "Analyze Images", "secondary")
@@ -934,9 +993,13 @@ class ResearchAgentGUI(QMainWindow):
 
         layout.addWidget(action_buttons)
         
-        # Run button - full width for prominence
+        # Run/Cancel button layout - full width for prominence
+        run_cancel_layout = QHBoxLayout()
         self.run_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout.addWidget(self.run_btn)
+        self.cancel_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        run_cancel_layout.addWidget(self.run_btn)
+        run_cancel_layout.addWidget(self.cancel_btn)
+        layout.addLayout(run_cancel_layout)
         
         layout.addStretch()
         
@@ -1358,6 +1421,7 @@ class ResearchWorker(QThread):
     finished = pyqtSignal(str, str)  # result, report_path
     error = pyqtSignal(str, str)     # error_msg, traceback
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
+    cancelled = pyqtSignal()  # New signal for cancellation
 
     def __init__(self, query, audience, tone, improvement, project_name, model, num_results,
                  temperature, max_tokens, system_prompt, ctx_window, citation_style, filename, analyze_images, mode, url, domain="General", research_depth="balanced"): 
@@ -1380,6 +1444,14 @@ class ResearchWorker(QThread):
         self.url = url
         self.domain = domain
         self.research_depth = research_depth
+        self._is_cancelled = False  # Cancellation flag
+    
+    def cancel(self):
+        """Cancel the research operation"""
+        self._is_cancelled = True
+        self.progress.emit("Cancelling research...", "", "Cancellation", 0, "Research cancelled by user.")
+        self.terminate()  # Force terminate the thread
+        self.cancelled.emit()
 
     def run(self):
         import asyncio

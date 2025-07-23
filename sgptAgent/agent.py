@@ -131,38 +131,134 @@ class ResearchAgent:
         if improvement:
             context += f"Special instructions: {improvement}. "
         
+        # Create more focused and relevant query generation
         prompt = (
-        f"{context}\nYou are a research assistant. Break down the following research goal into simple, direct questions that work well for web search.\n\n"
+        f"{context}\nYou are a research assistant. Generate specific search queries to find information about: {goal}\n\n"
         f"CRITICAL REQUIREMENTS:\n"
-        f"- Each question must DIRECTLY relate to the research goal\n"
-        f"- Each question must be SHORT and SPECIFIC (under 10 words)\n"
-        f"- Use SIMPLE language, not academic jargon\n"
-        f"- Focus on PRACTICAL, ACTIONABLE information\n"
+        f"- Each query must DIRECTLY answer the research goal\n"
+        f"- Use EXACT keywords from the research goal\n"
+        f"- Focus on FACTUAL, CURRENT information\n"
+        f"- Make queries SPECIFIC and TARGETED\n"
         f"- Start each line with a dash (-) followed by a space\n"
-        f"- NO explanations, reasoning, commentary, or introductory text\n"
-        f"- ONLY return the bullet list, nothing else\n\n"
+        f"- NO explanations or commentary\n"
+        f"- ONLY return the search queries\n\n"
         f"Research goal: {goal}\n\n"
-        f"IMPORTANT: Your questions must help answer the research goal above. Do NOT generate questions about unrelated topics.\n\n"
-        f"Example format (do NOT include this text, only the questions):\n"
-        f"- What is [specific topic]?\n"
-        f"- How does [specific process] work?\n"
-        f"- Who are the top [specific people/companies]?\n"
-        f"- What are [specific topic] best practices?\n"
-        f"- When did [specific development] happen?\n\n"
-        f"Now generate 5-8 questions that directly help answer: {goal}"
+        f"Generate 5-7 targeted search queries that will find the most relevant information:\n"
+        f"Focus on the MAIN TOPIC and KEY TERMS from the research goal above.\n\n"
+        f"Example for 'best restaurants in New York':\n"
+        f"- best restaurants New York 2025\n"
+        f"- top rated restaurants NYC\n"
+        f"- New York restaurant rankings\n\n"
+        f"Now generate queries for: {goal}"
     )
-        # Use faster parameters for planning
-        response = await self.llm.chat(self.model, prompt, temperature=0.1, max_tokens=512)
+        # Use faster parameters for planning with enhanced system prompt
+        system_prompt = "You are a focused research query generator. Generate only relevant, specific search queries that directly match the research goal. Do not deviate from the main topic."
+        response = await self.llm.chat(self.model, prompt, temperature=0.1, max_tokens=512, system_prompt=system_prompt)
         # Clean the response to remove thinking tags and explanatory text
         cleaned_response = self.clean_llm_response(response)
+        
+        # Debug output to verify query relevance
+        print(f"\n=== QUERY GENERATION DEBUG ===")
+        print(f"Research Goal: {goal}")
+        print(f"Generated Queries: {cleaned_response}")
+        print(f"================================\n")
+        
         return cleaned_response
 
     def web_search(self, query: str, max_results: int = 10) -> list:
-        """Sanitize the query and search the web."""
+        """Sanitize the query and search the web with domain-specific targeting."""
         # Sanitize the query to remove invalid characters and instructions
         import re
         sanitized_query = re.sub(r'\s*\(.*?\)\s*', '', query).strip()
-        return search_web_with_fallback(sanitized_query, max_results=max_results)
+        
+        # Add domain-specific targeting for better source relevance
+        enhanced_query = self._enhance_query_with_domain_targeting(sanitized_query)
+        
+        print(f"[SEARCH DEBUG] Original query: {sanitized_query}")
+        print(f"[SEARCH DEBUG] Enhanced query: {enhanced_query}")
+        
+        return search_web_with_fallback(enhanced_query, max_results=max_results)
+    
+    def _enhance_query_with_domain_targeting(self, query: str) -> str:
+        """Enhance search queries with domain-specific targeting for better relevance."""
+        query_lower = query.lower()
+        
+        # Define domain patterns and their authoritative sources
+        domain_patterns = {
+            'education': {
+                'terms': ['college', 'university', 'school', 'education', 'degree', 'program', 'campus', 'student'],
+                'qualifiers': ['best', 'top', 'ranking', 'rated', 'review', 'comparison', 'guide'],
+                'sites': ['usnews.com', 'niche.com', 'princetonreview.com', 'collegeboard.org', 'petersons.com'],
+                'requires_qualifier': True
+            },
+            'business': {
+                'terms': ['company', 'business', 'corporation', 'startup', 'finance', 'market', 'economy', 'investment', 'stock', 'earnings'],
+                'sites': ['forbes.com', 'bloomberg.com', 'reuters.com', 'wsj.com', 'marketwatch.com', 'cnbc.com'],
+                'requires_qualifier': False
+            },
+            'technology': {
+                'terms': ['technology', 'software', 'ai', 'tech', 'computer', 'digital', 'innovation', 'research', 'science', 'engineering'],
+                'sites': ['techcrunch.com', 'wired.com', 'arstechnica.com', 'ieee.org', 'nature.com', 'sciencedirect.com'],
+                'requires_qualifier': False
+            },
+            'health': {
+                'terms': ['health', 'medical', 'disease', 'treatment', 'medicine', 'doctor', 'hospital', 'patient', 'healthcare'],
+                'sites': ['nih.gov', 'who.int', 'mayoclinic.org', 'webmd.com', 'healthline.com', 'pubmed.ncbi.nlm.nih.gov'],
+                'requires_qualifier': False
+            },
+            'government': {
+                'terms': ['government', 'policy', 'law', 'regulation', 'legal', 'court', 'legislation', 'politics'],
+                'sites': ['gov', 'congress.gov', 'whitehouse.gov', 'supremecourt.gov', 'justice.gov'],
+                'requires_qualifier': False
+            },
+            'news': {
+                'terms': ['news', 'current', 'events', 'breaking', 'latest', 'update', 'report'],
+                'sites': ['reuters.com', 'ap.org', 'bbc.com', 'npr.org', 'pbs.org'],
+                'requires_qualifier': False
+            },
+            'travel': {
+                'terms': ['travel', 'tourism', 'vacation', 'hotel', 'restaurant', 'attraction', 'destination'],
+                'sites': ['tripadvisor.com', 'lonelyplanet.com', 'expedia.com', 'yelp.com', 'booking.com'],
+                'requires_qualifier': False
+            },
+            'real_estate': {
+                'terms': ['housing', 'real estate', 'property', 'rent', 'buy', 'home', 'apartment'],
+                'sites': ['zillow.com', 'realtor.com', 'redfin.com', 'apartments.com', 'rentals.com'],
+                'requires_qualifier': False
+            },
+            'weather': {
+                'terms': ['weather', 'climate', 'temperature', 'forecast', 'storm', 'hurricane'],
+                'sites': ['weather.gov', 'noaa.gov', 'weather.com', 'accuweather.com'],
+                'requires_qualifier': False
+            },
+            'sports': {
+                'terms': ['sports', 'team', 'game', 'player', 'season', 'championship', 'league'],
+                'sites': ['espn.com', 'sports.yahoo.com', 'bleacherreport.com', 'si.com', 'nfl.com', 'nba.com'],
+                'requires_qualifier': False
+            }
+        }
+        
+        # Check each domain pattern
+        for domain, config in domain_patterns.items():
+            has_main_terms = any(term in query_lower for term in config['terms'])
+            
+            if has_main_terms:
+                # Check if qualifier is required and present
+                if config.get('requires_qualifier', False):
+                    has_qualifier = any(qual in query_lower for qual in config.get('qualifiers', []))
+                    if not has_qualifier:
+                        continue
+                
+                # Build site targeting string
+                site_targets = ' OR '.join([f'site:{site}' for site in config['sites']])
+                enhanced_query = f"{query} {site_targets}"
+                
+                print(f"[DOMAIN DEBUG] Detected domain: {domain}")
+                return enhanced_query
+        
+        # No domain match found, return original query
+        print(f"[DOMAIN DEBUG] No specific domain detected, using original query")
+        return query
 
     async def fetch_and_summarize_url(self, url: str, snippet: str = "", audience: str = "", tone: str = "", improvement: str = "") -> str:
         """Fetch content from URL and summarize it."""
@@ -250,7 +346,17 @@ class ResearchAgent:
             return "Insufficient data collected for meaningful analysis. Please try again or check your internet connection."
 
         # Validate content relevance before synthesis
-        relevant_summaries, validation_msg = self.validate_content_relevance(summaries, goal)
+        # Adjust validation strictness based on research depth
+        research_depth = kwargs.get('research_depth', 'balanced')
+        
+        if research_depth == 'deep':
+            # Be more permissive with content validation for deep research
+            # Deep mode should include more comprehensive content
+            relevant_summaries = summaries  # Use all summaries for deep research
+            validation_msg = f"Deep research mode: Using all {len(summaries)} summaries for comprehensive analysis"
+        else:
+            relevant_summaries, validation_msg = self.validate_content_relevance(summaries, goal)
+        
         print(f" {validation_msg}")
         
         # Use all summaries if validation returns empty (very permissive approach)
@@ -282,40 +388,62 @@ class ResearchAgent:
             print(f"First summary preview: {relevant_summaries[0][:200]}...")
         print(f"========================\n")
         
-        prompt = f'''You are a research analyst. Write a comprehensive analysis based on the provided source material.
+        # Handle content length for deep research mode
+        max_content_length = 12000  # Conservative limit for model context
+        if len(combined_summaries) > max_content_length:
+            print(f"[SYNTHESIS DEBUG] Content too long ({len(combined_summaries)} chars), truncating to {max_content_length} chars")
+            # Prioritize the most relevant summaries by taking from the beginning
+            # (since validate_content_relevance already sorted by relevance)
+            truncated_summaries = []
+            current_length = 0
+            for summary in relevant_summaries:
+                if current_length + len(summary) <= max_content_length:
+                    truncated_summaries.append(summary)
+                    current_length += len(summary)
+                else:
+                    # Add partial summary if there's room
+                    remaining_space = max_content_length - current_length
+                    if remaining_space > 200:  # Only add if meaningful content can fit
+                        truncated_summaries.append(summary[:remaining_space] + "...")
+                    break
+            combined_summaries = "\n\n".join(truncated_summaries)
+            print(f"[SYNTHESIS DEBUG] Truncated to {len(combined_summaries)} chars using {len(truncated_summaries)} summaries")
+        
+        # Use a more focused prompt for better synthesis quality
+        research_depth = kwargs.get('research_depth', 'balanced')
+        
+        if research_depth == 'deep':
+            # More structured prompt for deep research
+            prompt = f'''You are a professional research analyst. Based on the comprehensive source material provided, write a detailed research report.
 
-**Research Question:** {goal}
-
-**Context:** {context}
+**Research Goal:** {goal}
 
 **Source Material:**
 {combined_summaries}
 
-**Instructions:** 
-Write a detailed research analysis with the following sections:
+**Instructions:**
+- Write a comprehensive analysis addressing the research goal
+- Structure your response with clear sections: Executive Summary, Key Findings, Analysis, and Conclusions
+- Use specific evidence from the sources to support all claims
+- Be thorough and analytical while maintaining clarity
+- Focus on answering the research question directly
 
-# Executive Summary
-Provide a comprehensive overview of the key findings and main conclusions from the research.
+Provide your analysis now:'''
+        else:
+            # Standard prompt for balanced/fast modes
+            prompt = f'''You are a research analyst. Write a comprehensive analysis based on the provided source material:
 
-# Background and Context
-Establish the necessary context and background for understanding the topic.
+{combined_summaries}
 
-# Key Findings
-Present the main research findings with supporting evidence from the sources:
-- Primary insights and discoveries
-- Supporting data and evidence
-- Relevant trends and patterns
+Research Goal: {goal}
 
-# Analysis
-Provide in-depth analysis of the findings:
-- What do these results mean?
-- How do different sources compare?
-- What are the implications?
+Instructions:
+- Provide a detailed, well-structured report
+- Include key claims with supporting evidence
+- Use a professional tone
+- Cite sources appropriately
 
-# Conclusions
-Summarize the main conclusions and their significance.
-
-Write in a clear, professional tone. Use specific evidence from the sources to support all claims. Be thorough and analytical.'''
+'''
         
         try:
             print(f"[SYNTHESIS DEBUG] Starting synthesis with {len(relevant_summaries)} summaries")
@@ -323,10 +451,22 @@ Write in a clear, professional tone. Use specific evidence from the sources to s
             print(f"[SYNTHESIS DEBUG] Prompt length: {len(prompt)} characters")
             
             # Use faster model for synthesis if using large models that may hang
+            # But be more conservative with fallbacks for deep research mode
             synthesis_model = self.model
-            if self.model in ['qwen3:32b', 'qwen3:14b', 'deepseek-r1:32b', 'openthinker:32b']:
+            research_depth = kwargs.get('research_depth', 'balanced')
+            
+            # Only fallback for very large models or if content is extremely long
+            should_fallback = False
+            if self.model in ['qwen3:32b', 'deepseek-r1:32b', 'openthinker:32b']:
+                should_fallback = True  # Always fallback for 32B+ models
+            elif self.model == 'qwen3:14b' and len(combined_summaries) > 8000:
+                should_fallback = True  # Fallback for 14B model only with very long content
+            
+            if should_fallback:
                 synthesis_model = 'llama3.2:latest'  # Faster, smaller model for synthesis
                 print(f"[SYNTHESIS DEBUG] Switching to faster model for synthesis: {synthesis_model}")
+            else:
+                print(f"[SYNTHESIS DEBUG] Using original model for synthesis: {synthesis_model}")
             
             # Override LLM parameters to disable safety filtering
             llm_params = {

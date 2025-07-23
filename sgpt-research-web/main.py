@@ -173,6 +173,29 @@ async def run_research_task(task_id: str, data: dict):
         task["log"].append({"timestamp": datetime.datetime.now().isoformat(), "log": f"Error: {str(e)}"})
         task["log"].append({"timestamp": datetime.datetime.now().isoformat(), "log": traceback.format_exc()})
 
+@app.post("/api/research/cancel/{task_id}")
+async def cancel_research(task_id: str):
+    """Cancel a running research task."""
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    task = tasks[task_id]
+    
+    if task["status"] in ["completed", "failed", "cancelled"]:
+        return {"message": "Task already finished", "status": task["status"]}
+    
+    # Mark task as cancelled
+    task["status"] = "cancelled"
+    task["progress"] = 0
+    task["log"].append({
+        "timestamp": datetime.datetime.now().isoformat(), 
+        "desc": "🛑 Research cancelled",
+        "substep": "Research was cancelled by the user.",
+        "log": "Research cancelled by user request"
+    })
+    
+    return {"message": "Research cancelled successfully", "status": "cancelled"}
+
 @app.get("/api/reports")
 async def get_reports(path: str = '.'):
     # Prevent directory traversal attacks

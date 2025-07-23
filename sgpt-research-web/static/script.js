@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const citationSelect = document.getElementById('citation-select');
     const clearBtn = document.getElementById('clear-btn');
     const runBtn = document.getElementById('run-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
     const outputBox = document.getElementById('output-box');
     const progressLabel = document.getElementById('progress-label');
     const progressSubstep = document.getElementById('progress-substep');
@@ -195,6 +196,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // UI State Management Functions
+    function setResearchState(isResearching) {
+        // Input fields and controls
+        queryInput.disabled = isResearching;
+        audienceInput.disabled = isResearching;
+        toneInput.disabled = isResearching;
+        improvementInput.disabled = isResearching;
+        structuredDataPromptInput.disabled = isResearching;
+        projectNameSelect.disabled = isResearching;
+        newProjectNameInput.disabled = isResearching;
+        modelSelect.disabled = isResearching;
+        domainSelect.disabled = isResearching;
+        researchDepthSelect.disabled = isResearching;
+        resultsSpin.disabled = isResearching;
+        localDocsPathInput.disabled = isResearching;
+        useLocalDocsCheckbox.disabled = isResearching;
+        tempSpin.disabled = isResearching;
+        maxTokensSpin.disabled = isResearching;
+        systemPromptInput.disabled = isResearching;
+        ctxWindowSpin.disabled = isResearching;
+        fileInput.disabled = isResearching;
+        citationSelect.disabled = isResearching;
+        
+        // Action buttons
+        runBtn.disabled = isResearching;
+        clearBtn.disabled = isResearching;
+        
+        // Show/hide cancel button
+        if (isResearching) {
+            cancelBtn.style.display = 'inline-block';
+            runBtn.style.display = 'none';
+        } else {
+            cancelBtn.style.display = 'none';
+            runBtn.style.display = 'inline-block';
+        }
+    }
+    
+    function cancelResearch() {
+        if (researchTaskId) {
+            // Send cancel request to backend
+            fetch(`/api/research/cancel/${researchTaskId}`, {
+                method: 'POST'
+            }).then(() => {
+                progressLabel.textContent = '🛑 Cancelling research...';
+                progressSubstep.textContent = 'Please wait while the research is safely terminated.';
+            }).catch(error => {
+                console.error('Error cancelling research:', error);
+            });
+        }
+    }
+    
+    function handleResearchCancellation() {
+        outputBox.value = 'Research was cancelled by the user.';
+        progressLabel.textContent = '🛑 Research cancelled';
+        progressSubstep.textContent = 'You can start a new research query.';
+        progressBarFill.style.width = '0%';
+        progressBarText.textContent = '0%';
+        etaLabel.textContent = '🎯 Cancelled';
+        
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+        researchTaskId = null;
+        setResearchState(false);
+    }
+    
+    // Cancel research event listener
+    cancelBtn.addEventListener('click', cancelResearch);
+
     // Start research
     runBtn.addEventListener('click', async () => {
         const query = queryInput.value.trim();
@@ -203,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        runBtn.disabled = true;
+        setResearchState(true);
         outputBox.value = '';
         progressLog.innerHTML = '';
         progressLabel.textContent = 'Initializing research...';
@@ -220,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             projectName = newProjectNameInput.value.trim();
             if (!projectName) {
                 alert('Please enter a new project name.');
-                runBtn.disabled = false;
+                setResearchState(false);
                 return;
             }
         }
@@ -260,12 +331,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 progressInterval = setInterval(pollResearchStatus, 1000);
             } else {
                 alert('Failed to start research.');
-                runBtn.disabled = false;
+                setResearchState(false);
             }
         } catch (error) {
             console.error('Error starting research:', error);
             alert('An error occurred while starting research.');
-            runBtn.disabled = false;
+            setResearchState(false);
         }
     });
 
@@ -320,20 +391,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 progressInterval = null;
                 outputBox.value = data.result || 'Research completed.';
                 progressLabel.textContent = '✅ Research completed successfully!';
-                runBtn.disabled = false;
+                setResearchState(false);
                 fetchReports(); // Refresh report list
             } else if (data.status === 'failed') {
                 clearInterval(progressInterval);
                 progressInterval = null;
                 outputBox.value = `Research failed: ${data.error || 'Unknown error.'}\n\nLog:\n${data.log.map(entry => entry.log || entry.desc).join('\n')}`;
                 progressLabel.textContent = '❌ Research failed';
-                runBtn.disabled = false;
+                setResearchState(false);
+            } else if (data.status === 'cancelled') {
+                clearInterval(progressInterval);
+                progressInterval = null;
+                handleResearchCancellation();
             }
         } catch (error) {
             console.error('Error polling research status:', error);
             clearInterval(progressInterval);
             progressInterval = null;
-            runBtn.disabled = false;
+            setResearchState(false);
             alert('An error occurred while fetching research status.');
         }
     };

@@ -498,7 +498,10 @@ class Orchestrator:
         # The plan is a string of bullet points, so we need to parse it into a list of strings
         # Filter out explanatory text and only keep actual bullet points
         queries = []
-        plan_lines = plan.split('\n')
+        
+        # Clean the plan by removing reasoning model artifacts
+        cleaned_plan = self._clean_plan_from_reasoning_artifacts(plan)
+        plan_lines = cleaned_plan.split('\n')
         
         # Debug: Show how many lines we're processing
         emit(f"Processing {len(plan_lines)} lines from plan", log=f"Sample lines: {plan_lines[:5]}")
@@ -535,3 +538,53 @@ class Orchestrator:
         
         emit("Research complete!", substep="Complete", percent=100)
         return report_path, total_results_found, successful_queries, total_queries
+    
+    def _clean_plan_from_reasoning_artifacts(self, plan: str) -> str:
+        """Clean reasoning model artifacts like <think> tags and internal monologue from plan output."""
+        import re
+        
+        # Remove <think>...</think> blocks (including multiline)
+        plan = re.sub(r'<think>.*?</think>', '', plan, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Remove other common reasoning artifacts
+        reasoning_patterns = [
+            r'<thinking>.*?</thinking>',  # <thinking> tags
+            r'<analysis>.*?</analysis>',  # <analysis> tags
+            r'<reasoning>.*?</reasoning>',  # <reasoning> tags
+            r'Let me think.*?(?=\n|$)',  # "Let me think..." lines
+            r'I need to.*?(?=\n|$)',  # "I need to..." lines
+            r'The user wants.*?(?=\n|$)',  # "The user wants..." lines
+            r'Okay,.*?(?=\n|$)',  # "Okay,..." lines
+            r'Based on.*?I will.*?(?=\n|$)',  # "Based on... I will..." lines
+        ]
+        
+        for pattern in reasoning_patterns:
+            plan = re.sub(pattern, '', plan, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Clean up extra whitespace and empty lines
+        lines = [line.strip() for line in plan.split('\n')]
+        lines = [line for line in lines if line]  # Remove empty lines
+        
+        # Remove lines that are clearly reasoning/meta-commentary
+        filtered_lines = []
+        for line in lines:
+            line_lower = line.lower()
+            # Skip lines that are clearly internal reasoning
+            if any(phrase in line_lower for phrase in [
+                'let me', 'i need to', 'i will', 'i should', 'the user wants',
+                'based on this', 'given that', 'it seems like', 'i think',
+                'my approach', 'first i', 'then i', 'finally i'
+            ]):
+                continue
+            filtered_lines.append(line)
+        
+        cleaned_plan = '\n'.join(filtered_lines)
+        
+        # Debug output to show what was cleaned
+        if len(cleaned_plan) < len(plan) * 0.8:  # If we removed more than 20% of content
+            print(f"[PLAN CLEANING] Removed significant reasoning artifacts:")
+            print(f"[PLAN CLEANING] Original length: {len(plan)} chars")
+            print(f"[PLAN CLEANING] Cleaned length: {len(cleaned_plan)} chars")
+            print(f"[PLAN CLEANING] Cleaned plan preview: {cleaned_plan[:200]}...")
+        
+        return cleaned_plan
