@@ -486,6 +486,10 @@ Instructions:
                     timeout=300  # 5 minute timeout for synthesis
                 )
                 print(f"[SYNTHESIS DEBUG] LLM call completed, response length: {len(synthesis)}")
+                
+                # Clean reasoning artifacts from synthesis output
+                synthesis = self.clean_llm_response(synthesis)
+                print(f"[SYNTHESIS DEBUG] After cleaning artifacts, response length: {len(synthesis)}")
             except asyncio.TimeoutError:
                 print("[SYNTHESIS] LLM synthesis timed out after 5 minutes")
                 return "Analysis timed out. The research query may be too complex or the model is overloaded. Please try again with a simpler query or different research depth setting."
@@ -835,8 +839,9 @@ All sources included in this research have been evaluated for authority, relevan
         """Clean LLM response by removing thinking tags and explanatory text."""
         import re
         
-        # Remove thinking tags and their content
+        # Remove thinking tags and their content (including <think> tags)
         response = re.sub(r'<thinking>.*?</thinking>', '', response, flags=re.DOTALL)
+        response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL)
         
         # Remove common explanatory patterns that reasoning models produce
         explanatory_patterns = [
