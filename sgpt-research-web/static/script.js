@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newProjectNameInput = document.getElementById('new-project-name-input');
     const modelSelect = document.getElementById('model-select');
     const domainSelect = document.getElementById('domain-select');
+    const researchDepthSelect = document.getElementById('research-depth-select');
     const resultsSpin = document.getElementById('results-spin');
     const localDocsPathInput = document.getElementById('local-docs-path-input');
     const useLocalDocsCheckbox = document.getElementById('use-local-docs-checkbox');
@@ -233,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             project_name: projectName || null,
             model: modelSelect.value,
             domain: domainSelect.value.trim() || null,
+            research_depth: researchDepthSelect.value,
             num_results: parseInt(resultsSpin.value),
             temperature: parseFloat(tempSpin.value),
             max_tokens: parseInt(maxTokensSpin.value),

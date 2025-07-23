@@ -149,6 +149,7 @@ async def run_research_task(task_id: str, data: dict):
             documents_base_dir=str(DOCUMENTS_DIR), # Pass the base documents directory
             local_docs_path=data.get("local_docs_path"),
             domain=data.get("domain"),
+            research_depth=data.get("research_depth", "balanced"),
             progress_callback=progress_callback
         )
         

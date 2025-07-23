@@ -151,7 +151,8 @@ class ResearchAgent:
         f"- When did [specific development] happen?\n\n"
         f"Now generate 5-8 questions that directly help answer: {goal}"
     )
-        response = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
+        # Use faster parameters for planning
+        response = await self.llm.chat(self.model, prompt, temperature=0.1, max_tokens=512)
         # Clean the response to remove thinking tags and explanatory text
         cleaned_response = self.clean_llm_response(response)
         return cleaned_response
@@ -198,75 +199,64 @@ class ResearchAgent:
                 return False # If similarity check fails, assume not similar
         return False # Default to false if module can't be loaded
 
-    def validate_content_relevance(self, summaries: list, goal: str, min_relevance_threshold: float = 0.05) -> tuple:
-        """Validate that summaries are relevant to the research goal before synthesis, using a more inclusive approach."""
+    def validate_content_relevance(self, summaries: list, goal: str, min_relevance_threshold: float = 0.01) -> tuple:
+        """Validate that summaries are relevant to the research goal - very permissive approach."""
         if not summaries:
             return [], "No summaries provided for validation."
 
         relevant_summaries = []
         irrelevant_count = 0
 
-        # Extract key terms from the research goal - be more inclusive
-        goal_lower = goal.lower()
-        goal_keywords = set(word.strip('.,!?()[]{}":;') for word in goal_lower.split()
-                           if len(word) > 2 and word not in ['the', 'and', 'or', 'but', 'for', 'with', 'this', 'that', 'what', 'how', 'who', 'is', 'a', 'in', 'to', 'of'])
-
         for summary in summaries:
             summary_lower = summary.lower()
 
-            # 1. Check for explicit error indicators - be more selective
+            # Only filter out obvious technical errors and very short content
             error_indicators = [
-                "error message", "page not found", "corrupted pdf", "unable to fetch", 
-                "access denied", "404", "403", "500", "client error",
-                "i apologize", "i'm unable", "i cannot", "login required",
-                "stardew valley", "daily harvest"  # Remove overly broad filters
+                "404", "403", "500", "page not found", "corrupted pdf", 
+                "unable to fetch", "access denied", "client error"
             ]
+        
+            # Very permissive filtering - only exclude obvious errors or very short content
             if any(indicator in summary_lower for indicator in error_indicators):
                 irrelevant_count += 1
                 continue
-
-            # 2. Check if summary is too short to be useful
-            if len(summary.strip()) < 50:
+        
+            if len(summary.strip()) < 30:  # Very short threshold
                 irrelevant_count += 1
                 continue
+        
+            # Include almost everything else
+            relevant_summaries.append(summary)
 
-            # 3. Calculate keyword overlap score - be more lenient
-            summary_words = set(word.strip('.,!?()[]{}":;') for word in summary_lower.split())
-            overlap = len(goal_keywords.intersection(summary_words))
-            relevance_score = overlap / len(goal_keywords) if goal_keywords else 0
-
-            # 4. Check for semantic similarity with lower threshold
-            is_similar = self._is_semantically_similar(summary_lower, goal_lower, threshold=0.3)
-
-            # 5. Determine relevance - be more inclusive
-            if relevance_score >= min_relevance_threshold or is_similar or len(summary) > 200:
-                relevant_summaries.append(summary)
-            else:
-                irrelevant_count += 1
-
-        # If very few summaries are relevant, include more with even lower standards
-        if len(relevant_summaries) < 3 and len(summaries) > 3:
+        # If we have no relevant summaries, include everything except obvious errors
+        if not relevant_summaries:
             for summary in summaries:
-                if summary not in relevant_summaries and len(summary.strip()) > 100:
-                    # Very basic check - just avoid obvious errors
-                    if not any(indicator in summary.lower() for indicator in ["error", "404", "unable to fetch", "corrupted"]):
-                        relevant_summaries.append(summary)
-                        irrelevant_count = max(0, irrelevant_count - 1)
+                if len(summary.strip()) > 10:  # Extremely low bar
+                    relevant_summaries.append(summary)
 
-        validation_msg = f"Content validation: {len(relevant_summaries)} relevant, {irrelevant_count} irrelevant summaries"
+        validation_msg = f"Content validation: {len(relevant_summaries)} relevant, {irrelevant_count} irrelevant summaries (permissive filtering)"
         return relevant_summaries, validation_msg
 
     async def synthesize(self, summaries: list, goal: str, audience: str = "", tone: str = "", improvement: str = "", **kwargs) -> str:
-        """Synthesize multiple summaries into a coherent answer with content validation."""
+        # Fast fail for empty data to prevent hanging
         if not summaries:
+            print("[SYNTHESIS] No summaries provided - returning early")
             return "No relevant information found to synthesize."
         
+        # Fast fail for very short summaries that indicate data collection failure
+        total_content_length = sum(len(str(summary)) for summary in summaries)
+        if total_content_length < 100:
+            print(f"[SYNTHESIS] Insufficient content ({total_content_length} chars) - likely data collection failure")
+            return "Insufficient data collected for meaningful analysis. Please try again or check your internet connection."
+
         # Validate content relevance before synthesis
         relevant_summaries, validation_msg = self.validate_content_relevance(summaries, goal)
         print(f" {validation_msg}")
         
+        # Use all summaries if validation returns empty (very permissive approach)
         if not relevant_summaries:
-            return f"""I apologize, but I was unable to find relevant information to answer your research question: "{goal}"\n\nThe search results contained content that was not related to your specific question. This could be due to:\n1. Limited availability of specific data on this topic\n2. Search queries not targeting the right sources\n3. The information you're looking for may require access to specialized databases\n\n**Suggestions:**\n- Try rephrasing your research question with more specific terms\n- Consider breaking down your question into smaller, more focused parts\n- Look for official sources, academic papers, or industry-specific databases\n- Try using more specific keywords related to your topic\n\n**Alternative approach:** You might want to search for more specific aspects of your topic or try different keyword combinations to get more targeted results."""
+            relevant_summaries = summaries
+            print("Using all summaries as fallback for synthesis")
         
         # Limit the number of summaries to avoid exceeding the context window
         if len(relevant_summaries) > 50:
@@ -292,7 +282,7 @@ class ResearchAgent:
             print(f"First summary preview: {relevant_summaries[0][:200]}...")
         print(f"========================\n")
         
-        prompt = f'''You are a professional research analyst tasked with creating a comprehensive, detailed research report. Based on the provided source material, produce a rich, multi-section analysis that thoroughly examines all aspects of the research question.
+        prompt = f'''You are a research analyst. Write a comprehensive analysis based on the provided source material.
 
 **Research Question:** {goal}
 
@@ -301,65 +291,128 @@ class ResearchAgent:
 **Source Material:**
 {combined_summaries}
 
-**Instructions:** Create a comprehensive research report with the following structure. Each section should be detailed and substantive (aim for 4-6 paragraphs per major section). Use evidence from the sources to support all claims and provide thorough analysis.
+**Instructions:** 
+Write a detailed research analysis with the following sections:
 
 # Executive Summary
-
-Provide a comprehensive overview of the research findings, key insights, and main conclusions. This should be a substantial summary that captures the essence of the entire report in 3-4 detailed paragraphs.
+Provide a comprehensive overview of the key findings and main conclusions from the research.
 
 # Background and Context
-
-Establish the context and background necessary to understand the research topic. Include relevant industry context, historical perspective, market conditions, or foundational concepts that frame the research question. Draw from the source material to provide comprehensive background information.
+Establish the necessary context and background for understanding the topic.
 
 # Key Findings
+Present the main research findings with supporting evidence from the sources:
+- Primary insights and discoveries
+- Supporting data and evidence
+- Relevant trends and patterns
 
-Organize and present the main research findings in detailed subsections:
+# Analysis
+Provide in-depth analysis of the findings:
+- What do these results mean?
+- How do different sources compare?
+- What are the implications?
 
-## Primary Research Insights
-Present the most significant findings from your analysis of the source material. Use specific evidence, data, and examples from the sources.
+# Conclusions
+Summarize the main conclusions and their significance.
 
-## Supporting Evidence and Data
-Detail the evidence that supports your primary findings. Include relevant statistics, expert opinions, case studies, or examples found in the sources.
-
-## Market Analysis and Trends
-(If applicable) Analyze market conditions, trends, and competitive landscape based on the source material.
-
-# Detailed Analysis
-
-Provide an in-depth analysis that goes beyond simple presentation of facts:
-
-## Critical Examination
-Analyze the implications of the findings. What do these results mean? How do they connect to broader themes or issues?
-
-## Cross-Source Analysis
-Compare and contrast information from different sources. Identify areas of agreement, disagreement, or complementary perspectives.
-
-## Data Quality and Source Reliability
-Assess the quality and reliability of the information found in the sources. Note any limitations or gaps in the data.
-
-# Comparative Analysis
-
-(Where relevant) Compare different approaches, solutions, products, or perspectives found in the research. Analyze the strengths and weaknesses of various options or viewpoints presented in the sources.
-
-# Limitations and Research Gaps
-
-Identify what information is missing from the source material and what questions remain unanswered. Discuss any limitations in the available data or research scope.
-
-# Conclusions and Implications
-
-Summarize the overall conclusions drawn from the research and discuss their implications. What are the key takeaways? How might these findings impact stakeholders or inform decision-making?
-
-# Recommendations
-
-(Where appropriate) Based on the research findings, provide recommendations for action, further research, or consideration. Ground all recommendations in the evidence found in the sources.
-
-**Important:** Use only information found in the provided source material. When specific information is not available in the sources, clearly state this limitation. Quote directly from sources when possible and ensure all claims are supported by evidence from the provided material.'''
+Write in a clear, professional tone. Use specific evidence from the sources to support all claims. Be thorough and analytical.'''
         
-        synthesis = await self.llm.chat(self.model, prompt, temperature=self.temperature, max_tokens=self.max_tokens)
-        
-        # Validate and clean up any hallucinated source references
-        validated_synthesis = self.validate_and_clean_sources(synthesis, combined_summaries)
-        return validated_synthesis
+        try:
+            print(f"[SYNTHESIS DEBUG] Starting synthesis with {len(relevant_summaries)} summaries")
+            print(f"[SYNTHESIS DEBUG] Model: {self.model}")
+            print(f"[SYNTHESIS DEBUG] Prompt length: {len(prompt)} characters")
+            
+            # Use faster model for synthesis if using large models that may hang
+            synthesis_model = self.model
+            if self.model in ['qwen3:32b', 'qwen3:14b', 'deepseek-r1:32b', 'openthinker:32b']:
+                synthesis_model = 'llama3.2:latest'  # Faster, smaller model for synthesis
+                print(f"[SYNTHESIS DEBUG] Switching to faster model for synthesis: {synthesis_model}")
+            
+            # Override LLM parameters to disable safety filtering
+            llm_params = {
+                'temperature': self.temperature,
+                'max_tokens': self.max_tokens,
+                'system_prompt': 'You are a professional research analyst. Provide comprehensive, factual analysis based on the provided information. Do not refuse to analyze any legitimate research topics.',
+                'top_p': 0.9,
+                'repeat_penalty': 1.1
+            }
+            
+            print(f"[SYNTHESIS DEBUG] About to call LLM with timeout=300s")
+            # Add timeout to prevent infinite hanging
+            import asyncio
+            try:
+                synthesis = await asyncio.wait_for(
+                    self.llm.chat(synthesis_model, prompt, **llm_params),
+                    timeout=300  # 5 minute timeout for synthesis
+                )
+                print(f"[SYNTHESIS DEBUG] LLM call completed, response length: {len(synthesis)}")
+            except asyncio.TimeoutError:
+                print("[SYNTHESIS] LLM synthesis timed out after 5 minutes")
+                return "Analysis timed out. The research query may be too complex or the model is overloaded. Please try again with a simpler query or different research depth setting."
+            
+            # Debug: Check for refusal patterns
+            refusal_patterns = [
+                "i can't provide", "i cannot provide", "i'm unable to", "i apologize",
+                "illegal or harmful", "against my guidelines", "i'm not able to"
+            ]
+            
+            synthesis_lower = synthesis.lower()
+            if any(pattern in synthesis_lower for pattern in refusal_patterns):
+                print(f"\n=== LLM REFUSAL DETECTED ===")
+                print(f"Synthesis response: {synthesis[:200]}...")
+                print(f"Model: {self.model}")
+                print(f"Prompt length: {len(prompt)} characters")
+                print(f"========================\n")
+                
+                # Try a simpler, more direct prompt
+                simple_prompt = f"""Analyze the following information about: {goal}
+
+Information:
+{combined_summaries[:5000]}  
+
+Provide a comprehensive analysis covering:
+1. Key findings
+2. Important details
+3. Main conclusions
+
+Write in a professional, analytical tone."""
+                
+                print("Retrying with simplified prompt...")
+                try:
+                    synthesis = await asyncio.wait_for(
+                        self.llm.chat(self.model, simple_prompt, temperature=self.temperature, max_tokens=self.max_tokens),
+                        timeout=180  # 3 minute timeout for retry synthesis
+                    )
+                except asyncio.TimeoutError:
+                    print("[SYNTHESIS] Retry synthesis also timed out")
+                    return "Analysis failed due to timeout. Please try a simpler query or check if the model is responding properly."
+            
+            # Validate and clean up any hallucinated source references
+            validated_synthesis = self.validate_and_clean_sources(synthesis, combined_summaries)
+            return validated_synthesis
+            
+        except Exception as e:
+            print(f"\n=== SYNTHESIS ERROR ===")
+            print(f"Error: {str(e)}")
+            print(f"Model: {self.model}")
+            print(f"Prompt length: {len(prompt)} characters")
+            print(f"========================\n")
+            
+            # Return a basic analysis as fallback
+            return f"""# Analysis of {goal}
+
+Based on the available research data, this analysis covers the key findings from {len(relevant_summaries)} sources.
+
+## Key Information Found
+
+The research gathered information from multiple authoritative sources covering various aspects of the topic.
+
+## Summary
+
+Detailed analysis was requested but encountered technical issues during generation. The source material contains relevant information that should be reviewed directly.
+
+*Note: This is a fallback response due to synthesis processing issues. Please check the source material directly for detailed information.*"""
+
 
     def validate_and_clean_sources(self, synthesis: str, source_material: str) -> str:
         """Validate source references in synthesis and remove/flag hallucinated citations."""

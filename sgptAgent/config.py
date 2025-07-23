@@ -24,7 +24,7 @@ DEFAULT_CONFIG = {
     "REQUEST_TIMEOUT": int(os.getenv("REQUEST_TIMEOUT", "60")),
     "EMBEDDING_MODEL": os.getenv("EMBEDDING_MODEL", "nomic-embed-text"),
     "MULTIMODAL_MODEL": os.getenv("MULTIMODAL_MODEL", "llava"),
-    "DEFAULT_MODEL": os.getenv("DEFAULT_MODEL", "qwen3:8b"),
+    "DEFAULT_MODEL": os.getenv("DEFAULT_MODEL", "qwen3:14b"),
     "LLM_PROVIDER": os.getenv("LLM_PROVIDER", "ollama"),  # 'ollama', 'openai', or 'litellm'
     "DEFAULT_COLOR": os.getenv("DEFAULT_COLOR", "magenta"),
     "ROLE_STORAGE_PATH": os.getenv("ROLE_STORAGE_PATH", str(ROLE_STORAGE_PATH)),

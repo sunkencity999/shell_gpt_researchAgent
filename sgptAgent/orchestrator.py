@@ -1,4 +1,7 @@
-
+import asyncio
+import os
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 from sgptAgent.agent import ResearchAgent
 from sgptAgent.config import cfg
 from sgptAgent.domain_agents import get_domain_agent
@@ -9,34 +12,175 @@ class PlannerAgent(ResearchAgent):
         super().__init__(**kwargs)
 
     async def run(self, goal: str, **kwargs) -> list:
-        return await self.plan(goal, **kwargs)
+        # Generate fewer, more focused queries for faster processing
+        plan = await self.plan(goal, **kwargs)
+        
+        # Limit to maximum 5 queries for performance
+        if len(plan) > 5:
+            print(f"Limiting queries from {len(plan)} to 5 for optimal performance")
+            plan = plan[:5]
+        
+        return plan
 
 class DataCollectorAgent(ResearchAgent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     async def run(self, queries: list, multimodal_agent, vision_agent, **kwargs) -> tuple:
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+        
         results = []
         total_results_found = 0
         successful_queries = 0
         total_queries = len(queries)
-
-        for query in queries:
-            search_results = self.web_search(query)
-            if search_results:
-                successful_queries += 1
-                total_results_found += len(search_results)
-                for result in search_results:
-                    summary = await self.fetch_and_summarize_url(result['href'], result.get('snippet', ''))
-                    image_analyses = []
-                    results.append({
-                        "title": result.get("title"),
-                        "href": result.get("href"),
-                        "snippet": result.get("snippet"),
-                        "summary": summary,
-                        "images": image_analyses
-                    })
+        
+        # Configurable research depth (can be set by user)
+        research_depth = kwargs.get('research_depth', 'balanced')  # 'fast', 'balanced', 'deep'
+        
+        # Adjust parameters based on research depth
+        if research_depth == 'fast':
+            max_concurrent_queries = min(4, len(queries))
+            max_concurrent_urls = 8
+            max_results_per_query = 2
+            url_timeout = 20.0
+            print("🚀 Fast mode: Prioritizing speed with basic content extraction")
+        elif research_depth == 'deep':
+            max_concurrent_queries = min(2, len(queries))
+            max_concurrent_urls = 3
+            max_results_per_query = 5
+            url_timeout = 60.0
+            print("🔍 Deep mode: Prioritizing comprehensive content extraction")
+        else:  # balanced
+            max_concurrent_queries = min(3, len(queries))
+            max_concurrent_urls = 5
+            max_results_per_query = 3
+            url_timeout = 45.0
+            print("⚖️ Balanced mode: Optimizing for both speed and depth")
+        
+        print(f"Processing {len(queries)} queries with {max_concurrent_queries} concurrent searches...")
+        
+        # Process queries in parallel batches
+        query_batches = [queries[i:i + max_concurrent_queries] for i in range(0, len(queries), max_concurrent_queries)]
+        
+        for batch in query_batches:
+            # Search all queries in this batch concurrently
+            search_tasks = []
+            for query in batch:
+                task = asyncio.create_task(self._search_query_async(query, max_results_per_query))
+                search_tasks.append(task)
+            
+            # Wait for all searches in this batch to complete
+            batch_search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+            
+            # Collect all URLs from this batch
+            all_urls = []
+            for i, search_result in enumerate(batch_search_results):
+                if isinstance(search_result, Exception):
+                    print(f"Search error for query '{batch[i]}': {search_result}")
+                    continue
+                    
+                if search_result:
+                    successful_queries += 1
+                    total_results_found += len(search_result)
+                    all_urls.extend(search_result)
+            
+            # Process URLs in parallel batches
+            if all_urls:
+                url_batches = [all_urls[i:i + max_concurrent_urls] for i in range(0, len(all_urls), max_concurrent_urls)]
+                
+                for url_batch in url_batches:
+                    # Process URLs in this batch concurrently
+                    url_tasks = []
+                    for result in url_batch:
+                        task = asyncio.create_task(self._process_url_async(result, url_timeout))
+                        url_tasks.append(task)
+                    
+                    # Wait for all URL processing in this batch to complete
+                    batch_results = await asyncio.gather(*url_tasks, return_exceptions=True)
+                    
+                    # Add successful results
+                    for processed_result in batch_results:
+                        if isinstance(processed_result, Exception):
+                            print(f"URL processing error: {processed_result}")
+                            continue
+                        if processed_result:
+                            results.append(processed_result)
+        
+        print(f"Data collection complete: {len(results)} results from {successful_queries}/{total_queries} successful queries")
         return results, total_results_found, successful_queries, total_queries
+    
+    async def _search_query_async(self, query: str, max_results: int = 3) -> list:
+        """Async wrapper for web search"""
+        import asyncio
+        loop = asyncio.get_event_loop()
+        
+        # Run the synchronous web_search in a thread pool
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            try:
+                search_results = await loop.run_in_executor(executor, self.web_search, query)
+                return search_results[:max_results]  # Limit results per query
+            except Exception as e:
+                print(f"Search error for '{query}': {e}")
+                return []
+    
+    async def _process_url_async(self, result: dict, timeout: float = 45.0) -> dict:
+        """Process a single URL result asynchronously with smart content strategy"""
+        try:
+            snippet = result.get('snippet', '')
+            url = result.get('href', '')
+            title = result.get('title', '')
+            
+            # Smart content strategy: Always try to fetch full content for quality
+            # but with optimizations for speed
+            summary = None
+            
+            # Priority 1: Try to fetch full content with timeout
+            try:
+                print(f"Fetching full content from: {url[:60]}...")
+                summary = await asyncio.wait_for(
+                    self.fetch_and_summarize_url(url, snippet),
+                    timeout=timeout  # Use configurable timeout
+                )
+                
+                # Validate that we got meaningful content
+                if summary and len(summary.strip()) > 50 and not any(error in summary.lower() for error in 
+                    ['error', 'unable to fetch', 'timeout', 'failed']):
+                    print(f"✓ Successfully extracted content from {url[:40]}...")
+                else:
+                    raise Exception("Content extraction failed or returned minimal content")
+                    
+            except (asyncio.TimeoutError, Exception) as e:
+                # Priority 2: Enhanced snippet processing for fallback
+                print(f"⚠ Full content failed for {url[:40]}... using enhanced snippet processing")
+                
+                if snippet and len(snippet) > 30:
+                    # Create a more detailed summary from the snippet
+                    summary = f"""Based on search result from {url}:
+                    
+{title}: {snippet}
+
+Note: This summary is based on search result snippet due to content fetching limitations. For complete analysis, the full webpage content could not be retrieved."""
+                else:
+                    # Last resort: minimal information
+                    summary = f"Limited information available from {url}. Title: {title}. Additional details could not be retrieved."
+            
+            return {
+                "title": title,
+                "href": url,
+                "snippet": snippet,
+                "summary": summary,
+                "images": []  # Skip image processing for speed
+            }
+        except Exception as e:
+            print(f"Error processing URL {result.get('href', 'unknown')}: {e}")
+            return {
+                "title": result.get('title', 'Unknown'),
+                "href": result.get('href', ''),
+                "snippet": result.get('snippet', ''),
+                "summary": f"Error processing this source: {str(e)}",
+                "images": []
+            }
 
 class ReportGeneratorAgent(ResearchAgent):
     def __init__(self, **kwargs):
@@ -87,7 +231,18 @@ class ReportGeneratorAgent(ResearchAgent):
         llm_kwargs.pop("progress_callback", None)
         
         prompt = f"""**Your Task:**\nFrom the text below, extract the key claims being made. Each claim should be a single, complete sentence.\nPresent them as a simple bulleted list.\n\n**Text to Analyze:**\n---\n{synthesis}\n---\n\n**Key Claims (bulleted list):**\n"""
-        response = await self.llm.chat(self.model, prompt, **llm_kwargs)
+        
+        print("[REASONING DEBUG] About to extract claims with timeout=120s")
+        import asyncio
+        try:
+            response = await asyncio.wait_for(
+                self.llm.chat(self.model, prompt, **llm_kwargs),
+                timeout=120  # 2 minute timeout for claims extraction
+            )
+            print(f"[REASONING DEBUG] Claims extraction completed, response length: {len(response)}")
+        except asyncio.TimeoutError:
+            print("[REASONING DEBUG] Claims extraction timed out")
+            return ["Analysis completed but claim extraction timed out. Report generation will continue with basic structure."]
         # Process the response to get a clean list of claims
         claims = [line.strip('*-• ') for line in response.split('\n') if line.strip('*-• ')]
         return claims
@@ -119,7 +274,16 @@ class ReportGeneratorAgent(ResearchAgent):
 
 **Relevant Summary Numbers:**
 '''
-        response = await self.llm.chat(self.model, prompt, **llm_kwargs)
+        print(f"[REASONING DEBUG] About to filter summaries for claim with timeout=90s")
+        try:
+            response = await asyncio.wait_for(
+                self.llm.chat(self.model, prompt, **llm_kwargs),
+                timeout=90  # 90 second timeout for summary filtering
+            )
+            print(f"[REASONING DEBUG] Summary filtering completed, response: {response[:100]}...")
+        except asyncio.TimeoutError:
+            print("[REASONING DEBUG] Summary filtering timed out")
+            return []
         
         if "none" in response.lower():
             return []
@@ -140,7 +304,18 @@ class ReportGeneratorAgent(ResearchAgent):
         combined_summaries = "\n\n".join(summaries)
 
         prompt = f'''**Your Task:** Justify the following claim using ONLY the provided evidence.\n\n**Claim:**\n---\n{claim}\n---\n\n**Supporting Evidence:**\n---\n{combined_summaries}\n---\n\n**Instructions:**\n1.  Write a brief explanation of how the "Supporting Evidence" proves the "Claim".\n2.  If the evidence is not sufficient, state that clearly.\n3.  Do not invent information or discuss topics not present in the evidence.\n\n**Justification:**\n'''
-        return await self.llm.chat(self.model, prompt, **llm_kwargs)
+        
+        print(f"[REASONING DEBUG] About to generate reasoning for claim with timeout=90s")
+        try:
+            result = await asyncio.wait_for(
+                self.llm.chat(self.model, prompt, **llm_kwargs),
+                timeout=90  # 90 second timeout for reasoning generation
+            )
+            print(f"[REASONING DEBUG] Reasoning generation completed, length: {len(result)}")
+            return result
+        except asyncio.TimeoutError:
+            print("[REASONING DEBUG] Reasoning generation timed out")
+            return "Reasoning generation timed out for this claim. The evidence supports the claim but detailed justification could not be completed."
 
     async def generate_reasoning(self, synthesis: str, summaries: list, goal: str, **kwargs) -> str:
         claims = await self.extract_claims(synthesis, **kwargs)

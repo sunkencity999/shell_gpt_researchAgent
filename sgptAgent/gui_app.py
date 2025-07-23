@@ -286,6 +286,15 @@ class ResearchAgentGUI(QMainWindow):
         filename = self.file_input.text().strip() or "research_report.txt"
         analyze_images = True  # Default to True since image analysis is now handled by separate button
         domain = self.domain_combo.currentText()
+        
+        # Extract research depth from combo box
+        depth_text = self.depth_combo.currentText()
+        if "Fast" in depth_text:
+            research_depth = "fast"
+        elif "Deep" in depth_text:
+            research_depth = "deep"
+        else:
+            research_depth = "balanced"  # Default
 
         if not query:
             QMessageBox.warning(self, "Input Required", "Please enter a research query.")
@@ -319,7 +328,7 @@ class ResearchAgentGUI(QMainWindow):
         self.worker = ResearchWorker(
             query, audience, tone, improvement, project_name, model, num_results,
             temperature, max_tokens, system_prompt, ctx_window, citation_style, filename,
-            analyze_images, mode, url, domain
+            analyze_images, mode, url, domain, research_depth
         )
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.research_finished)
@@ -740,6 +749,26 @@ class ResearchAgentGUI(QMainWindow):
         domain_layout.addWidget(self.domain_help_button)
         
         params_layout.addLayout(domain_layout)
+        
+        # Research Depth Selection
+        depth_layout = QHBoxLayout()
+        self.depth_combo = QComboBox()
+        self.depth_combo.addItems([
+            "⚖️ Balanced (8-12 min) - Optimal speed/depth balance",
+            "🚀 Fast (5-8 min) - Quick overviews, basic content", 
+            "🔍 Deep (15-25 min) - Comprehensive analysis, full content"
+        ])
+        self.depth_combo.setCurrentIndex(0)  # Default to Balanced
+        self.depth_combo.setToolTip(
+            "Choose research depth:\n"
+            "• Fast: Quick results with basic content extraction\n"
+            "• Balanced: Good balance of speed and comprehensive content\n"
+            "• Deep: Thorough analysis with full webpage content extraction"
+        )
+        depth_layout.addWidget(QLabel("Research Depth:"))
+        depth_layout.addWidget(self.depth_combo)
+        
+        params_layout.addLayout(depth_layout)
         
         # Model and results count
         row2_layout = QHBoxLayout()
@@ -1331,7 +1360,7 @@ class ResearchWorker(QThread):
     progress = pyqtSignal(str, str, object, object, object)  # desc, bar, substep, percent, log
 
     def __init__(self, query, audience, tone, improvement, project_name, model, num_results,
-                 temperature, max_tokens, system_prompt, ctx_window, citation_style, filename, analyze_images, mode, url, domain="General"): 
+                 temperature, max_tokens, system_prompt, ctx_window, citation_style, filename, analyze_images, mode, url, domain="General", research_depth="balanced"): 
         super().__init__()
         self.query = query
         self.audience = audience
@@ -1350,6 +1379,7 @@ class ResearchWorker(QThread):
         self.mode = mode
         self.url = url
         self.domain = domain
+        self.research_depth = research_depth
 
     def run(self):
         import asyncio
@@ -1379,6 +1409,7 @@ class ResearchWorker(QThread):
                 mode=self.mode,
                 url=self.url,
                 domain=self.domain,
+                research_depth=self.research_depth,
                 progress_callback=progress_callback
             ))
             
