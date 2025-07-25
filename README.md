@@ -160,6 +160,153 @@
 
 ---
 
+## 🔧 **Research Automation Framework**
+
+### **🎯 Overview**
+ResearchAgent features a powerful **Research Automation Framework** that extends beyond traditional research with intelligent command execution, data analysis, and workflow automation. This system provides secure, user-approved automation for complex research tasks.
+
+### **🛡️ Security-First Design**
+- **Multi-Tier Validation**: Commands are classified into Safe, Moderate, and Advanced categories
+- **User Approval Workflow**: Restricted commands require explicit user confirmation
+- **Sandbox Protection**: Automation runs in controlled environment with proper validation
+- **Command Filtering**: Dangerous operations are blocked entirely
+
+### **🚀 Automation Capabilities**
+
+#### **📊 Data Analysis Mode**
+- **Document Analysis**: Extract insights from research files and documents
+- **Statistical Processing**: Generate summaries, word counts, and data metrics
+- **Content Mining**: Search through large document collections
+- **Pattern Recognition**: Identify trends and patterns in research data
+
+**Example Commands:**
+```bash
+# Analyze document structure and content
+find documents/ -name "*.pdf" -exec pdfinfo {} \;
+
+# Extract key statistics from research files
+wc -l documents/*.txt | sort -n
+
+# Search for specific topics across documents
+grep -r "artificial intelligence" documents/ --include="*.txt"
+```
+
+#### **📈 Data Visualization Mode**
+- **Chart Generation**: Create visual representations of research data
+- **Trend Analysis**: Generate graphs showing patterns over time
+- **Report Enhancement**: Add visual elements to research reports
+- **Custom Dashboards**: Build interactive data presentations
+
+**Example Commands:**
+```bash
+# Generate word frequency charts
+python -c "import matplotlib.pyplot as plt; # chart generation code"
+
+# Create timeline visualizations
+gnuplot -c timeline_script.gp research_data.csv
+
+# Build interactive HTML dashboards
+pandoc research_report.md -o interactive_dashboard.html
+```
+
+#### **🔄 Workflow Automation Mode**
+- **Batch Processing**: Process multiple files simultaneously
+- **Pipeline Execution**: Run multi-step research workflows
+- **Task Scheduling**: Automate repetitive research tasks
+- **Integration Scripts**: Connect different research tools
+
+**Example Commands:**
+```bash
+# Batch convert and process research files
+for file in documents/*.pdf; do convert_and_analyze "$file"; done
+
+# Run complete research pipeline
+./research_pipeline.sh --input data/ --output reports/
+
+# Generate comprehensive research summaries
+python research_summarizer.py --batch --all-topics
+```
+
+#### **💡 Smart Suggestions Mode**
+- **Context-Aware Recommendations**: Suggestions based on your research topic
+- **Tool Discovery**: Find relevant commands for your specific needs
+- **Best Practices**: Learn optimal automation patterns
+- **Custom Commands**: Generate tailored automation scripts
+
+### **🖥️ User Interfaces**
+
+#### **Desktop GUI Automation**
+- **Integrated Panel**: Automation controls built into the main research interface
+- **Mode Selection**: Choose from Data Analysis, Visualization, Workflow, or Custom modes
+- **Live Output**: Real-time command execution results
+- **User Approval**: Interactive dialogs for restricted commands
+- **Suggestion System**: Get smart automation recommendations
+
+#### **Web GUI Automation**
+- **Browser-Based Interface**: Full automation capabilities in the web interface
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Progress Tracking**: Real-time status updates and execution monitoring
+- **Suggestion Grid**: Visual grid of recommended automation commands
+- **Click-to-Use**: Click any suggestion to auto-populate the command input
+
+### **🎮 How to Use Automation**
+
+#### **Desktop GUI:**
+1. **Open ResearchAgent**: Launch the desktop application
+2. **Navigate to Automation**: Scroll to the "🔧 Research Automation" section
+3. **Select Mode**: Choose your automation type (Data Analysis, Visualization, etc.)
+4. **Get Suggestions**: Click "💡 Get Suggestions" for context-aware recommendations
+5. **Enter Command**: Type or select a command to execute
+6. **Run Automation**: Click "⚙️ Run Automation" to execute
+7. **Approve if Needed**: Confirm any restricted commands in the approval dialog
+
+#### **Web GUI:**
+1. **Access Web Interface**: Navigate to `http://localhost:8000`
+2. **Expand Automation**: Click the "🔧 Research Automation" collapsible section
+3. **Choose Mode**: Select automation mode from the dropdown
+4. **Enter Research Query**: Add your research topic in the main query field
+5. **Get Suggestions**: Click "💡 Get Suggestions" for smart recommendations
+6. **Select Command**: Click any suggestion or enter a custom command
+7. **Execute**: Click "⚙️ Run Automation" and monitor progress
+
+### **💡 Pro Tips for Automation**
+
+#### **Best Practices:**
+- **Start Simple**: Begin with basic file operations before advanced workflows
+- **Use Suggestions**: Let the AI recommend commands based on your research topic
+- **Test Commands**: Try commands on sample data before running on important files
+- **Read Approval Dialogs**: Understand what restricted commands will do
+- **Save Useful Commands**: Keep track of automation commands that work well
+
+#### **Common Use Cases:**
+- **📚 Literature Review**: Automate document analysis and citation extraction
+- **📊 Data Research**: Process CSV files, generate statistics, create charts
+- **🔍 Content Mining**: Search through large document collections
+- **📝 Report Generation**: Automate formatting and compilation of research reports
+- **🔄 Workflow Optimization**: Create repeatable research processes
+
+#### **Security Considerations:**
+- **Review Commands**: Always understand what automation commands will do
+- **Approve Carefully**: Be cautious when approving advanced/bash commands
+- **Backup Data**: Keep backups of important research files
+- **Test Environment**: Use test data when trying new automation workflows
+
+### **🛠️ Advanced Features**
+
+#### **Custom Automation Functions**
+- **Document Analysis**: `analyze_documents()` - Extract insights from research files
+- **Data Visualization**: `create_visualizations()` - Generate charts and graphs
+- **Workflow Automation**: `run_workflow()` - Execute multi-step processes
+- **Smart Suggestions**: `get_research_suggestions()` - Context-aware recommendations
+
+#### **Integration Capabilities**
+- **Shell Commands**: Direct system command execution with safety controls
+- **Python Scripts**: Run custom analysis scripts with research data
+- **File Processing**: Batch operations on research documents
+- **Data Export**: Generate outputs in multiple formats (CSV, JSON, HTML)
+
+---
+
 ## 🚀 **Getting Started**
 
 ### **📦 Quick Installation**

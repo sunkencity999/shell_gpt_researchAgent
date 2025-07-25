@@ -637,10 +637,22 @@ async function getAutomationSuggestions() {
 
 // Display automation suggestions
 function displayAutomationSuggestions(suggestions) {
-    const suggestionsGrid = document.getElementById('suggestions-list');
-    suggestionsGrid.innerHTML = '';
+    console.log('🎨 displayAutomationSuggestions called with:', suggestions);
     
-    suggestions.forEach(suggestion => {
+    const suggestionsGrid = document.getElementById('suggestions-list');
+    console.log('📋 suggestionsGrid element:', suggestionsGrid);
+    
+    if (!suggestionsGrid) {
+        console.error('❌ suggestions-list element not found!');
+        return;
+    }
+    
+    suggestionsGrid.innerHTML = '';
+    console.log('🧹 Cleared suggestions grid');
+    
+    suggestions.forEach((suggestion, index) => {
+        console.log(`🏗️ Creating suggestion ${index + 1}:`, suggestion);
+        
         const suggestionDiv = document.createElement('div');
         suggestionDiv.className = 'suggestion-item';
         suggestionDiv.innerHTML = `
@@ -649,12 +661,25 @@ function displayAutomationSuggestions(suggestions) {
             <div class="suggestion-description">${suggestion.description}</div>
         `;
         
+        console.log(`📦 Created suggestion div ${index + 1}:`, suggestionDiv);
+        
         // Click handler to populate command input
         suggestionDiv.addEventListener('click', () => {
+            console.log('🖱️ Suggestion clicked:', suggestion.command);
             document.getElementById('automation-command-input').value = suggestion.command;
         });
         
         suggestionsGrid.appendChild(suggestionDiv);
+        console.log(`✅ Appended suggestion ${index + 1} to grid`);
+    });
+    
+    console.log('🎯 Final suggestions grid children count:', suggestionsGrid.children.length);
+    console.log('👁️ Suggestions grid visibility:', window.getComputedStyle(suggestionsGrid).display);
+    console.log('📏 Suggestions grid dimensions:', {
+        width: suggestionsGrid.offsetWidth,
+        height: suggestionsGrid.offsetHeight,
+        clientWidth: suggestionsGrid.clientWidth,
+        clientHeight: suggestionsGrid.clientHeight
     });
 }
 
