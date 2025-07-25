@@ -40,20 +40,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteReportBtn = document.getElementById('delete-report-btn');
     const refreshReportsBtn = document.getElementById('refresh-reports-btn');
     const reportPreview = document.getElementById('report-preview');
-    const collapsibleHeader = document.querySelector('.collapsible-header');
-    const collapsibleContent = document.querySelector('.collapsible-content');
 
     let researchTaskId = null;
     let progressInterval = null;
     let startTime = null;
 
-    // Collapsible section logic
-    if (collapsibleHeader) {
-        collapsibleHeader.addEventListener('click', () => {
-            collapsibleContent.classList.toggle('expanded');
-            collapsibleHeader.classList.toggle('expanded');
+    // Collapsible section logic - handle ALL collapsible sections
+    const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+    collapsibleHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            if (content && content.classList.contains('collapsible-content')) {
+                content.classList.toggle('expanded');
+                header.classList.toggle('expanded');
+            }
         });
-    }
+    });
 
     // Fetch models on load
     const fetchModels = async () => {
@@ -550,4 +552,270 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchModels();
     fetchProjects();
     fetchReports();
+    
+    // Initialize automation listeners
+    initializeAutomationListeners();
 });
+
+// ==================== AUTOMATION FUNCTIONALITY ====================
+
+// Automation state management
+let currentAutomationTaskId = null;
+let automationPollingInterval = null;
+
+// Get automation suggestions
+async function getAutomationSuggestions() {
+    console.log('🔍 Starting getAutomationSuggestions...');
+    
+    const getSuggestionsBtn = document.getElementById('get-suggestions-btn');
+    const suggestionsContainer = document.getElementById('automation-suggestions');
+    const suggestionsGrid = document.getElementById('suggestions-list');
+    const modeSelect = document.getElementById('automation-mode-select');
+    
+    // Check if all required elements exist
+    console.log('📋 DOM Elements Check:');
+    console.log('  getSuggestionsBtn:', getSuggestionsBtn);
+    console.log('  suggestionsContainer:', suggestionsContainer);
+    console.log('  suggestionsGrid:', suggestionsGrid);
+    console.log('  modeSelect:', modeSelect);
+    
+    if (!getSuggestionsBtn) {
+        console.error('❌ get-suggestions-btn not found!');
+        return;
+    }
+    
+    // Disable button and show loading
+    getSuggestionsBtn.disabled = true;
+    getSuggestionsBtn.textContent = '🔄 Getting Suggestions...';
+    
+    try {
+        const researchGoal = encodeURIComponent(document.getElementById('query-input').value || 'General research automation');
+        console.log('🎯 Research Goal:', researchGoal);
+        
+        const url = `/api/automation/suggestions?research_goal=${researchGoal}`;
+        console.log('🌐 Fetching:', url);
+        
+        const response = await fetch(url);
+        console.log('📡 Response status:', response.status, response.statusText);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('📄 Response data:', data);
+            
+            if (data.suggestions && Array.isArray(data.suggestions)) {
+                console.log('✅ Found', data.suggestions.length, 'suggestions');
+                displayAutomationSuggestions(data.suggestions);
+                
+                if (suggestionsContainer) {
+                    suggestionsContainer.style.display = 'block';
+                    console.log('👁️ Suggestions container shown');
+                } else {
+                    console.error('❌ suggestionsContainer not found!');
+                }
+            } else {
+                console.error('❌ Invalid suggestions format:', data);
+                alert('Invalid response format from server.');
+            }
+        } else {
+            console.error('❌ Response not OK:', response.status);
+            const error = await response.json();
+            alert(`Failed to get suggestions: ${error.detail}`);
+        }
+    } catch (error) {
+        console.error('❌ Error getting automation suggestions:', error);
+        console.error('Error details:', error.message, error.stack);
+        alert('An error occurred while getting suggestions.');
+    } finally {
+        // Re-enable button
+        if (getSuggestionsBtn) {
+            getSuggestionsBtn.disabled = false;
+            getSuggestionsBtn.textContent = '💡 Get Suggestions';
+        }
+        console.log('🔄 getAutomationSuggestions completed');
+    }
+}
+
+// Display automation suggestions
+function displayAutomationSuggestions(suggestions) {
+    const suggestionsGrid = document.getElementById('suggestions-list');
+    suggestionsGrid.innerHTML = '';
+    
+    suggestions.forEach(suggestion => {
+        const suggestionDiv = document.createElement('div');
+        suggestionDiv.className = 'suggestion-item';
+        suggestionDiv.innerHTML = `
+            <div class="suggestion-category">${suggestion.category || 'General'}</div>
+            <div class="suggestion-command">${suggestion.command}</div>
+            <div class="suggestion-description">${suggestion.description}</div>
+        `;
+        
+        // Click handler to populate command input
+        suggestionDiv.addEventListener('click', () => {
+            document.getElementById('automation-command-input').value = suggestion.command;
+        });
+        
+        suggestionsGrid.appendChild(suggestionDiv);
+    });
+}
+
+// Run automation command
+async function runAutomation() {
+    const runBtn = document.getElementById('run-automation-btn');
+    const commandInput = document.getElementById('automation-command-input');
+    const modeSelect = document.getElementById('automation-mode-select');
+    const outputContainer = document.getElementById('automation-output');
+    const resultDiv = document.getElementById('automation-result');
+    const progressDiv = document.getElementById('automation-progress');
+    const statusSpan = document.getElementById('automation-status');
+    
+    const command = commandInput.value.trim();
+    if (!command) {
+        alert('Please enter a command to run.');
+        return;
+    }
+    
+    // Disable button and show progress
+    runBtn.disabled = true;
+    runBtn.textContent = '⚙️ Running...';
+    outputContainer.style.display = 'block';
+    progressDiv.style.display = 'block';
+    resultDiv.textContent = 'Starting automation...';
+    statusSpan.textContent = 'Initializing...';
+    
+    try {
+        const response = await fetch('/api/automation/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                command: command,
+                mode: modeSelect.value,
+                research_goal: document.getElementById('query-input').value || 'Automation task'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            currentAutomationTaskId = data.task_id;
+            
+            // Start polling for results
+            startAutomationPolling();
+        } else {
+            const error = await response.json();
+            displayAutomationError(`Failed to start automation: ${error.detail}`);
+        }
+    } catch (error) {
+        console.error('Error running automation:', error);
+        displayAutomationError('An error occurred while starting automation.');
+    }
+}
+
+// Start polling for automation status
+function startAutomationPolling() {
+    if (automationPollingInterval) {
+        clearInterval(automationPollingInterval);
+    }
+    
+    automationPollingInterval = setInterval(async () => {
+        if (!currentAutomationTaskId) {
+            stopAutomationPolling();
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/automation/status/${currentAutomationTaskId}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                updateAutomationStatus(data);
+                
+                // Stop polling if task is completed
+                if (data.status === 'completed' || data.status === 'failed') {
+                    stopAutomationPolling();
+                }
+            } else {
+                console.error('Failed to get automation status');
+            }
+        } catch (error) {
+            console.error('Error polling automation status:', error);
+        }
+    }, 2000); // Poll every 2 seconds
+}
+
+// Stop polling for automation status
+function stopAutomationPolling() {
+    if (automationPollingInterval) {
+        clearInterval(automationPollingInterval);
+        automationPollingInterval = null;
+    }
+    
+    const runBtn = document.getElementById('run-automation-btn');
+    runBtn.disabled = false;
+    runBtn.textContent = '⚙️ Run Automation';
+    
+    currentAutomationTaskId = null;
+}
+
+// Update automation status display
+function updateAutomationStatus(data) {
+    const resultDiv = document.getElementById('automation-result');
+    const statusSpan = document.getElementById('automation-status');
+    const progressDiv = document.getElementById('automation-progress');
+    
+    // Update status text
+    statusSpan.textContent = `Status: ${data.status}`;
+    
+    // Update result display
+    if (data.result) {
+        resultDiv.textContent = data.result;
+    }
+    
+    // Handle completion
+    if (data.status === 'completed') {
+        progressDiv.style.display = 'none';
+        statusSpan.textContent = 'Status: Completed successfully ✅';
+        statusSpan.style.color = '#28a745';
+    } else if (data.status === 'failed') {
+        progressDiv.style.display = 'none';
+        statusSpan.textContent = 'Status: Failed ❌';
+        statusSpan.style.color = '#dc3545';
+        
+        if (data.error) {
+            resultDiv.textContent = `Error: ${data.error}`;
+        }
+    } else {
+        // Running status
+        statusSpan.style.color = '#0056b3';
+    }
+}
+
+// Display automation error
+function displayAutomationError(message) {
+    const resultDiv = document.getElementById('automation-result');
+    const statusSpan = document.getElementById('automation-status');
+    const progressDiv = document.getElementById('automation-progress');
+    const runBtn = document.getElementById('run-automation-btn');
+    
+    resultDiv.textContent = message;
+    statusSpan.textContent = 'Status: Error ❌';
+    statusSpan.style.color = '#dc3545';
+    progressDiv.style.display = 'none';
+    
+    runBtn.disabled = false;
+    runBtn.textContent = '⚙️ Run Automation';
+}
+
+// Initialize automation event listeners
+function initializeAutomationListeners() {
+    const getSuggestionsBtn = document.getElementById('get-suggestions-btn');
+    const runAutomationBtn = document.getElementById('run-automation-btn');
+    
+    if (getSuggestionsBtn) {
+        getSuggestionsBtn.addEventListener('click', getAutomationSuggestions);
+    }
+    
+    if (runAutomationBtn) {
+        runAutomationBtn.addEventListener('click', runAutomation);
+    }
+}

@@ -31,6 +31,13 @@ APP_TITLE = "Shell GPT Research Agent GUI"
 
 # --- Import backend ---
 from sgptAgent.agent import ResearchAgent
+from sgptAgent.research_automation import (
+    ResearchAutomation, execute_research_command_with_approval,
+    get_safe_research_suggestions
+)
+from sgptAgent.llm_functions.common.research_data_analysis import Function as DataAnalysisFunction
+from sgptAgent.llm_functions.common.research_data_visualization import Function as DataVisualizationFunction
+from sgptAgent.llm_functions.common.research_workflow_automation import Function as WorkflowAutomationFunction
 import traceback
 
 # --- Helper functions ---
@@ -169,6 +176,10 @@ class ResearchAgentGUI(QMainWindow):
         # Apply modern styling
         self._apply_modern_styling()
         
+        # Initialize automation system
+        self.automation = None
+        self.automation_enabled = False
+        
         # Initialize UI
         self._init_ui()
         self._populate_project_list()
@@ -181,17 +192,43 @@ class ResearchAgentGUI(QMainWindow):
             {'name': 'Synthesizing', 'icon': '📝', 'color': 'green'},
             {'name': 'Finalizing', 'icon': '✨', 'color': 'success'}
         ]
+        
+        # Initialize automation system with approval callback
+        self._setup_automation_system()
     
     def _apply_modern_styling(self):
         """Apply modern light theme styling to the application."""
-        # Set application font
-        app = QApplication.instance()
-        app.setFont(get_font('body_md'))
-        
-        # Apply light theme stylesheet and palette
-        stylesheet = get_modern_stylesheet(dark_mode=False)
-        app.setStyleSheet(stylesheet)
-        app.setPalette(create_light_palette())
+        # Always use light theme
+        self.setStyleSheet(get_modern_stylesheet(dark_mode=False))
+        self.setPalette(create_light_palette())
+    
+    def _setup_automation_system(self):
+        """Setup the research automation system with approval callback"""
+        try:
+            self.automation = ResearchAutomation(
+                research_dir=str(DOCUMENTS_DIR),
+                approval_callback=self._automation_approval_callback
+            )
+            self.automation_enabled = True
+            print("✅ Research automation system initialized")
+        except Exception as e:
+            print(f"⚠️ Failed to initialize automation system: {e}")
+            self.automation_enabled = False
+    
+    def _automation_approval_callback(self, command, security_level, reason):
+        """Callback for requesting user approval for automation commands"""
+        reply = QMessageBox.question(
+            self,
+            "🔒 Automation Command Approval",
+            f"<b>Security Level:</b> {security_level.upper()}<br><br>"
+            f"<b>Command:</b> <code>{command}</code><br><br>"
+            f"<b>Reason:</b> {reason}<br><br>"
+            f"Do you want to allow this command to execute?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        return reply == QMessageBox.Yes
+    
 
     def clear_fields(self):
         """Clear all input fields and output box to prepare for a new query."""
@@ -610,6 +647,184 @@ class ResearchAgentGUI(QMainWindow):
         except Exception as e:
             print(f"[WARNING] Error refreshing report list: {e}")
             # Continue gracefully even if refresh fails
+    
+    # --- Research Automation Functions ---
+    def run_automation(self):
+        """Run the selected automation command or mode"""
+        if not self.automation_enabled:
+            QMessageBox.warning(self, "Automation Disabled", "Research automation system is not available.")
+            return
+        
+        try:
+            # Get current mode and command
+            mode_text = self.automation_mode_combo.currentText()
+            command = self.automation_input.text().strip()
+            
+            # Extract mode from combo text
+            if "📊 Data Analysis" in mode_text:
+                self._run_data_analysis(command)
+            elif "📈 Data Visualization" in mode_text:
+                self._run_data_visualization(command)
+            elif "🔄 Workflow Automation" in mode_text:
+                self._run_workflow_automation(command)
+            elif "💡 Smart Suggestions" in mode_text:
+                self._run_smart_suggestions(command)
+            else:
+                self.automation_output.setPlainText("Please select a valid automation mode.")
+                
+        except Exception as e:
+            self.automation_output.setPlainText(f"❌ Automation Error: {str(e)}")
+            print(f"Automation error: {e}")
+    
+    def get_automation_suggestions(self):
+        """Get automation suggestions based on current mode and research context"""
+        if not self.automation_enabled:
+            return
+        
+        try:
+            # Get research context from current query
+            research_goal = self.query_input.toPlainText().strip()
+            if not research_goal:
+                research_goal = "analyze document content and extract key insights"
+            
+            # Get suggestions from automation system
+            suggestions = get_safe_research_suggestions(research_goal)
+            
+            # Format suggestions for display
+            suggestion_text = "🔧 AUTOMATION SUGGESTIONS\n" + "=" * 40 + "\n\n"
+            suggestion_text += f"Research Goal: '{research_goal}'\n\n"
+            
+            for i, suggestion in enumerate(suggestions[:8], 1):
+                category = suggestion.get('category', 'General')
+                command = suggestion.get('command', '')
+                description = suggestion.get('description', '')
+                suggestion_text += f"{i}. [{category}] {command}\n   → {description}\n\n"
+            
+            if not suggestions:
+                suggestion_text += "No specific suggestions available. Try entering a more specific research goal."
+            
+            self.automation_output.setPlainText(suggestion_text)
+            
+        except Exception as e:
+            self.automation_output.setPlainText(f"❌ Error getting suggestions: {str(e)}")
+    
+    def _run_data_analysis(self, custom_command=""):
+        """Run data analysis automation"""
+        try:
+            if custom_command:
+                # Execute custom command
+                result = self.automation.execute_safe_command(custom_command, auto_approve=True)
+                self.automation_output.setPlainText(
+                    f"📊 DATA ANALYSIS RESULT\n{'-' * 30}\n"
+                    f"Command: {custom_command}\n"
+                    f"Success: {'✅' if result.success else '❌'}\n\n"
+                    f"{result.output if result.success else result.error}"
+                )
+            else:
+                # Run default analysis using the class-based function
+                target = str(DOCUMENTS_DIR)
+                analysis_func = DataAnalysisFunction(
+                    analysis_type="file_count",
+                    target_path=target
+                )
+                result = analysis_func.run(automation=self.automation)
+                self.automation_output.setPlainText(
+                    f"📊 DOCUMENT ANALYSIS\n{'-' * 30}\n"
+                    f"Target: {target}\n\n{result}"
+                )
+                
+        except Exception as e:
+            self.automation_output.setPlainText(f"❌ Data Analysis Error: {str(e)}")
+    
+    def _run_data_visualization(self, custom_command=""):
+        """Run data visualization automation"""
+        try:
+            if custom_command:
+                # Execute custom command
+                result = self.automation.execute_safe_command(custom_command, auto_approve=True)
+                self.automation_output.setPlainText(
+                    f"📈 VISUALIZATION RESULT\n{'-' * 30}\n"
+                    f"Command: {custom_command}\n"
+                    f"Success: {'✅' if result.success else '❌'}\n\n"
+                    f"{result.output if result.success else result.error}"
+                )
+            else:
+                # Run default visualization using the class-based function
+                target = str(DOCUMENTS_DIR)
+                viz_func = DataVisualizationFunction(
+                    visualization_type="data_summary",
+                    data_path=target
+                )
+                result = viz_func.run(automation=self.automation)
+                self.automation_output.setPlainText(
+                    f"📈 DATA VISUALIZATION\n{'-' * 30}\n"
+                    f"Target: {target}\n\n{result}"
+                )
+                
+        except Exception as e:
+            self.automation_output.setPlainText(f"❌ Visualization Error: {str(e)}")
+    
+    def _run_workflow_automation(self, custom_command=""):
+        """Run workflow automation"""
+        try:
+            if custom_command:
+                # Execute custom command
+                result = self.automation.execute_safe_command(custom_command, auto_approve=True)
+                self.automation_output.setPlainText(
+                    f"🔄 WORKFLOW RESULT\n{'-' * 30}\n"
+                    f"Command: {custom_command}\n"
+                    f"Success: {'✅' if result.success else '❌'}\n\n"
+                    f"{result.output if result.success else result.error}"
+                )
+            else:
+                # Run default workflow using the class-based function
+                workflow_func = WorkflowAutomationFunction(
+                    workflow_type="system_health",
+                    target=str(DOCUMENTS_DIR)
+                )
+                result = workflow_func.run(automation=self.automation)
+                self.automation_output.setPlainText(
+                    f"🔄 WORKFLOW AUTOMATION\n{'-' * 30}\n"
+                    f"Workflow: System Health Check\n\n{result}"
+                )
+                
+        except Exception as e:
+            self.automation_output.setPlainText(f"❌ Workflow Error: {str(e)}")
+    
+    def _run_smart_suggestions(self, research_goal=""):
+        """Run smart automation suggestions"""
+        try:
+            if not research_goal:
+                research_goal = self.query_input.toPlainText().strip()
+                if not research_goal:
+                    research_goal = "general research assistance"
+            
+            suggestions = get_safe_research_suggestions(research_goal)
+            
+            # Enhanced suggestions with automation integration
+            suggestion_text = "💡 SMART AUTOMATION SUGGESTIONS\n" + "=" * 50 + "\n\n"
+            suggestion_text += f"Research Goal: {research_goal}\n\n"
+            
+            # Group suggestions by category
+            categories = {}
+            for suggestion in suggestions:
+                category = suggestion.get('category', 'General')
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(suggestion)
+            
+            for category, items in categories.items():
+                suggestion_text += f"📂 {category}:\n"
+                for item in items[:3]:  # Limit to 3 per category
+                    command = item.get('command', '')
+                    description = item.get('description', '')
+                    suggestion_text += f"  • {command}\n    → {description}\n\n"
+                suggestion_text += "\n"
+            
+            self.automation_output.setPlainText(suggestion_text)
+            
+        except Exception as e:
+            self.automation_output.setPlainText(f"❌ Smart Suggestions Error: {str(e)}")
 
     def filter_report_list(self, text):
         """Filter the report list based on search text."""
@@ -960,6 +1175,55 @@ class ResearchAgentGUI(QMainWindow):
         progress_layout.addWidget(metrics_widget)
         progress_layout.addWidget(self.progress_log)
         layout.addWidget(progress_card)
+        
+        # Research Automation section (collapsible)
+        if self.automation_enabled:
+            self.automation_section = CollapsibleSection("🔧 Research Automation")
+            automation_layout = QVBoxLayout()
+            
+            # Automation mode selection
+            automation_mode_layout = QHBoxLayout()
+            self.automation_mode_combo = ModernComboBox()
+            self.automation_mode_combo.addItems([
+                "📊 Data Analysis - Analyze research documents and files",
+                "📈 Data Visualization - Create charts and visual summaries", 
+                "🔄 Workflow Automation - Run automated research workflows",
+                "💡 Smart Suggestions - Get contextual automation suggestions"
+            ])
+            automation_mode_layout.addWidget(QLabel("Mode:"))
+            automation_mode_layout.addWidget(self.automation_mode_combo)
+            automation_layout.addLayout(automation_mode_layout)
+            
+            # Automation command input
+            self.automation_input = ModernInput(
+                placeholder="Enter automation command or leave blank for mode-based suggestions",
+                multiline=False
+            )
+            automation_layout.addWidget(create_form_row("Command:", self.automation_input))
+            
+            # Automation buttons
+            automation_btn_layout = QHBoxLayout()
+            
+            self.run_automation_btn = IconButton("automation", "Run Automation", "primary")
+            self.run_automation_btn.clicked.connect(self.run_automation)
+            
+            self.get_suggestions_btn = IconButton("lightbulb", "Get Suggestions", "secondary")
+            self.get_suggestions_btn.clicked.connect(self.get_automation_suggestions)
+            
+            automation_btn_layout.addWidget(self.run_automation_btn)
+            automation_btn_layout.addWidget(self.get_suggestions_btn)
+            automation_layout.addLayout(automation_btn_layout)
+            
+            # Automation output (collapsible text area)
+            self.automation_output = QTextEdit()
+            self.automation_output.setFont(get_font('code'))
+            self.automation_output.setReadOnly(True)
+            self.automation_output.setMaximumHeight(150)
+            self.automation_output.setPlaceholderText("Automation results will appear here...")
+            automation_layout.addWidget(create_form_row("Output:", self.automation_output))
+            
+            self.automation_section.add_layout(automation_layout)
+            layout.addWidget(self.automation_section)
         
         # Create action buttons
         self.clear_btn = IconButton(

@@ -144,6 +144,45 @@
                 <div class="progress-log" id="progress-log"></div>
             </div>
 
+            <!-- Research Automation Section -->
+            <div class="card collapsible-card">
+                <h2 class="collapsible-header">🔧 Research Automation <span class="arrow">&#9660;</span></h2>
+                <div class="collapsible-content">
+                    <div class="form-row">
+                        <label for="automation-mode-select">Mode:</label>
+                        <select id="automation-mode-select">
+                            <option value="data_analysis">📊 Data Analysis - Analyze research documents and files</option>
+                            <option value="visualization">📈 Data Visualization - Create charts and visual summaries</option>
+                            <option value="workflow">🔄 Workflow Automation - Run automated research workflows</option>
+                            <option value="custom">💡 Custom Command - Execute specific automation command</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="automation-command-input">Command:</label>
+                        <input type="text" id="automation-command-input" placeholder="Enter automation command (optional for preset modes)">
+                    </div>
+                    <div class="form-row">
+                        <button id="get-suggestions-btn" class="secondary">💡 Get Suggestions</button>
+                        <button id="run-automation-btn" class="primary">🔧 Run Automation</button>
+                    </div>
+                    <div class="automation-output">
+                        <h3>Automation Output:</h3>
+                        <div id="automation-output" class="automation-result">Automation results will appear here...</div>
+                        <div id="automation-progress" class="automation-progress" style="display: none;">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="automation-progress-fill"></div>
+                                <span class="progress-bar-text" id="automation-progress-text">0%</span>
+                            </div>
+                            <p id="automation-status">Preparing automation...</p>
+                        </div>
+                    </div>
+                    <div class="automation-suggestions" id="automation-suggestions" style="display: none;">
+                        <h3>💡 Automation Suggestions:</h3>
+                        <div id="suggestions-list" class="suggestions-grid"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="button-group">
                 <button id="clear-btn" class="secondary">Clear</button>
                 <button id="analyze-images-btn" class="secondary">Analyze Images</button>

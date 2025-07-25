@@ -12,6 +12,13 @@ from urllib.parse import unquote
 
 from sgptAgent.agent import ResearchAgent
 from sgptAgent.config import cfg
+from sgptAgent.research_automation import (
+    ResearchAutomation, execute_research_command_with_approval,
+    get_safe_research_suggestions
+)
+from sgptAgent.llm_functions.common.research_data_analysis import Function as DataAnalysisFunction
+from sgptAgent.llm_functions.common.research_data_visualization import Function as DataVisualizationFunction
+from sgptAgent.llm_functions.common.research_workflow_automation import Function as WorkflowAutomationFunction
 
 app = FastAPI()
 
@@ -29,10 +36,26 @@ DOCUMENTS_DIR.mkdir(exist_ok=True)
 # In a real-world app, this would be a database (Redis, PostgreSQL, etc.)
 research_tasks = {}
 
+# Automation system storage
+automation_tasks = {}
+automation_system = None
+
 @app.on_event("startup")
 async def startup_event():
+    global automation_system
     # Ensure the documents directory exists
     DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Initialize automation system
+    try:
+        automation_system = ResearchAutomation(
+            research_dir=str(DOCUMENTS_DIR),
+            approval_callback=None  # Web interface will handle approval differently
+        )
+        print("✅ Research automation system initialized for web interface")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize automation system: {e}")
+        automation_system = None
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
@@ -288,6 +311,167 @@ async def delete_file(file_path: str):
         raise HTTPException(status_code=403, detail="Permission denied. Cannot delete file.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting file: {str(e)}")
+
+
+# ==================== AUTOMATION API ENDPOINTS ====================
+
+@app.get("/api/automation/suggestions")
+async def get_automation_suggestions(research_goal: str = "analyze document content and extract key insights"):
+    """Get automation suggestions based on research goal"""
+    try:
+        if not automation_system:
+            raise HTTPException(status_code=503, detail="Automation system not available")
+        
+        suggestions = get_safe_research_suggestions(research_goal)
+        
+        # Format suggestions for web interface
+        formatted_suggestions = []
+        for suggestion in suggestions[:12]:  # Limit to 12 suggestions
+            formatted_suggestions.append({
+                "command": suggestion.get('command', ''),
+                "description": suggestion.get('description', ''),
+                "category": suggestion.get('category', 'General')
+            })
+        
+        return {
+            "status": "success",
+            "research_goal": research_goal,
+            "suggestions": formatted_suggestions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting suggestions: {str(e)}")
+
+@app.post("/api/automation/execute")
+async def execute_automation(request: Request, background_tasks: BackgroundTasks):
+    """Execute automation command with approval workflow"""
+    try:
+        if not automation_system:
+            raise HTTPException(status_code=503, detail="Automation system not available")
+        
+        data = await request.json()
+        command = data.get('command', '').strip()
+        mode = data.get('mode', 'custom')  # custom, data_analysis, visualization, workflow, suggestions
+        auto_approve = data.get('auto_approve', False)
+        
+        if not command and mode == 'custom':
+            raise HTTPException(status_code=400, detail="Command is required for custom mode")
+        
+        # Generate task ID
+        task_id = str(uuid.uuid4())
+        
+        # Initialize task status
+        automation_tasks[task_id] = {
+            "id": task_id,
+            "status": "running",
+            "progress": 0,
+            "message": "Starting automation...",
+            "result": None,
+            "error": None,
+            "start_time": datetime.datetime.now().isoformat(),
+            "command": command,
+            "mode": mode
+        }
+        
+        # Run automation in background
+        background_tasks.add_task(run_automation_task, task_id, command, mode, auto_approve)
+        
+        return {"task_id": task_id, "status": "started"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting automation: {str(e)}")
+
+@app.get("/api/automation/status/{task_id}")
+async def get_automation_status(task_id: str):
+    """Get automation task status"""
+    if task_id not in automation_tasks:
+        raise HTTPException(status_code=404, detail="Automation task not found")
+    
+    return automation_tasks[task_id]
+
+async def run_automation_task(task_id: str, command: str, mode: str, auto_approve: bool):
+    """Background task to run automation"""
+    try:
+        # Update task status
+        automation_tasks[task_id]["status"] = "running"
+        automation_tasks[task_id]["progress"] = 10
+        automation_tasks[task_id]["message"] = "Executing automation command..."
+        
+        if mode == 'custom' and command:
+            # Execute custom command
+            result = automation_system.execute_safe_command(
+                command, 
+                allow_moderate=True, 
+                user_approved_advanced=auto_approve,
+                auto_approve=False  # Web interface doesn't support interactive approval yet
+            )
+            
+            automation_tasks[task_id]["progress"] = 90
+            automation_tasks[task_id]["message"] = "Processing results..."
+            
+            if result.success:
+                automation_tasks[task_id]["result"] = {
+                    "output": result.output,
+                    "command": result.command,
+                    "security_level": result.security_level.value,
+                    "timestamp": result.timestamp.isoformat()
+                }
+            else:
+                automation_tasks[task_id]["error"] = result.error
+        
+        elif mode == 'data_analysis':
+            # Run data analysis
+            analysis_func = DataAnalysisFunction(
+                analysis_type="file_count",
+                target_path=str(DOCUMENTS_DIR)
+            )
+            result = analysis_func.run(automation=automation_system)
+            automation_tasks[task_id]["result"] = {
+                "output": result,
+                "mode": "data_analysis",
+                "target": str(DOCUMENTS_DIR)
+            }
+        
+        elif mode == 'visualization':
+            # Run data visualization
+            viz_func = DataVisualizationFunction(
+                visualization_type="data_summary",
+                data_path=str(DOCUMENTS_DIR)
+            )
+            result = viz_func.run(automation=automation_system)
+            automation_tasks[task_id]["result"] = {
+                "output": result,
+                "mode": "visualization",
+                "target": str(DOCUMENTS_DIR)
+            }
+        
+        elif mode == 'workflow':
+            # Run workflow automation
+            workflow_func = WorkflowAutomationFunction(
+                workflow_type="system_health",
+                target=str(DOCUMENTS_DIR)
+            )
+            result = workflow_func.run(automation=automation_system)
+            automation_tasks[task_id]["result"] = {
+                "output": result,
+                "mode": "workflow",
+                "workflow_type": "system_health"
+            }
+        
+        else:
+            automation_tasks[task_id]["error"] = "Invalid automation mode"
+        
+        # Mark as complete
+        automation_tasks[task_id]["status"] = "completed" if not automation_tasks[task_id].get("error") else "failed"
+        automation_tasks[task_id]["progress"] = 100
+        automation_tasks[task_id]["message"] = "Automation completed" if not automation_tasks[task_id].get("error") else "Automation failed"
+        automation_tasks[task_id]["end_time"] = datetime.datetime.now().isoformat()
+        
+    except Exception as e:
+        automation_tasks[task_id]["status"] = "failed"
+        automation_tasks[task_id]["error"] = str(e)
+        automation_tasks[task_id]["progress"] = 100
+        automation_tasks[task_id]["message"] = f"Automation failed: {str(e)}"
+        automation_tasks[task_id]["end_time"] = datetime.datetime.now().isoformat()
 
 
 if __name__ == "__main__":
