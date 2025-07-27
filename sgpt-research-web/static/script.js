@@ -607,8 +607,20 @@ async function getAutomationSuggestions() {
                 displayAutomationSuggestions(data.suggestions);
                 
                 if (suggestionsContainer) {
+                    // Show the suggestions container
                     suggestionsContainer.style.display = 'block';
-                    console.log('👁️ Suggestions container shown');
+                    suggestionsContainer.style.visibility = 'visible';
+                    suggestionsContainer.style.opacity = '1';
+                    suggestionsContainer.classList.remove('hidden');
+                    
+                    // Auto-scroll to suggestions section
+                    setTimeout(() => {
+                        suggestionsContainer.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start',
+                            inline: 'nearest'
+                        });
+                    }, 100);
                 } else {
                     console.error('❌ suggestionsContainer not found!');
                 }
@@ -631,56 +643,59 @@ async function getAutomationSuggestions() {
             getSuggestionsBtn.disabled = false;
             getSuggestionsBtn.textContent = '💡 Get Suggestions';
         }
-        console.log('🔄 getAutomationSuggestions completed');
     }
 }
 
 // Display automation suggestions
 function displayAutomationSuggestions(suggestions) {
-    console.log('🎨 displayAutomationSuggestions called with:', suggestions);
-    
     const suggestionsGrid = document.getElementById('suggestions-list');
-    console.log('📋 suggestionsGrid element:', suggestionsGrid);
-    
     if (!suggestionsGrid) {
-        console.error('❌ suggestions-list element not found!');
+        console.error('ERROR: Suggestions grid not found!');
         return;
     }
     
+    // Clear existing suggestions
     suggestionsGrid.innerHTML = '';
-    console.log('🧹 Cleared suggestions grid');
     
+    // Add suggestion items
     suggestions.forEach((suggestion, index) => {
-        console.log(`🏗️ Creating suggestion ${index + 1}:`, suggestion);
+        const suggestionElement = document.createElement('div');
+        suggestionElement.className = 'suggestion-item';
+        suggestionElement.style.cursor = 'pointer';
         
-        const suggestionDiv = document.createElement('div');
-        suggestionDiv.className = 'suggestion-item';
-        suggestionDiv.innerHTML = `
-            <div class="suggestion-category">${suggestion.category || 'General'}</div>
-            <div class="suggestion-command">${suggestion.command}</div>
-            <div class="suggestion-description">${suggestion.description}</div>
-        `;
+        // Create content sections
+        const titleElement = document.createElement('div');
+        titleElement.className = 'suggestion-title';
+        titleElement.textContent = suggestion.category || suggestion.title || 'General';
         
-        console.log(`📦 Created suggestion div ${index + 1}:`, suggestionDiv);
+        const commandElement = document.createElement('code');
+        commandElement.className = 'suggestion-command';
+        commandElement.textContent = suggestion.command || '';
         
-        // Click handler to populate command input
-        suggestionDiv.addEventListener('click', () => {
-            console.log('🖱️ Suggestion clicked:', suggestion.command);
-            document.getElementById('automation-command-input').value = suggestion.command;
+        const descElement = document.createElement('div');
+        descElement.className = 'suggestion-description';
+        descElement.textContent = suggestion.description || '';
+        
+        // Assemble the suggestion item
+        suggestionElement.appendChild(titleElement);
+        suggestionElement.appendChild(commandElement);
+        suggestionElement.appendChild(descElement);
+        
+        // Add click handler to populate command input
+        suggestionElement.addEventListener('click', () => {
+            const commandInput = document.getElementById('automation-command-input');
+            if (commandInput && suggestion.command) {
+                commandInput.value = suggestion.command;
+            }
         });
         
-        suggestionsGrid.appendChild(suggestionDiv);
-        console.log(`✅ Appended suggestion ${index + 1} to grid`);
+        suggestionsGrid.appendChild(suggestionElement);
     });
     
-    console.log('🎯 Final suggestions grid children count:', suggestionsGrid.children.length);
-    console.log('👁️ Suggestions grid visibility:', window.getComputedStyle(suggestionsGrid).display);
-    console.log('📏 Suggestions grid dimensions:', {
-        width: suggestionsGrid.offsetWidth,
-        height: suggestionsGrid.offsetHeight,
-        clientWidth: suggestionsGrid.clientWidth,
-        clientHeight: suggestionsGrid.clientHeight
-    });
+    // Ensure grid is visible (CSS handles the styling)
+    suggestionsGrid.style.display = 'grid';
+    suggestionsGrid.style.visibility = 'visible';
+    suggestionsGrid.offsetHeight; // Trigger reflow
 }
 
 // Run automation command

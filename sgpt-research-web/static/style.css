@@ -285,8 +285,11 @@ button.danger:hover {
 
 .collapsible-content.expanded {
     max-height: 500px; /* Sufficiently large value */
+    overflow-y: auto;
+    overflow-x: hidden;
     transition: max-height 0.5s ease-in;
     margin-top: 15px; /* Add space after header */
+    padding: 15px;
 }
 
 /* Responsive adjustments */
@@ -372,8 +375,12 @@ button.danger:hover {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 10px;
-    max-height: 400px;
+    max-height: 300px;
     overflow-y: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 10px 0;
 }
 
 .suggestion-item {

@@ -414,68 +414,135 @@ class ResearchAutomation:
         # Analyze research goal for keywords
         goal_lower = research_goal.lower()
         
-        # File analysis suggestions
-        if any(word in goal_lower for word in ['file', 'document', 'text', 'data']):
+        # File analysis suggestions - EXPANDED KEYWORDS
+        if any(word in goal_lower for word in [
+            'file', 'document', 'text', 'data', 'research', 'study', 'report', 'paper', 
+            'content', 'material', 'information', 'source', 'literature', 'reference'
+        ]):
             suggestions.extend([
-                {
-                    'command': 'find documents -name "*.txt" -o -name "*.md" -o -name "*.pdf" | head -20',
-                    'description': 'Find text documents in research directory',
-                    'category': 'File Discovery'
-                },
-                {
-                    'command': 'ls -la documents/',
-                    'description': 'List all files in research directory with details',
-                    'category': 'File Analysis'
-                }
-            ])
-        
+            {
+                'command': 'find documents -name "*.txt" -o -name "*.md" -o -name "*.pdf" | head -20',
+                'description': 'Find text documents in research directory',
+                'category': 'File Discovery'
+            },
+            {
+                'command': 'ls -la documents/',
+                'description': 'List all files in research directory with details',
+                'category': 'File Analysis'
+            },
+            {
+                'command': 'grep -r "material" documents/ --include="*.txt" | head -10',
+                'description': 'Search for mentions of materials in documents',
+                'category': 'Content Search'
+            }
+        ])
+    
+        # Research and analysis suggestions - EXPANDED KEYWORDS
+        if any(word in goal_lower for word in [
+            'analyze', 'analysis', 'data', 'statistics', 'count', 'measure', 'compare', 
+            'best', 'optimal', 'evaluate', 'assessment', 'review', 'study', 'research',
+            'investigate', 'examine', 'explore', 'determine', 'identify', 'find'
+        ]):
+            suggestions.extend([
+            {
+                'command': 'wc -l documents/*.txt',
+                'description': 'Count lines in text files for analysis',
+                'category': 'Data Analysis'
+            },
+            {
+                'command': 'grep -c "keyword" documents/*.txt',
+                'description': 'Count keyword occurrences (replace "keyword")',
+                'category': 'Data Analysis'
+            },
+            {
+                'command': 'find documents/ -name "*.csv" -exec head -5 {} \\;',
+                'description': 'Preview CSV data files for analysis',
+                'category': 'Data Preview'
+            }
+        ])
+    
+        # Technical/Scientific research suggestions - NEW CATEGORY
+        if any(word in goal_lower for word in [
+            'material', 'printing', '3d', 'automotive', 'engineering', 'technical', 
+            'scientific', 'technology', 'manufacturing', 'properties', 'specifications',
+            'performance', 'quality', 'strength', 'durability', 'chemical', 'physical'
+        ]):
+            suggestions.extend([
+            {
+                'command': 'grep -ri "material properties" documents/ | head -10',
+                'description': 'Search for material properties information',
+                'category': 'Technical Research'
+            },
+            {
+                'command': 'find documents/ -name "*spec*" -o -name "*properties*"',
+                'description': 'Find specification and properties files',
+                'category': 'Technical Research'
+            },
+            {
+                'command': 'grep -ri "automotive" documents/ --include="*.txt" | wc -l',
+                'description': 'Count automotive-related references',
+                'category': 'Domain Analysis'
+            }
+        ])
+    
         # Network research suggestions
         if any(word in goal_lower for word in ['website', 'domain', 'url', 'online', 'web']):
             suggestions.extend([
-                {
-                    'command': 'whois example.com',
-                    'description': 'Get domain information (replace example.com)',
-                    'category': 'Network Research'
-                },
-                {
-                    'command': 'curl -I https://example.com',
-                    'description': 'Get website headers (replace URL)',
-                    'category': 'Network Research'
-                }
-            ])
-        
-        # Data analysis suggestions
-        if any(word in goal_lower for word in ['analyze', 'data', 'statistics', 'count', 'measure']):
-            suggestions.extend([
-                {
-                    'command': 'wc -l documents/*.txt',
-                    'description': 'Count lines in text files',
-                    'category': 'Data Analysis'
-                },
-                {
-                    'command': 'grep -c "keyword" documents/*.txt',
-                    'description': 'Count occurrences of keyword in files',
-                    'category': 'Data Analysis'
-                }
-            ])
-        
+            {
+                'command': 'whois example.com',
+                'description': 'Get domain information (replace example.com)',
+                'category': 'Network Research'
+            },
+            {
+                'command': 'curl -I https://example.com',
+                'description': 'Get website headers (replace URL)',
+                'category': 'Network Research'
+            }
+        ])
+    
         # System information suggestions
         if any(word in goal_lower for word in ['system', 'computer', 'hardware', 'performance']):
             suggestions.extend([
-                {
-                    'command': 'uname -a',
-                    'description': 'Get system information',
-                    'category': 'System Info'
-                },
-                {
-                    'command': 'df -h',
-                    'description': 'Check disk space usage',
-                    'category': 'System Info'
-                }
-            ])
-        
-        return suggestions
+            {
+                'command': 'uname -a',
+                'description': 'Get system information',
+                'category': 'System Info'
+            },
+            {
+                'command': 'df -h',
+                'description': 'Check disk space usage',
+                'category': 'System Info'
+            }
+        ])
     
+        # FALLBACK: General research suggestions if no specific keywords match
+        if not suggestions:
+            suggestions.extend([
+            {
+                'command': 'ls -la documents/',
+                'description': 'List available research documents',
+                'category': 'General'
+            },
+            {
+                'command': 'find documents/ -type f | head -20',
+                'description': 'Find research files in documents directory',
+                'category': 'General'
+            },
+            {
+                'command': 'grep -r "research" documents/ --include="*.txt" | head -5',
+                'description': 'Search for research-related content',
+                'category': 'General'
+            },
+            {
+                'command': 'wc -w documents/*.txt | sort -n | tail -5',
+                'description': 'Find largest text files by word count',
+                'category': 'General'
+            }
+        ])
+    
+        # Limit to reasonable number of suggestions
+        return suggestions[:12]
+
     def create_research_script(self, commands: List[str], script_name: str = None) -> str:
         """
         Create a safe research automation script from validated commands.
