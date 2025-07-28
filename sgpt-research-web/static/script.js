@@ -703,8 +703,8 @@ async function runAutomation() {
     const runBtn = document.getElementById('run-automation-btn');
     const commandInput = document.getElementById('automation-command-input');
     const modeSelect = document.getElementById('automation-mode-select');
-    const outputContainer = document.getElementById('automation-output');
-    const resultDiv = document.getElementById('automation-result');
+    const outputContainer = document.querySelector('.automation-output');
+    const resultDiv = document.getElementById('automation-output'); // Fix: use correct ID
     const progressDiv = document.getElementById('automation-progress');
     const statusSpan = document.getElementById('automation-status');
     
@@ -799,7 +799,7 @@ function stopAutomationPolling() {
 
 // Update automation status display
 function updateAutomationStatus(data) {
-    const resultDiv = document.getElementById('automation-result');
+    const resultDiv = document.getElementById('automation-output'); // Fix: use correct ID
     const statusSpan = document.getElementById('automation-status');
     const progressDiv = document.getElementById('automation-progress');
     
@@ -808,7 +808,16 @@ function updateAutomationStatus(data) {
     
     // Update result display
     if (data.result) {
-        resultDiv.textContent = data.result;
+        // Handle different result formats
+        if (typeof data.result === 'string') {
+            resultDiv.textContent = data.result;
+        } else if (data.result.output) {
+            // For automation command results
+            resultDiv.textContent = data.result.output;
+        } else {
+            // Fallback: convert object to JSON string
+            resultDiv.textContent = JSON.stringify(data.result, null, 2);
+        }
     }
     
     // Handle completion
@@ -832,7 +841,7 @@ function updateAutomationStatus(data) {
 
 // Display automation error
 function displayAutomationError(message) {
-    const resultDiv = document.getElementById('automation-result');
+    const resultDiv = document.getElementById('automation-output'); // Fix: use correct ID
     const statusSpan = document.getElementById('automation-status');
     const progressDiv = document.getElementById('automation-progress');
     const runBtn = document.getElementById('run-automation-btn');

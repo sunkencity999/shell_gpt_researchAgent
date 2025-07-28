@@ -251,32 +251,83 @@ python research_summarizer.py --batch --all-topics
 
 ### **🎮 How to Use Automation**
 
+> **🎯 KEY PRINCIPLE**: **Custom commands ALWAYS take priority** - if you enter a specific command, it will execute regardless of the selected mode. Modes only matter when no custom command is provided.
+
 #### **Desktop GUI:**
 1. **Open ResearchAgent**: Launch the desktop application
 2. **Navigate to Automation**: Scroll to the "🔧 Research Automation" section
-3. **Select Mode**: Choose your automation type (Data Analysis, Visualization, etc.)
-4. **Get Suggestions**: Click "💡 Get Suggestions" for context-aware recommendations
-5. **Enter Command**: Type or select a command to execute
-6. **Run Automation**: Click "⚙️ Run Automation" to execute
-7. **Approve if Needed**: Confirm any restricted commands in the approval dialog
+3. **Enter Your Command**: Type the specific command you want to execute
+   - **OR** Select a mode for preset functionality (only if no custom command)
+4. **Get Smart Suggestions**: Click "💡 Get Suggestions" for context-aware recommendations
+   - Suggestions populate based on your research query
+   - Click any suggestion to auto-fill the command field
+5. **Execute**: Click "⚙️ Run Automation" to run your command
+6. **Approve if Needed**: Confirm any restricted commands in the approval dialog
 
 #### **Web GUI:**
 1. **Access Web Interface**: Navigate to `http://localhost:8000`
 2. **Expand Automation**: Click the "🔧 Research Automation" collapsible section
-3. **Choose Mode**: Select automation mode from the dropdown
-4. **Enter Research Query**: Add your research topic in the main query field
-5. **Get Suggestions**: Click "💡 Get Suggestions" for smart recommendations
-6. **Select Command**: Click any suggestion or enter a custom command
-7. **Execute**: Click "⚙️ Run Automation" and monitor progress
+3. **Enter Your Command**: Type your specific command in the Command field
+   - **OR** Leave empty and select a mode for preset functions
+4. **Get Smart Suggestions**: Click "💡 Get Suggestions" for AI-powered recommendations
+   - Suggestions appear in a scrollable grid below
+   - Container auto-scrolls to show suggestions
+   - Click any suggestion card to populate the command field
+5. **Execute**: Click "⚙️ Run Automation" and monitor real-time progress
+6. **View Results**: Scroll within the automation section to see all output
+
+### **🔄 How Mode Selection Works (Updated)**
+
+**Mode Priority Logic:**
+- **✅ Custom Command Provided**: Your command executes (mode ignored)
+- **⚙️ No Custom Command**: Mode-specific preset function runs
+  - **📊 Data Analysis**: File counting and analysis
+  - **📈 Visualization**: Data summary generation  
+  - **🔄 Workflow**: System health checks
+  - **💡 Custom**: Requires a command (will show error if empty)
+
+### **🔍 Practical Automation Examples**
+
+#### **Example 1: Custom Command (Recommended Approach)**
+```bash
+# What you want: List documents with details
+Command: ls -la documents/
+Mode: Any (ignored when custom command provided)
+Result: ✅ Detailed file listing with permissions, dates, sizes
+```
+
+#### **Example 2: Using Suggestions Workflow**
+```bash
+# Step 1: Enter research topic in main query
+Query: "What is the best material for 3D printing auto parts?"
+
+# Step 2: Click "💡 Get Suggestions" 
+# Results: Smart suggestions like:
+# - "find documents -name '*.pdf' | head -20" (FILE DISCOVERY)
+# - "grep -r 'material' documents/" (CONTENT SEARCH)
+# - "ls -la documents/" (FILE ANALYSIS)
+
+# Step 3: Click any suggestion to auto-populate command field
+# Step 4: Click "⚙️ Run Automation" to execute
+```
+
+#### **Example 3: Mode-Only Workflow (No Custom Command)**
+```bash
+# Leave Command field empty
+Mode: 📊 Data Analysis
+Result: ✅ Runs preset file counting analysis
+Output: "Found 2079 files matching pattern '*' in documents/"
+```
 
 ### **💡 Pro Tips for Automation**
 
-#### **Best Practices:**
-- **Start Simple**: Begin with basic file operations before advanced workflows
-- **Use Suggestions**: Let the AI recommend commands based on your research topic
-- **Test Commands**: Try commands on sample data before running on important files
-- **Read Approval Dialogs**: Understand what restricted commands will do
-- **Save Useful Commands**: Keep track of automation commands that work well
+#### **Best Practices (Updated):**
+- **Custom Commands First**: Always enter specific commands for exact control
+- **Use Suggestions Smartly**: Let AI recommend commands based on your research context
+- **Mode as Fallback**: Use modes only when you want preset functionality
+- **Test on Sample Data**: Try commands on test files before important data
+- **Leverage Scrolling**: Use the scrollable container to access all controls and results
+- **Save Successful Patterns**: Keep track of command combinations that work well
 
 #### **Common Use Cases:**
 - **📚 Literature Review**: Automate document analysis and citation extraction

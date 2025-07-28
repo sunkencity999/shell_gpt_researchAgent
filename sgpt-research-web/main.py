@@ -396,8 +396,9 @@ async def run_automation_task(task_id: str, command: str, mode: str, auto_approv
         automation_tasks[task_id]["progress"] = 10
         automation_tasks[task_id]["message"] = "Executing automation command..."
         
-        if mode == 'custom' and command:
-            # Execute custom command
+        # PRIORITIZE CUSTOM COMMANDS: If user provided a command, execute it regardless of mode
+        if command and command.strip():
+            # Execute custom command (user's input takes priority)
             result = automation_system.execute_safe_command(
                 command, 
                 allow_moderate=True, 
@@ -418,13 +419,13 @@ async def run_automation_task(task_id: str, command: str, mode: str, auto_approv
             else:
                 automation_tasks[task_id]["error"] = result.error
         
+        # FALLBACK TO MODE-SPECIFIC FUNCTIONS: Only if no custom command provided
         elif mode == 'data_analysis':
-            # Run data analysis
-            analysis_func = DataAnalysisFunction(
+            # Run data analysis using correct classmethod
+            result = DataAnalysisFunction.execute(
                 analysis_type="file_count",
                 target_path=str(DOCUMENTS_DIR)
             )
-            result = analysis_func.run(automation=automation_system)
             automation_tasks[task_id]["result"] = {
                 "output": result,
                 "mode": "data_analysis",
@@ -432,12 +433,11 @@ async def run_automation_task(task_id: str, command: str, mode: str, auto_approv
             }
         
         elif mode == 'visualization':
-            # Run data visualization
-            viz_func = DataVisualizationFunction(
+            # Run data visualization using correct classmethod
+            result = DataVisualizationFunction.execute(
                 visualization_type="data_summary",
                 data_path=str(DOCUMENTS_DIR)
             )
-            result = viz_func.run(automation=automation_system)
             automation_tasks[task_id]["result"] = {
                 "output": result,
                 "mode": "visualization",
@@ -445,12 +445,11 @@ async def run_automation_task(task_id: str, command: str, mode: str, auto_approv
             }
         
         elif mode == 'workflow':
-            # Run workflow automation
-            workflow_func = WorkflowAutomationFunction(
+            # Run workflow automation using correct classmethod
+            result = WorkflowAutomationFunction.execute(
                 workflow_type="system_health",
                 target=str(DOCUMENTS_DIR)
             )
-            result = workflow_func.run(automation=automation_system)
             automation_tasks[task_id]["result"] = {
                 "output": result,
                 "mode": "workflow",
